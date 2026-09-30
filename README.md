@@ -4,7 +4,7 @@ A playable Godot prototype about arranging architecture, choosing where to stand
 
 **The current revision uses authored paths.** Ordinary edges stop the character. Walls and undersides are not freely walkable. Board the terracotta deck, then rotate it to carry your ground onto the vertical landing. Ivory paving marks the walkable route.
 
-**The architectural camera has one fixed, composed view.** Align the turning gallery with its distant counterpart, then enter the corridor in third person. A concealed, two-way portal implements the spatial connection inside matching architecture. It is not presented as a glowing teleport doorway, and changing camera mode does not invalidate the connection.
+**The architectural camera rolls so the traveller?s current ground reads as the floor.** Its viewing direction stays composed to preserve the impossible alignment, and an occlusion silhouette keeps the traveller visible inside covered architecture. Align the turning gallery with its distant counterpart, then enter the corridor in third person. A concealed, two-way portal implements the spatial connection inside matching architecture. It is not presented as a glowing teleport doorway, and changing camera mode does not invalidate the connection.
 
 Open **project.godot** in Godot 4.6 and press **F5**.
 
@@ -21,7 +21,7 @@ Third person is the default. Settings provide first person, camera distance, sen
 
 The earlier free-surface layout has been replaced. Save version 3 starts older checkpoints at the revised entrance; settings remain compatible. The previous workstation save was backed up before this revision.
 
-![Authored paths and composed architecture](docs/authored-paths-overview.png)
+![Authored paths and composed architecture](docs/overview-hidden-traveller.png)
 
 - [Current specification, decisions and limitations](docs/spec.md)
 - [Project development guide](docs/skill.md)

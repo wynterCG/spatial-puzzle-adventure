@@ -12,6 +12,36 @@ var base_color := Color.WHITE
 var walk_regions: Array[Rect2] = []
 var neighbours: Array[SurfacePiece] = []
 var path_visuals: Array[MeshInstance3D] = []
+var solid_boxes: Array[AABB] = []
+var solid_meshes: Array[MeshInstance3D] = []
+var pick_body: StaticBody3D
+
+func contains_solid(point: Vector3, padding := 0.0) -> bool:
+	for bounds in solid_boxes:
+		if bounds.grow(padding).has_point(point):
+			return true
+	return false
+
+func set_solid_boxes(boxes: Array[AABB]) -> void:
+	# Visible mass, selection collision and analytic body/camera queries agree.
+	for visual in solid_meshes:
+		visual.hide()
+		visual.queue_free()
+	solid_meshes.clear()
+	for edge in trim:
+		edge.hide()
+	for shape in pick_body.get_children():
+		shape.queue_free()
+	solid_boxes = boxes
+	for bounds in solid_boxes:
+		solid_meshes.append(box(self, bounds.get_center(), bounds.size, material(base_color)))
+		var collision := CollisionShape3D.new()
+		var shape := BoxShape3D.new()
+		shape.size = bounds.size
+		collision.shape = shape
+		pick_body.add_child(collision)
+		collision.position = bounds.get_center()
+	mesh = solid_meshes[0]
 
 func allows_point(point: Vector3, up: Vector3) -> bool:
 	if not up.is_equal_approx(Vector3.UP) or absf(point.y - half.y) > 0.025:
@@ -44,7 +74,10 @@ func setup(label_text: String, dimensions: Vector3, tint: Color, can_move := fal
 	movable = can_move
 	base_color = tint
 	mesh = box(self, Vector3.ZERO, dimensions, material(tint))
+	solid_boxes = [AABB(-half, dimensions)]
+	solid_meshes = [mesh]
 	var body := StaticBody3D.new()
+	pick_body = body
 	add_child(body)
 	body.set_meta("piece", self)
 	var collision := CollisionShape3D.new()

@@ -57,6 +57,7 @@ func _ready() -> void:
 	overview = Camera3D.new()
 	add_child(overview)
 	overview.projection = Camera3D.PROJECTION_ORTHOGONAL
+	overview.cull_mask = 15
 	overview.size = 46.0
 	update_overview_camera()
 	overview.current = true
@@ -128,6 +129,17 @@ func build_world() -> void:
 	courtyard.rotation.x = PI / 2
 	destination = make_piece("Destination", courtyard.position + PASSAGE_OFFSET, Vector3(6, 2, 32), Color("719899"))
 	destination.rotation.x = PI / 2
+	# Build the load-bearing mass around the route, not two enormous flat cards.
+	courtyard.set_solid_boxes([
+		AABB(Vector3(-4, -1, -1.2), Vector3(8, 2, 2.5)),
+		AABB(Vector3(-1.9, -1, -12), Vector3(3.8, 2, 10.8))
+	])
+	destination.set_solid_boxes([
+		AABB(Vector3(-1.9, -1, -11), Vector3(3.8, 2, 10.2)),
+		AABB(Vector3(-3, -1, -16), Vector3(6, 2, 5))
+	])
+	build_landing_detail(courtyard, false)
+	build_landing_detail(destination, true)
 	arrival.walk_regions = [Rect2(-2.8, -0.8, 5.8, 1.6)]
 	causeway.walk_regions = [Rect2(-2, -0.8, 4, 1.6)]
 	carrier.walk_regions = [Rect2(-6, -0.8, 12, 1.6)]
@@ -140,7 +152,7 @@ func build_world() -> void:
 	var shrine := Node3D.new()
 	destination.add_child(shrine)
 	shrine.position = Vector3(0, 1, -14.6)
-	arch_frame(shrine, Color("d1c2a8"), 3.8)
+	build_beacon_chamber(shrine)
 	var orb := MeshInstance3D.new()
 	var sphere := SphereMesh.new()
 	sphere.radius = 0.42
@@ -201,7 +213,10 @@ func update_connections() -> void:
 func update_overview_camera() -> void:
 	var focus := Vector3(-1, -2, -7)
 	overview.position = focus + Vector3(36, 30, 48)
-	overview.look_at(focus)
+	# Roll the composed frame with the occupied ground; do not orbit away from
+	# the authored sightline. Endpoint projection alignment survives every roll.
+	var ground_up := (walker.support.global_basis * walker.normal).normalized()
+	overview.look_at(focus, ground_up)
 
 func make_piece(label_text: String, at: Vector3, size: Vector3, color: Color, movable := false) -> SurfacePiece:
 	var piece := Piece.new()
@@ -228,18 +243,76 @@ func build_arch() -> void:
 	build_passage_view(arch, PASSAGE_OFFSET)
 	build_passage_view(far_gallery, -PASSAGE_OFFSET)
 
+func build_landing_detail(piece: SurfacePiece, is_destination: bool) -> void:
+	var stone := Piece.material(Color("aca4b0"))
+	var shadow := Piece.material(Color("50526b"))
+	# A stepped base explains thickness; the matching neck joins in projection.
+	var z_start := -16.0 if is_destination else -12.0
+	var z_end := -11.0 if is_destination else -1.2
+	var width := 6.3 if is_destination else 4.1
+	Piece.box(piece, Vector3(0, -0.72, (z_start + z_end) * 0.5), Vector3(width, 0.28, z_end - z_start), stone)
+	Piece.box(piece, Vector3(0, -1.08, (z_start + z_end) * 0.5), Vector3(width - 0.3, 0.18, z_end - z_start), shadow)
+	if not is_destination:
+		# The carrier enters a small inhabited landing instead of hitting a wall.
+		for side in [-1.0, 1.0]:
+			Piece.box(piece, Vector3(-2.4, 1.18, side * 1.12), Vector3(3.2, 0.32, 0.18), stone)
+		Piece.box(piece, Vector3(-3.6, 1.04, 0), Vector3(0.12, 0.035, 1.65), Piece.material(Color("b9976b")))
+	else:
+		for side in [-1.0, 1.0]:
+			Piece.box(piece, Vector3(side * 2.75, 1.2, -13.5), Vector3(0.18, 0.4, 5.0), stone)
+
+func build_beacon_chamber(parent: Node3D) -> void:
+	var stone := Piece.material(Color("bcb2a4"))
+	var recess := Piece.material(Color("4b5862"))
+	for side in [-1.0, 1.0]:
+		gallery_solids.append(Piece.box(parent, Vector3(side * 1.7, 2.0, 0), Vector3(0.55, 4.0, 2.0), stone))
+		Piece.box(parent, Vector3(side * 1.7, 0.22, 0), Vector3(0.78, 0.44, 2.3), stone)
+	gallery_solids.append(Piece.box(parent, Vector3(0, 2.0, -0.85), Vector3(3.9, 4.0, 0.3), recess))
+	gallery_solids.append(Piece.box(parent, Vector3(0, 4.05, 0), Vector3(4.5, 0.3, 2.5), stone))
+	Piece.box(parent, Vector3(0, 4.3, 0), Vector3(4.8, 0.18, 2.75), stone)
+	Piece.box(parent, Vector3(0, 0.10, 0), Vector3(3.85, 0.2, 2.3), stone)
+
 func build_gallery(parent: Node3D) -> Node3D:
 	var gallery := Node3D.new()
 	parent.add_child(gallery)
 	gallery.position = Vector3(0, 1, -6)
-	var stone := Piece.material(Color("a39bab"))
-	var dark := Piece.material(Color("4b5067"))
-	var warm := Piece.material(Color("dcc39a"), 0.25)
+	var stone := Piece.material(Color("aaa3b0"))
+	var moulding := Piece.material(Color("c4bbae"))
+	var dark := Piece.material(Color("53566e"))
+	var warm := Piece.material(Color("dcc39a"), 0.15)
 	for side in [-1.0, 1.0]:
 		gallery_solids.append(Piece.box(gallery, Vector3(side * 1.4, 1.9, 0), Vector3(0.35, 3.8, 10.2), stone))
 		Piece.box(gallery, Vector3(side * 1.215, 0.48, 0), Vector3(0.025, 0.055, 10.15), warm)
-	gallery_solids.append(Piece.box(gallery, Vector3(0, 3.9, 0), Vector3(3.15, 0.2, 10.2), stone))
-	Piece.box(gallery, Vector3(0, -0.045, 0), Vector3(3.15, 0.08, 10.2), dark)
+		# Pilasters and recessed panels give the corridor a readable structural rhythm.
+		for z in [-5.0, -2.5, 0.0, 2.5, 5.0]:
+			Piece.box(gallery, Vector3(side * 1.62, 1.9, z), Vector3(0.25, 3.8, 0.24), moulding)
+		for z in [-3.75, -1.25, 1.25, 3.75]:
+			Piece.box(gallery, Vector3(side * 1.584, 2.15, z), Vector3(0.022, 1.45, 1.55), dark)
+	# Deep reveals and a cap frame both ends as passages through masonry.
+	for z in [-5.15, 5.15]:
+		for side in [-1.0, 1.0]:
+			gallery_solids.append(Piece.box(gallery, Vector3(side * 1.5, 1.85, z), Vector3(0.55, 3.7, 0.65), moulding))
+		gallery_solids.append(Piece.box(gallery, Vector3(0, 3.72, z), Vector3(3.55, 0.25, 0.65), moulding))
+	gallery_solids.append(Piece.box(gallery, Vector3(0, 3.92, 0), Vector3(3.6, 0.24, 10.65), stone))
+	# Shallow pitched coping replaces the silhouette of an open square tube.
+	for side in [-1.0, 1.0]:
+		var roof := Piece.box(gallery, Vector3(side * 0.9, 4.36, 0), Vector3(1.92, 0.16, 10.65), moulding)
+		roof.rotation.z = -side * atan2(0.64, 1.8)
+		gallery_solids.append(roof)
+	for z in [-5.3, 5.3]:
+		var pediment := MeshInstance3D.new()
+		var surface := SurfaceTool.new()
+		surface.begin(Mesh.PRIMITIVE_TRIANGLES)
+		var vertices := [Vector3(-1.8, 4.02, z), Vector3(1.8, 4.02, z), Vector3(0, 4.72, z)]
+		if z > 0:
+			vertices.reverse()
+		for vertex in vertices:
+			surface.add_vertex(vertex)
+		surface.generate_normals()
+		pediment.mesh = surface.commit()
+		pediment.material_override = stone
+		gallery.add_child(pediment)
+	Piece.box(gallery, Vector3(0, -0.08, 0), Vector3(3.8, 0.18, 10.65), dark)
 	Piece.box(gallery, Vector3(0, 0.015, 0), Vector3(1.8, 0.02, 10.2), Piece.material(Color("d8c8ac")))
 	for z in [-4.8, -2.4, 0.0, 2.4, 4.8]:
 		Piece.box(gallery, Vector3(0, 3.72, z), Vector3(2.45, 0.10, 0.10), warm)
@@ -301,6 +374,7 @@ func _process(delta: float) -> void:
 			complete()
 	walker.sync_pose(delta)
 	walker.avatar.visible = architectural or walker.third_person
+	walker.update_overview_visibility(overview, architectural)
 	update_passage_views()
 	hud.refresh()
 
@@ -398,8 +472,11 @@ func rotate_selected(direction: int) -> void:
 	play_tone(175, 0.45, 0.12)
 	rotation_tween = create_tween().set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
 	rotation_tween.tween_property(target, axis, start + direction * PI * 0.5, 0.12 if walker.reduced_motion else 0.8)
+	if not walker.reduced_motion:
+		rotation_tween.parallel().tween_method(func(_weight: float): update_overview_camera(), 0.0, 1.0, 0.8)
 	rotation_tween.tween_callback(func():
 		busy = false
+		update_overview_camera()
 		update_connections()
 		play_tone(620, 0.2, 0.1)
 		notify("The galleries form one passage." if selected == 1 and arch_state == 0 else "The structure settles. Inspect the path before walking.")
@@ -419,7 +496,7 @@ func safe_carrier_turn(direction: int) -> bool:
 			var point: Vector3 = carrier.global_position + basis_at * (walker.foot + walker.normal * height)
 			for other in [arrival, causeway, courtyard, destination]:
 				var local: Vector3 = other.to_local(point)
-				if absf(local.x) < other.half.x + 0.16 and absf(local.y) < other.half.y + 0.16 and absf(local.z) < other.half.z + 0.16:
+				if other.contains_solid(local, 0.16):
 					return false
 	return true
 
@@ -511,7 +588,6 @@ func new_journey() -> void:
 	arch.rotation.y = PI / 2
 	update_connections()
 	boarded = false
-	update_overview_camera()
 	reached_court = false
 	crossed = false
 	won = false
@@ -521,6 +597,7 @@ func new_journey() -> void:
 	walker.orbit_yaw = 0.0
 	walker.orbit_pitch = 0.42
 	walker.place(arrival, START_FOOT, Vector3.UP, Vector3.RIGHT)
+	update_overview_camera()
 	checkpoint = snapshot()
 	save_progress()
 	set_pause(false)
@@ -667,6 +744,11 @@ func run_self_test() -> void:
 	new_journey()
 	walker.set_third_person(true)
 	walker.keep_world_horizon = false
+	if courtyard.contains_solid(Vector3(3, 0, 8)) or not courtyard.contains_solid(Vector3(-3, 0, 0)) or not courtyard.contains_solid(Vector3(0, 0, -6)):
+		failures.append("Compound support solids must match the landing and gallery neck")
+	walker.update_overview_visibility(overview, true)
+	if walker.overview_silhouette.visible:
+		failures.append("An unobstructed arrival must not need an occlusion silhouette")
 	# No wall, underside or corner can be entered by walking over a normal edge.
 	for up in [Vector3.DOWN, Vector3.LEFT, Vector3.RIGHT, Vector3.FORWARD, Vector3.BACK]:
 		if arrival.allows_point(up * arrival.half, up):
@@ -689,6 +771,7 @@ func run_self_test() -> void:
 	if walker.support != carrier or not boarded or str(checkpoint.player.piece) != "Carrier":
 		failures.append("Entrance path must lead onto the carrier and save boarding")
 	var before_turn := snapshot()
+	var composed_direction := overview.global_basis.z
 	var old_up := walker.avatar.global_basis.y
 	select_piece(0)
 	rotate_selected(1)
@@ -698,6 +781,20 @@ func run_self_test() -> void:
 	walker.sync_pose(1)
 	if busy or carrier.state != 1 or walker.snapshot() != before_turn.player or old_up.dot(walker.avatar.global_basis.y) > 0.01:
 		failures.append("Occupied roll must transport local pose onto a new gravity plane")
+	# Rolling the frame preserves impossible alignment while projected player-up
+	# stays screen-up, including a complete revolution and the opposite ground.
+	for frame in range(121):
+		carrier.rotation.x = TAU * float(frame) / 120.0
+		update_overview_camera()
+		var ground_up := carrier.global_basis * walker.normal
+		if not overview.global_basis.z.is_equal_approx(composed_direction) or absf(overview.global_basis.x.dot(ground_up)) > 0.001 or overview.global_basis.y.dot(ground_up) <= 0:
+			failures.append("Overview must keep its sightline and orient occupied ground upward")
+		var near_point := courtyard.to_global(Vector3(0, 1, CROSSING_Z))
+		var far_point := destination.to_global(Vector3(0, 1, CROSSING_Z))
+		if overview.unproject_position(near_point).distance_to(overview.unproject_position(far_point)) > 0.02:
+			failures.append("Overview roll must preserve endpoint projection alignment")
+	carrier.rotation.x = PI / 2
+	update_overview_camera()
 	# Frame and clearance across roll orientations at all supported distances.
 	for distance in [3.0, 5.5, 8.0]:
 		for instant in [false, true]:
@@ -720,6 +817,17 @@ func run_self_test() -> void:
 	undo()
 	if snapshot() != before_turn:
 		failures.append("Undo must restore both geometry and passenger pose")
+	walker.reduced_motion = true
+	var reduced_frame := overview.global_basis
+	rotate_selected(1)
+	rotation_tween.custom_step(0.06)
+	if not overview.global_basis.is_equal_approx(reduced_frame):
+		failures.append("Reduced motion must hold the overview during the turn")
+	rotation_tween.custom_step(1.0)
+	if overview.global_basis.y.dot(carrier.global_basis.y) <= 0 or overview.global_basis.is_equal_approx(reduced_frame):
+		failures.append("Reduced motion must cut to the settled ground frame")
+	undo()
+	walker.reduced_motion = false
 	rotate_selected(1)
 	rotation_tween.custom_step(1.0)
 	walker.sync_pose(1)
@@ -752,11 +860,25 @@ func run_self_test() -> void:
 	if overview.unproject_position(near_end).distance_to(overview.unproject_position(far_end)) > 0.02:
 		failures.append("Composed view must align the actual corridor endpoints")
 	var before_view := snapshot()
+	var off_support_frame := overview.global_basis
+	carrier.rotation.x += PI / 2
+	update_overview_camera()
+	if not overview.global_basis.is_equal_approx(off_support_frame):
+		failures.append("Turning an unoccupied structure must leave overview orientation alone")
+	carrier.rotation.x -= PI / 2
 	toggle_view()
 	toggle_view()
 	if snapshot() != before_view:
 		failures.append("Switching architectural and traversal views must not change connectivity")
 	# Walk the gallery. Compare frames immediately across the concealed seam.
+	walker.place(courtyard, Vector3(0, 1, -6), Vector3.UP, Vector3.FORWARD)
+	update_overview_camera()
+	walker.update_overview_visibility(overview, true)
+	if not walker.overview_silhouette.visible:
+		failures.append("Covered gallery must retain an overview silhouette")
+	walker.update_overview_visibility(overview, false)
+	if walker.overview_silhouette.visible or walker.camera.cull_mask & 8:
+		failures.append("Occlusion silhouette must be restricted to overview")
 	walker.place(courtyard, Vector3(0, 1, -10.95), Vector3.UP, Vector3.FORWARD)
 	walker.pitch = 0.24
 	walker.orbit_yaw = 0.12
@@ -804,8 +926,11 @@ func run_self_test() -> void:
 	if walker.support != destination or absf(walker.pitch - 0.31) > 0.001:
 		failures.append("First-person passage must preserve the player's look")
 	walker.set_third_person(true)
+	new_journey()
+	if not overview.global_basis.y.is_equal_approx(Vector3.UP.slide(composed_direction).normalized()):
+		failures.append("New journey must restore the entrance camera frame")
 	if failures.is_empty():
-		print("SELF TEST PASS: authored boundaries, disconnected paths, occupied gravity roll, camera matrix, landing, undo, safe gallery rotation, composed alignment, two-way concealed crossing, recovery, camera modes")
+		print("SELF TEST PASS: authored boundaries, compound solids, occupied gravity roll, ground-relative overview, occlusion silhouette, camera matrix, landing, undo, safe gallery rotation, composed alignment, two-way concealed crossing, recovery, camera modes")
 	else:
 		for failure in failures:
 			push_error("SELF TEST FAIL: " + failure)
@@ -817,7 +942,7 @@ func follow_view_is_clear() -> bool:
 	if not walker.camera.global_transform.is_finite() or target.z > -0.45 or absf(target.x) > 0.05 or absf(target.y) > 0.05:
 		return false
 	for piece in pieces:
-		var local := piece.to_local(walker.camera.global_position).abs()
-		if local.x < piece.half.x + 0.07 and local.y < piece.half.y + 0.07 and local.z < piece.half.z + 0.07:
+		var local := piece.to_local(walker.camera.global_position)
+		if piece.contains_solid(local, 0.07):
 			return false
 	return true

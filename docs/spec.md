@@ -9,7 +9,7 @@ The user's clarifications supersede conflicting passages in the [original concep
 1. Third person is the default traversal view for comfort; first person is optional.
 2. Movement follows **authored walkable paths**. Ordinary edges stop movement. The character cannot freely walk onto every face of a solid.
 3. A moving support carries the player's local position, heading and gravity. Changing orientation requires a designed mechanism or transition; the current opening uses an occupied rolling deck.
-4. The architectural view uses one fixed, composed angle. A freely rotating overview would expose view-dependent illusions. The former separation/underside inspection control has been removed from normal play.
+4. The architectural view keeps a composed viewing direction but rolls with the occupied ground, making the traveller upright on screen after a configuration change. A freely orbiting overview would expose view-dependent illusions. The former separation/underside inspection control has been removed from normal play.
 5. **Portal describes the spatial technique, not the visual theme.** A pair of separated endpoints becomes directly traversable through ordinary-looking architecture. The accepted arrangement activates the connection; the camera does not sustain it.
 
 The previous mandatory underside route and automatic edge wrapping are retired. The new opening is built around these corrected rules, rather than placing invisible exceptions on the old free-surface puzzle.
@@ -42,7 +42,9 @@ Traversal defaults to a visible third-person traveller. The camera orbit lives i
 
 Follow distance is adjustable from 3 to 8 (default 5.5). Settings include sensitivity, reduced motion, optional fixed world horizon and optional first person. No head bob or camera shake is enabled. First person hides the avatar from its own camera. Camera settings are independent of puzzle checkpoints.
 
-The orthographic architectural camera is fixed at target (-1, -2, -7) plus offset (36, 30, 48), size 46. Its view direction is parallel to the gallery endpoint separation. The accepted gallery configuration makes the actual endpoints coincide in this projection. There is no player-controlled overview orbit or alternate depth inspection.
+The orthographic architectural camera stays at target (-1, -2, -7) plus offset (36, 30, 48), size 46. Its view direction is parallel to the gallery endpoint separation. The accepted gallery configuration makes the actual endpoints coincide in this projection. Its screen-up direction follows the occupied surface normal projected onto the image plane. During an occupied turn it rolls with the structure; turning an unoccupied mechanism leaves the camera orientation unchanged. Reduced motion holds the old frame during the short turn and cuts to the settled frame. Undo, checkpoint recovery, view switching and a new journey restore the appropriate ground frame. There is no player-controlled overview orbit or alternate depth inspection. This is a roll around the authored sightline, not an orbit that recreates identical floor foreshortening on every surface.
+
+A warm silhouette of the traveller and foot ring appears when structural masonry blocks the overview rays to their torso or head. It is isolated to an overview-only render layer, does not cast shadows, and is excluded from traversal and remote passage views. The enclosure remains opaque. This preserves character location without exposing the impossible seam; it is not a claim that camera rotation alone eliminates occlusion.
 
 Walking pauses during architectural manipulation. Third-person view switches are cuts; optional first person retains its short transition unless reduced motion is enabled. Comfort still requires human testing.
 
@@ -76,13 +78,13 @@ Walk along the ivory paving into the corridor, through its far end, and toward t
 
 ## Impossible passage implementation and presentation
 
-The source and destination share parallel local frames, translated by (-18, -15, -24). Both galleries have matching floors, walls, ceiling, ribs and inset lights. The seam is ten units inside the entrance, at support-local Z = -11, so the trailing camera is inside matching architecture when the body crosses.
+The source and destination share parallel local frames, translated by (-18, -15, -24). Both galleries have matching floors, walls, ceiling, ribs and inset lights. Deep entrance reveals, pilasters, recessed panels and a shallow pitched roof give them a consistent architectural profile. The landing and destination use compound support volumes: a compact landing, narrow gallery neck and destination terrace replace the oversized backing slabs. Selection, body and camera collision follow those volumes. A roofed beacon chamber contains the destination light. The seam is ten units inside the entrance, at support-local Z = -11, so the trailing camera is inside matching architecture when the body crosses.
 
 A SubViewport renders the other endpoint using the same camera translation applied to traversal. A one-sided, unshaded aperture at the concealed end displays this view. The reverse aperture faces the opposite way; neither casts a shadow. This prevents the return surface from hiding the avatar or destination while the follow camera trails a recent crossing. Apertures are excluded from each other's render cameras to avoid recursion.
 
 Crossing maps contact, local heading, local gravity and orbit together. The camera translates with the player. A small directional crossing margin avoids immediate retriggering. First-person pitch is preserved. The connection persists when switching to traversal; view direction does not activate arbitrary endpoints.
 
-This is an authored parallel-frame pair, not a general impossible-space renderer. Arbitrary rotated pairs, recursive views, oblique clipping, broad exterior openings and perfect views from unrestricted angles remain future work. Tight orbit angles at gallery mouths still need playtesting. Enclosure and the fixed overview are deliberate presentation constraints.
+This is an authored parallel-frame pair, not a general impossible-space renderer. Arbitrary rotated pairs, recursive views, oblique clipping, broad exterior openings and perfect views from unrestricted angles remain future work. Tight orbit angles at gallery mouths still need playtesting. Enclosure and the composed sightline are deliberate presentation constraints.
 
 ## Layout
 
@@ -113,7 +115,7 @@ Generated footsteps and tones communicate movement, turning, settling and comple
 | Control | Default |
 |---|---|
 | Walk / orbit or first-person look | WASD / mouse |
-| Switch fixed overview / traversal | Tab |
+| Switch architectural / traversal | Tab |
 | Select carrier / turning gallery | 1 / 2, or click in overview |
 | Turn | Q / E or buttons |
 | Undo / checkpoint | Z / R |
@@ -125,7 +127,7 @@ Movement, switching, turning, undo, recovery and hints can be rebound. Escape, m
 
 Abstract, inhabitable architecture uses navy/violet atmosphere, terracotta machinery, muted teal destination and ivory paths. Warm highlights identify important details without an RGB axis code. All current geometry, materials and sound are generated locally. Production assets could add bevels, ceramic/stone/metal materials, restrained surface detail, richer lighting and narrative landmarks.
 
-Implemented: authored rectangle paths; occupied gravity-changing roll; fixed composed overview; one aligned two-way concealed passage; surface-following camera; collision checks; recovery; settings; guidance; completion. Explicit exclusions remain multiplayer, procedural campaign generation, combat, physics-object collection, unrestricted gravity changes and a complete campaign.
+Implemented: authored rectangle paths; occupied gravity-changing roll; composed overview with ground-relative roll; one aligned two-way concealed passage; surface-following camera; collision checks; recovery; settings; guidance; completion. Explicit exclusions remain multiplayer, procedural campaign generation, combat, physics-object collection, unrestricted gravity changes and a complete campaign.
 
 Next acceptance questions: does a player understand path boundaries, predict the roll, choose to board first, recognize gallery alignment, and experience the crossing as architectural continuity? Use [playtest.md](playtest.md). Technical checks and visual evidence are in [validation.md](validation.md).
 

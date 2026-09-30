@@ -25,6 +25,7 @@ var last_walk_input := Vector2.ZERO
 var orbit_changed := false
 var camera: Camera3D
 var avatar: Node3D
+var overview_silhouette: Node3D
 var moving := false
 var edge_count := 0
 var step_distance := 0.0
@@ -69,6 +70,42 @@ func _ready() -> void:
 	for part in avatar.get_children():
 		if part is MeshInstance3D:
 			part.layers = 4
+	# A separate overview-only layer keeps the traveller readable behind masonry.
+	overview_silhouette = Node3D.new()
+	avatar.add_child(overview_silhouette)
+	var silhouette_material := StandardMaterial3D.new()
+	silhouette_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	silhouette_material.no_depth_test = true
+	silhouette_material.albedo_color = Color("ffd89a")
+	for source in [torso, dot, ring]:
+		var silhouette := MeshInstance3D.new()
+		silhouette.mesh = source.mesh
+		silhouette.transform = source.transform
+		silhouette.material_override = silhouette_material
+		silhouette.layers = 8
+		silhouette.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		overview_silhouette.add_child(silhouette)
+	overview_silhouette.hide()
+
+func update_overview_visibility(view: Camera3D, enabled: bool) -> void:
+	overview_silhouette.visible = false
+	if not enabled:
+		return
+	# Parallel rays are essential for orthographic projection. Perspective camera
+	# position would incorrectly classify masonry beside the actual sightline.
+	for height in [0.65, 1.3]:
+		var point := avatar.to_global(Vector3(0, height, 0))
+		var origin := view.project_ray_origin(view.unproject_position(point))
+		for piece in pieces:
+			for bounds in piece.solid_boxes:
+				if bounds.intersects_segment(piece.to_local(origin), piece.to_local(point)):
+					overview_silhouette.visible = true
+					return
+		for solid in camera_obstacles:
+			var size: Vector3 = (solid.mesh as BoxMesh).size
+			if AABB(-size * 0.5, size).intersects_segment(solid.to_local(origin), solid.to_local(point)):
+				overview_silhouette.visible = true
+				return
 
 func place(piece: SurfacePiece, point: Vector3, up := Vector3.UP, heading := Vector3.FORWARD, preserve_orbit := false) -> void:
 	var previous_orbit := support.global_basis * orbit_heading if support != null else heading
@@ -168,7 +205,7 @@ func pose_is_clear(piece: SurfacePiece, point: Vector3, up: Vector3) -> bool:
 			if other == piece:
 				continue
 			var local := other.to_local(centre)
-			if absf(local.x) < other.half.x + 0.10 and absf(local.y) < other.half.y + 0.10 and absf(local.z) < other.half.z + 0.10:
+			if other.contains_solid(local, 0.10):
 				return false
 	for obstacle in camera_obstacles:
 		var bounds: Vector3 = (obstacle.mesh as BoxMesh).size * 0.5
@@ -225,12 +262,13 @@ func sync_follow_camera(contact: Vector3, up: Vector3, delta: float) -> void:
 func safe_camera_position(pivot: Vector3, desired: Vector3) -> Vector3:
 	var fraction := 1.0
 	var solids: Array[Node3D] = []
-	solids.assign(pieces)
+	for piece in pieces:
+		solids.append_array(piece.solid_meshes)
 	solids.append_array(camera_obstacles)
 	for solid in solids:
 		var origin := solid.to_local(pivot)
 		var ray := solid.to_local(desired) - origin
-		var half_size: Vector3 = solid.half if solid is SurfacePiece else (solid.mesh as BoxMesh).size * 0.5
+		var half_size: Vector3 = (solid.mesh as BoxMesh).size * 0.5
 		var bounds := half_size + Vector3.ONE * 0.18
 		var enter := 0.0
 		var leave := 1.0

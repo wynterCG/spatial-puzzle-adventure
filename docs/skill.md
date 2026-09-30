@@ -4,7 +4,7 @@ This is the requested project-local skill.md, not an installed global assistant 
 
 ## Current direction takes precedence
 
-The user explicitly corrected unrestricted wall-walking and the appearance of the exposed teleport arch. The current game has **authored walkable paths**, a **fixed composed architectural camera**, and **portal technology concealed in ordinary architecture**. Third person remains the default after the earlier comfort feedback.
+The user explicitly corrected unrestricted wall-walking and the appearance of the exposed teleport arch. The current game has **authored walkable paths**, a **composed architectural camera with ground-relative roll**, and **portal technology concealed in ordinary architecture**. Third person remains the default after the earlier comfort feedback.
 
 Do not restore the original draft's all-six-faces rule, automatic edge wrapping, freely orbitable overview, or explicit teleport presentation. The old underside causeway puzzle and the old inspection key are retired. The player's latest explanation confirms that a portal is appropriate as the technical implementation; its appearance should be a continuous doorway, gallery or passage.
 
@@ -47,7 +47,7 @@ Godot 4.6 can save a stale open script-editor buffer over an externally edited f
 7. Impossible adjacency is activated by the authored configuration, independently of the active camera. Accepted connections must work in traversal.
 8. Source/destination rendering and traversal use the same endpoint transform. The current pair is parallel, translated by (-18, -15, -24).
 9. Undo and recovery restore the full player/configuration snapshot. Save only settled valid contacts. Version 3 rejects old free-surface coordinates.
-10. Keep all normal-play architectural views at the composed angle. An additional arbitrary inspection angle would expose the illusion.
+10. Keep the architectural viewing direction parallel to the endpoint separation. Roll screen-up with the occupied ground; do not orbit the camera to a new sightline. An arbitrary inspection angle would expose the illusion. Reduced motion cuts to the settled ground frame. Off-support mechanism turns must not roll the camera.
 
 ## Layout and workflow
 
@@ -65,7 +65,7 @@ The rendering cameras exclude aperture surfaces to avoid recursion. Preserve pos
 
 ## Camera, interface and art
 
-Keep the third-person orbit in support-local space and transport it with the moving structure. Check camera segments against the main solids and gallery wall/roof boxes. Keep first person, reduced motion, sensitivity, follow distance and optional world horizon available. Do not equate passing geometry checks with human comfort.
+Keep the third-person orbit in support-local space and transport it with the moving structure. Check camera segments against each support's solid_meshes and gallery wall/roof boxes. SurfacePiece.solid_boxes describes the visible structural mass; half remains the authored support envelope, not a solid slab. Preserve the overview-only occlusion silhouette (layer 8) and exclude it from traversal/remote cameras. Test orthographic sightline occlusion with parallel rays. Keep first person, reduced motion, sensitivity, follow distance and optional world horizon available. Do not equate passing geometry checks with human comfort.
 
 Use navy/violet architecture, terracotta machinery, muted teal destination and ivory paving. Mark paths and movable structures without an axis-colour legend or full solution line. Generated audio has visible counterparts; essential cues cannot be sound-only.
 
@@ -81,7 +81,9 @@ Run the integration test and require both exit 0 and the literal SELF TEST PASS 
 
 Checks cover blocked ordinary edges and diagonals; forbidden faces; disconnected boarding; entrance traversal; occupied gravity roll and attachment; three follow distances with reduced motion on/off; vertical landing arrival; undo after leaving; inactive gallery blocking; gallery sweep safety; actual endpoint projection alignment; camera-state independence; two-way passage mapping; reverse-aperture orientation; completion route and snapshot recovery.
 
-Also test a clean staged checkout without the local addon. Through MCP Pro, visually inspect the fixed overview, rolled deck, interior immediately before/after crossing, reverse traversal, first person, pause/settings and completion. Check the runtime log. Run the [human playtest](playtest.md) for clarity and comfort.
+The Jev runner in tools/jev_playtest.mjs can make bounded structured-state playtest decisions through MCP Pro using TYPESAFE_API_KEY and GODOT_MCP_CLI from the environment. It preserves runtime state and the checkpoint file, and writes its actual decisions to docs/jev-playtest-report.json. It does not inspect screenshots or establish human comfort. Never commit credentials.
+
+Also test a clean staged checkout without the local addon. Through MCP Pro, visually inspect the ground-relative overview, rolled deck, interior immediately before/after crossing, reverse traversal, first person, pause/settings and completion. Check the runtime log. Run the [human playtest](playtest.md) for clarity and comfort.
 
 ## Scope and documentation
 
