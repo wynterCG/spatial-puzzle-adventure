@@ -1,14 +1,14 @@
 # Elsewhere ? positioning prototype specification
 
-Revision 6, 30 September 2026.
+Revision 7, 30 September 2026.
 
-This specification records the implemented prototype. The next milestone is planned separately in [the game vision](game-vision.md) and [first chapter plan](first-chapter-plan.md): a connected chapter using simple geometry, playtesting, then a representative vertical slice. Those documents do not imply that the chapter or its production features already exist.
+This specification records implemented content. [Chapter 1 / The far light](chapter-one.md) is now a connected blockout with separate persistence and assembly framing. The [game vision](game-vision.md) and [first chapter plan](first-chapter-plan.md) define the remaining human playtest and vertical-slice criteria.
 
 ## Core direction
 
 The central question is **Where do I need to be before I transform the space?** A solution depends on structure configuration, player position and action order. Walking then rotating is not interchangeable with rotating then walking. Isometric manipulation and inhabited traversal must both contribute.
 
-Impossible geometry is optional. The prototype contains The Lantern Fold, a complete physical puzzle, plus the three preserved studies using marked paths, surface-relative gravity, curved transitions and rotating structures. No portal, new lever, inventory item or milestone lock is required to complete them. The earlier impossible gallery remains available as a separate experiment, not the foundation of the new route.
+Impossible geometry is optional. The prototype contains a connected first chapter, The Lantern Fold and the three preserved studies using marked paths, surface-relative gravity, curved transitions and rotating structures. No portal, new lever, inventory item or milestone lock is required to complete them. The earlier impossible gallery remains available as a separate experiment, not the foundation of the new route.
 
 These studies test whether players can explain a dependency, not just reproduce a successful sequence. Their logical dependencies are implemented and mechanically checked; whether people find them engaging and understandable still needs blind playtesting.
 
@@ -81,25 +81,25 @@ The user's latest decision is to keep first person as the primary traversal view
 - **First person is the default.** Movement and look follow the occupied surface through curved gravity transitions. Isometric view supplies the wider orientation and architecture controls.
 
 - **Optional third person defaults to world alignment.** The screen uses world up; the character can appear sideways or upside down. Mouse yaw owns the world azimuth: obstacles never choose a different side. The arm's elevation lowers continuously as the occupied ground turns over. Solid architecture can shorten the arm, with look-ahead along the authored walking path and gradual extension. A local translucent cutaway of obstructing curved-track sections keeps the camera from being crushed into the avatar; path constraints and body collision remain intact. Isometric view immediately restores the whole opaque track. Switching views preserves the arm. This remains an experimental alternative, not the primary traversal direction.
-- **Isometric view provides orientation.** The selected ground-direction behavior transports only the change in ground normal: a yaw about unchanged ground leaves the camera reference steady; tilts and curves carry it with the normal. It uses a fixed puzzle centre and preserves seam continuity. Walking heading and first-person look never choose the overview angle. The recommended offset remains equivalent to (30, 40, -30).
-- **Manual overview inspection is a separate layer.** Right-drag changes yaw and elevation; wheel zoom changes the orthographic size. Elevation is limited to 25–70 degrees; zoom to 0.65–1.4 times the study's normal framing. Home restores recommended yaw/elevation/zoom within the current transported reference. Tab only changes views. Q/E continue to rotate structures. No free-flight or panning is added. Manual controls are disabled during a turn, in traversal, while paused and after completion; releasing drag over UI or losing focus cancels dragging.
+- **Isometric view provides orientation.** The selected ground-direction behavior transports only the change in ground normal: a yaw about unchanged ground leaves the camera reference steady; tilts and curves carry it with the normal. It uses a fixed centre for each assembly and preserves seam continuity. Walking heading and first-person look never choose the overview angle. The recommended offset remains equivalent to (30, 40, -30).
+- **Manual overview inspection is a separate layer.** Right-drag changes yaw and elevation; wheel zoom changes the orthographic size. Elevation is limited to 25–70 degrees; zoom to 0.65–1.4 times the study's normal framing. Home restores recommended yaw/elevation/zoom within the current transported reference. Tab only changes views. Q/E continue to rotate structures. No free-flight or panning is added. Manual controls are disabled during a turn, in traversal, while paused and while the completion panel is open; the chapter can resume exploration after arrival. Releasing drag over UI or losing focus cancels dragging.
 - Surface-following third person is also available. Follow distance (3?8), sensitivity and reduced motion remain available. Reduced motion skips transformation animation; it does not eliminate orientation changes caused by walking around a curve.
 
 No camera orientation activates puzzle connections. The shared avatar silhouette remains an overview-only fallback for occlusion.
 
-Scene snapshots store the world reference frame and manual orbit fields; old camera_bias-only saves migrate to their original view. The retired A/B preference is ignored and removed on the next preference save. An exactly opposite instantaneous normal uses the previous camera-reference right axis as a deterministic fallback. Normal animated quarter-turns and curved walking transport incrementally. The optional gallery retains its calibrated original overview; these changes apply to the three positioning studies and The Lantern Fold. See [the camera decision and comparison history](isometric-camera-experiment.md).
+Scene snapshots store the world reference frame and manual orbit fields; old camera_bias-only saves migrate to their original view. The retired A/B preference is ignored and removed on the next preference save. An exactly opposite instantaneous normal uses the previous camera-reference right axis as a deterministic fallback. Normal animated quarter-turns and curved walking transport incrementally. The optional gallery retains its calibrated original overview; these changes apply to the chapter, the three positioning studies and The Lantern Fold. Chapter focus eases between fixed assembly centres on connecting ground; both camera orientation layers remain intact. See [the camera decision and comparison history](isometric-camera-experiment.md).
 
 On ordinary platforms a fresh walking gesture uses the visible camera: W follows projected screen-up and D follows projected screen-right, including upside-down ground. Mouse look does not turn a stationary avatar; a new mouse yaw is applied before mapping walking input. A held key stays one gesture even when it meets a boundary. On the authored curve, the control frame travels with the path and survives key releases, camera orbit, pitch and view switches; S reverses along it. This lock ends with the next fresh gesture on ordinary ground. Returning from first person preserves the curve heading, but does not pin an obsolete heading on a platform.
 
 ## Interface, progression and recovery
 
-A new save starts in The Lantern Fold; existing saves restore their active puzzle. Escape lists the complete puzzle first, followed by the three original studies and camera settings. All remain available without completion gates. The completion panel asks the study's causal question. The player can reveal the intended explanation, retry, or open the puzzle selection menu.
+F5 starts or resumes the connected chapter. Escape lists the chapter, Lantern Fold, the three original studies and camera settings. The chapter uses a separate save and resumes its three assemblies and undo history together. All remain available without completion gates. The completion panel asks the study's causal question. The player can reveal the intended explanation, retry, or open the puzzle selection menu.
 
 | Action | Default |
 |---|---|
 | Walk / look or orbit | WASD / mouse |
 | Architectural / traversal view | Tab |
-| Select moving structure | 1 / 2 or panel buttons |
+| Select moving structure | 1 / 2 / 3 or panel buttons |
 | Quarter-turn | Q / E or panel buttons |
 | Undo / restart current study | Z / R |
 | Escalating hint / menu | H / Escape |
@@ -110,14 +110,15 @@ Existing key preferences are imported from the shared settings file. Undo restor
 
 ## Optional gallery experiment
 
-Escape ? Optional: original gallery experiment opens the earlier guided level. Its menu returns to the positioning studies. Its two local levers, rounded entrance path, carrier, turning covered gallery, two-way concealed spatial connection and contextual cutaways remain available. The floor and cover rotate together. The experiment uses its existing checkpoint format and save file.
+Escape ? Optional: original gallery experiment opens the earlier guided level. Its menu returns to the chapter and prototype selection scene. Its two local levers, rounded entrance path, carrier, turning covered gallery, two-way concealed spatial connection and contextual cutaways remain available. The floor and cover rotate together. The experiment uses its existing checkpoint format and save file.
 
 The gallery is not needed for the complete puzzle or any study. See [gallery-study.md](gallery-study.md) for its layout, portal implementation, narrative/art proposal and scope. The [original concept](original-concept.md) remains preserved unchanged as design input, not operational instructions.
 
 ## Scope and implementation
 
-This is one complete prototype puzzle and three preserved independent studies, not a connected campaign. Geometry and sound in the retained experiment are procedural; the new studies prioritize readable paths and mechanisms. No new external assets or paid addon dependency is required to play a clone. A campaign, narrative, environmental dressing and production art remain future work.
+This is one connected chapter blockout, one complete prototype puzzle and three preserved independent studies. It is not a finished campaign. Geometry and sound in the retained experiment are procedural; the new studies prioritize readable paths and mechanisms. No new external assets or paid addon dependency is required to play a clone. A campaign, narrative, environmental dressing and production art remain future work.
 
+- `scripts/chapter_layout.gd`, `chapter_tests.gd`: connected chapter, framing regions, separate progress, full route and recovery checks.
 - `scripts/positioning_game.gd`: layouts, physical docking contacts, swept turns, cameras, undo and study saves.
 - `scripts/positioning_hud.gd`: study selection, questions, optional explanations and settings.
 - `scripts/complete_puzzle.gd`, `complete_puzzle_tests.gd`: The Lantern Fold layout, physical dependencies, full routes and recovery checks.

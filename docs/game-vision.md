@@ -1,6 +1,6 @@
 # Elsewhere game vision
 
-Working direction, 30 September 2026. This document guides the next chapter experiment; [spec.md](spec.md) describes what the prototype currently implements. Proposed chapter content is not yet built.
+Working direction, 30 September 2026. This document guides the next chapter experiment; [spec.md](spec.md) describes what the prototype currently implements. The first [connected chapter blockout](chapter-one.md) is now playable. Its learning progression and broader camera comfort still need human playtesting.
 
 ## The experience
 
@@ -21,7 +21,7 @@ First-person exploration makes distances, surfaces and crossings tangible. Isome
 | Isometric transport B | Confirmed alongside first person; user preference: “it reads way better”; regression-tested behavior | Carry this direction into the chapter. Comprehension and comfort across players remain hypotheses, not reasons to treat the preference as undecided |
 | Manual overview orbit | Implemented inspection option | Test whether it helps reading connections without making camera management the main challenge |
 | Impossible connections | Optional, retained in the gallery | The next chapter must work using physical connections alone |
-| Continuous journey through bounded assemblies | Proposed world structure | Test one small route with visible destinations; defer hub and open-world commitments |
+| Continuous journey through bounded assemblies | Implemented as a blockout; progression validation pending | Test one small route with visible destinations; defer hub and open-world commitments |
 | Identity, story and final visual style | Open | Use a recognizable destination and minimal motivation; test visual readability in a small sample |
 
 ## Rules for choosing content

@@ -2,7 +2,9 @@
 
 **Where do I need to be before I transform the space?**
 
-The next milestone is a connected chapter in simple geometry, followed by playtesting before vertical-slice production. See the [game vision](docs/game-vision.md) and [first chapter plan](docs/first-chapter-plan.md). The playable content below remains the prototype; the planned chapter is not yet implemented.
+**Chapter 1 / The far light** is now a playable blockout: one continuous journey through an introductory bridge, a positional choice and an independent transfer puzzle, ending at the light seen from the start. It uses first person and isometric camera B. [Chapter details](docs/chapter-one.md).
+
+The next step is human playtesting before vertical-slice production. The [game vision](docs/game-vision.md) and [chapter plan](docs/first-chapter-plan.md) define what to observe.
 
 **The Lantern Fold** is a complete prototype puzzle with one continuous route, two interacting machines, an underside approach and a final lantern. Choose the path that must carry you and prepare the receiving walkway before the docking arms occupy its turning clearance. H offers optional hints; Z and R let you recover or restart.
 
@@ -14,13 +16,13 @@ The three original studies remain separately playable:
 
 Impossible geometry is optional. The original gallery experiment is available separately from the menu, with its own saved progress.
 
-Open **project.godot** in Godot 4.6 and press **F5**. A new save opens The Lantern Fold; existing saves resume their active puzzle. Escape opens the complete puzzle, all three studies, and settings. Ordinary edges stop movement; only marked curves change gravity while walking.
+Open **project.godot** in Godot 4.6 and press **F5**. F5 opens the chapter or resumes its separate chapter save. Escape opens the chapter, Lantern Fold, all three studies, and settings. Ordinary edges stop movement; only marked curves change gravity while walking.
 
 | Action | Default |
 |---|---|
 | Walk / look | WASD / mouse |
 | Architectural / traversal | Tab |
-| Select structure | 1 / 2 |
+| Select structure | 1 / 2 / 3 |
 | Rotate | Q / E |
 | Undo / restart study | Z / R |
 | Hint / studies and settings | H / Escape |
@@ -31,7 +33,7 @@ First person is the default traversal view, with movement and look following the
 
 Isometric view follows changes in the ground direction, the behavior selected after the A/B playtest. A horizontal turntable carries the character without orbiting the camera; tilts and curved ground carry the camera with them. Manual orbit is separate, with bounded elevation and zoom; Tab preserves the chosen view. [Camera decision and comparison history](docs/isometric-camera-experiment.md).
 
-![The Lantern Fold](docs/lantern-fold-overview.png)
+![Chapter 1 relay and final destination](docs/chapter-relay.png)
 
 - [Complete puzzle layout and solution](docs/lantern-fold.md)
 

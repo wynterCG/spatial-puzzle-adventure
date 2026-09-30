@@ -12,6 +12,8 @@ var sidebar: PanelContainer
 var menu: PanelContainer
 var finish: PanelContainer
 var finish_title: Label
+var explore_button: Button
+var reflection_button: Button
 var explanation: Label
 var reflection: Label
 var camera_choice: OptionButton
@@ -49,7 +51,7 @@ func _ready() -> void:
 	column.add_child(question)
 	status = label("", 14)
 	column.add_child(status)
-	sidebar = panel(Vector2(38, -306), Vector2(310, 215), Control.PRESET_BOTTOM_LEFT)
+	sidebar = panel(Vector2(38, -350), Vector2(310, 260), Control.PRESET_BOTTOM_LEFT)
 	column = VBoxContainer.new()
 	sidebar.add_child(column)
 	column.add_child(label("RECONFIGURE", 12))
@@ -57,7 +59,7 @@ func _ready() -> void:
 	column.add_child(selected_label)
 	var row: BoxContainer = VBoxContainer.new()
 	column.add_child(row)
-	for index in range(2):
+	for index in range(3):
 		var choice := button(str(index + 1), func(): game.select_rig(index))
 		selectors.append(choice)
 		row.add_child(choice)
@@ -85,11 +87,13 @@ func _ready() -> void:
 	column.add_theme_constant_override("separation", 8)
 	scroll.add_child(column)
 	column.add_child(label("Take a moment", 27))
-	column.add_child(label("Complete puzzle", 15))
-	column.add_child(button("The Lantern Fold", func(): game.load_trial(3); game.save_progress()))
+	column.add_child(label("Connected chapter", 15))
+	column.add_child(button("Chapter 1 / The far light", func(): game.choose_puzzle(4)))
+	column.add_child(label("Complete prototype puzzle", 15))
+	column.add_child(button("The Lantern Fold", func(): game.choose_puzzle(3)))
 	column.add_child(label("Prototype studies", 15))
 	for index in range(3):
-		column.add_child(button(str(index + 1) + "  " + game.TITLES[index], func(): game.load_trial(index); game.save_progress()))
+		column.add_child(button(str(index + 1) + "  " + game.TITLES[index], func(): game.choose_puzzle(index)))
 	column.add_child(label("Isometric camera", 15))
 	column.add_child(label("Right-drag: orbit  /  Wheel: zoom  /  Home: reset view", 14))
 	column.add_child(button("Reset isometric view", func(): game.reset_overview()))
@@ -124,6 +128,8 @@ func _ready() -> void:
 	column.add_child(sensitivity)
 	column.add_child(button("Optional: original gallery experiment", func(): game.open_gallery()))
 	column.add_child(button("Restart this puzzle", func(): game.restart(); game.set_pause(false)))
+	reflection_button = button("View chapter reflection", func(): game.show_reflection())
+	column.add_child(reflection_button)
 	column.add_child(button("Continue", func(): game.set_pause(false)))
 	finish = panel(Vector2(-290, -160), Vector2(580, 320), Control.PRESET_CENTER)
 	column = VBoxContainer.new()
@@ -136,6 +142,8 @@ func _ready() -> void:
 	explanation = label("", 17)
 	column.add_child(explanation)
 	column.add_child(button("Compare your explanation", func(): explanation.visible = true))
+	explore_button = button("Look back / keep exploring", func(): game.continue_exploring())
+	column.add_child(explore_button)
 	column.add_child(button("Choose another puzzle", func(): game.set_pause(true)))
 	column.add_child(button("Try this puzzle again", func(): game.restart()))
 
@@ -185,25 +193,31 @@ func sync_preferences() -> void:
 func refresh() -> void:
 	if game.rigs.is_empty():
 		return
-	title.text = "The Lantern Fold" if game.trial == 3 else "%02d  /  %s" % [game.trial + 1, game.TITLES[game.trial]]
+	title.text = game.TITLES[game.trial] if game.trial >= 3 else "%02d  /  %s" % [game.trial + 1, game.TITLES[game.trial]]
 	mode.text = "ARCHITECT  /  arrange the space" if game.architectural else ("INHABITANT  /  third person" if game.walker.third_person else "INHABITANT  /  first person")
-	question.text = game.QUESTIONS[game.trial]
+	question.text = game.chapter_zones[game.chapter_zone].question if game.trial == 4 else game.QUESTIONS[game.trial]
 	status.text = game.connection_text()
 	selected_label.text = game.rigs[game.selected].label
 	for i in range(selectors.size()):
 		selectors[i].visible = i < game.rigs.size()
 		if i < game.rigs.size():
 			selectors[i].text = str(i + 1) + "  " + game.rigs[i].label
-	sidebar.visible = game.architectural and not game.paused and not game.won
+	sidebar.anchor_top = 0.0 if game.trial == 4 else 1.0
+	sidebar.anchor_bottom = sidebar.anchor_top
+	sidebar.offset_top = 160 if game.trial == 4 else -306
+	sidebar.offset_bottom = 420 if game.trial == 4 else -90
+	sidebar.visible = game.architectural and not game.paused and not game.blocks_play()
 	menu.visible = game.paused
 	if game.won and not finish.visible:
 		explanation.visible = false
-	finish.visible = game.won and not game.paused
-	finish_title.text = "Lantern reached" if game.trial == 3 else "Connection reached"
+	finish.visible = game.won and game.finish_open and not game.paused
+	explore_button.visible = game.trial == 4
+	reflection_button.visible = game.trial == 4 and game.won
+	finish_title.text = "The far light" if game.trial == 4 else ("Lantern reached" if game.trial == 3 else "Connection reached")
 	reflection.text = "Before continuing: " + game.QUESTIONS[game.trial]
 	explanation.text = game.REASONS[game.trial]
 	feedback.text = game.message
-	feedback.visible = not game.paused and not game.won
+	feedback.visible = not game.paused and not game.blocks_play()
 	controls.text = game.key_name("view") + "  Change view  /  "
 	if game.architectural:
 		controls.text += "Right-drag  Orbit  /  Wheel  Zoom  /  " + game.key_name("reset_view") + "  Reset view  /  " + game.key_name("rotate_left") + " · " + game.key_name("rotate_right") + "  Turn  /  "

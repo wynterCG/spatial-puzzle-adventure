@@ -1,6 +1,6 @@
 # First chapter plan
 
-**Status: proposed blockout, not implemented.** This plan tests the [game vision](game-vision.md) with a short continuous route. Names below describe design functions; they are not final lore or level names. Preserve the existing prototype layouts as selectable references.
+**Status: first connected blockout implemented; human playtesting pending.** See [the playable chapter](chapter-one.md) for the actual route, camera framing, persistence and verification. This plan tests the [game vision](game-vision.md) with a short continuous route. Names below describe design functions; they are not final lore or level names. Preserve the existing prototype layouts as selectable references.
 
 ## The journey
 
@@ -61,7 +61,7 @@ Allow a pause to look back at the transformed route and conclude the chapter. Do
 5. **Add a small visual sample.** Use one representative junction to compare walkability, pivot readability and contact contrast in both views, including inverted ground. Carry only useful changes into the simple geometry.
 6. **Verify and playtest.** Exercise intended routes, tempting wrong orders, backtracking, undo, save/reload and camera transitions. Then observe players who have not been taught the isolated studies.
 
-These are planned tasks. Cross-assembly focus, chapter persistence and connected routing are not implemented by the current prototype. Do not rebuild the working project just to create a new chapter.
+The first implementation now includes connected routing, cross-assembly focus and separate chapter persistence. The construction order above remains a guide for revision. Human comprehension, pacing and the production process remain unvalidated; the existence of a playable route does not meet the vertical-slice gate.
 
 ## Playtest and decision record
 

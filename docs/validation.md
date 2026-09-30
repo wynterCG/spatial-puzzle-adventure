@@ -6,6 +6,12 @@ Latest camera decision: first person is now the default in the walker and both s
 
 The user selected ground-direction transport (B), reporting "it reads way better". It is now the sole overview behavior for the positioning studies; the A/B selector and full-support alternative are removed. Older A preferences are ignored and cleared when preferences are saved. The retained `OVERVIEW SELF TEST PASS` checks that an occupied horizontal turn produces no camera yaw while a tilt carries the camera 90 degrees, with full passenger attachment throughout. It also covers curved traversal, seams, manual input, bounds, look/Tab independence, reset, undo and save migration. [Historical A/B evidence and current behavior](isometric-camera-experiment.md) distinguish this user preference from broader readability testing.
 
+## Connected chapter blockout
+
+`CHAPTER SELF TEST PASS` covers the full physical route through three assemblies, wrong-path and stay-aboard counterexamples, backtracking to the overlook, serialized save/reload, undo across assembly boundaries, separate save paths, completion and continued exploration. It samples framing transitions while checking that the ground frame and manual angle remain unchanged. All previous suites still pass.
+
+Godot MCP Pro inspection covers the opening sightline to the final landmark, all three overview regions, the first-person underside approach and the chapter UI. The chapter's controls are placed beneath the title to leave onward connections visible. The landmark extends to both sides of the final ground plane. These are implementation and selected visual checks; a blind learning-progression playtest is still required.
+
 ## Complete puzzle - The Lantern Fold
 
 The fourth layout retains the three study builders and the original gallery. `LANTERN SELF TEST PASS` verifies the full route with both roll directions, the failed upper-path attempt, all 16 settled structure combinations for forbidden bypass links, blocked-turn snapshot/history preservation, recovery by withdrawal, receiver clearance in both directions, save/undo, restart, and migration of old three-study completion flags.

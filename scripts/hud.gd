@@ -242,7 +242,7 @@ func build_menu() -> void:
 		key_buttons[action] = key_button
 	column.add_child(label("Click a key to remap it. Escape cancels.\nWalk on ivory paths; ordinary edges stop you.\nIn architectural view, click a piece or use 1 / 2.", 14, muted))
 	column.add_child(button("Continue journey", func(): game.set_pause(false)))
-	column.add_child(button("Positioning studies", func(): Input.mouse_mode = Input.MOUSE_MODE_VISIBLE; game.get_tree().change_scene_to_file("res://scenes/positioning.tscn")))
+	column.add_child(button("Chapter and prototype puzzles", func(): Input.mouse_mode = Input.MOUSE_MODE_VISIBLE; game.get_tree().change_scene_to_file("res://scenes/positioning.tscn")))
 	column.add_child(button("Return to checkpoint", func(): game.restart_checkpoint(); game.set_pause(false)))
 	column.add_child(button("Start a new journey", func(): game.new_journey()))
 	column.add_child(button("Quit", func(): get_tree().quit()))

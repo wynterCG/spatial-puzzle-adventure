@@ -2,6 +2,10 @@
 
 Allow 15?25 minutes. Use a fresh study from Escape. Do not explain the solution or read the specification's solution paragraphs to the player. Explain only movement, Tab, structure selection, Q/E and undo.
 
+## Connected chapter first
+
+For the next milestone, use **Chapter 1 / The far light** before exposing players to the isolated studies. Follow the [chapter observation protocol](first-chapter-plan.md#playtest-and-decision-record). Record whether the final step-off discovery transfers from the earlier positional choice, whether framing changes help orientation, whether the narrow central landing reads as a path, and whether the destination is recognized from below. The blockout is playable; these outcomes are not yet validated.
+
 ## Complete puzzle - The Lantern Fold
 
 Select **The Lantern Fold** from Escape. Test it before the isolated studies if measuring unaided reasoning; those studies teach its component dependencies. Explain the controls, but keep H optional.

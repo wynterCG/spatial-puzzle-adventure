@@ -5,7 +5,7 @@ static func walk(g: Node3D, direction: Vector3, distance: float) -> void:
 	for i in range(int(ceil(distance / (3.5 / 60.0)))):
 		g.walker.walk(Vector2(0, -1), 1.0 / 60.0)
 		g.walker.sync_pose(1.0 / 60.0)
-		g.update_camera()
+		g.update_camera(1.0 / 60)
 		if g.walker.support == g.goal and Vector2(g.walker.foot.x, g.walker.foot.z).length() < 1.0:
 			g.architectural = false
 			g._process(0.0)
@@ -106,7 +106,7 @@ static func run(g: Node3D) -> Array[String]:
 	for i in range(280):
 		g.walker.walk(Vector2(0, -1), 1.0 / 60.0)
 		g.walker.sync_pose(1.0 / 60.0)
-		g.update_camera()
+		g.update_camera(1.0 / 60)
 		var pivot: Vector3 = g.walker.avatar.global_position + g.walker.avatar.global_basis.y * 0.85
 		if not g.walker.camera.global_transform.is_finite() or g.walker.camera.global_position.distance_to(pivot) < 0.45 or g.walker.camera.global_basis.y.dot(Vector3.UP) < -0.01:
 			failures.append("World-aligned camera must remain clear and upright around the curve")
