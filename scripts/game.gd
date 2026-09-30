@@ -18,6 +18,7 @@ var arch: Node3D
 var arch_state := 1
 var passage_views: Array[Dictionary] = []
 var gallery_solids: Array[MeshInstance3D] = []
+var overview_cutaways: Array[Dictionary] = []
 var walker: SurfaceWalker
 var overview: Camera3D
 var hud: CanvasLayer
@@ -132,11 +133,11 @@ func build_world() -> void:
 	# Build the load-bearing mass around the route, not two enormous flat cards.
 	courtyard.set_solid_boxes([
 		AABB(Vector3(-4, -1, -1.2), Vector3(8, 2, 2.5)),
-		AABB(Vector3(-1.9, -1, -12), Vector3(3.8, 2, 10.8))
+		AABB(Vector3(-1.9, 0.7, -11), Vector3(3.8, 0.3, 9.8))
 	])
 	destination.set_solid_boxes([
-		AABB(Vector3(-1.9, -1, -11), Vector3(3.8, 2, 10.2)),
-		AABB(Vector3(-3, -1, -16), Vector3(6, 2, 5))
+		AABB(Vector3(-1.9, 0.7, -11), Vector3(3.8, 0.3, 10.2)),
+		AABB(Vector3(-3, 0.7, -16), Vector3(6, 0.3, 5))
 	])
 	build_landing_detail(courtyard, false)
 	build_landing_detail(destination, true)
@@ -152,7 +153,7 @@ func build_world() -> void:
 	var shrine := Node3D.new()
 	destination.add_child(shrine)
 	shrine.position = Vector3(0, 1, -14.6)
-	build_beacon_chamber(shrine)
+	build_beacon(shrine)
 	var orb := MeshInstance3D.new()
 	var sphere := SphereMesh.new()
 	sphere.radius = 0.42
@@ -207,7 +208,7 @@ func update_connections() -> void:
 		carrier.neighbours.append(courtyard)
 		courtyard.neighbours.append(carrier)
 	courtyard.walk_regions = [Rect2(-4, -0.8, 4.9, 1.6)]
-	courtyard.walk_regions.append(Rect2(-0.9, -12 if arch_state == 0 else -1, 1.8, 13 if arch_state == 0 else 2))
+	courtyard.walk_regions.append(Rect2(-0.9, CROSSING_Z if arch_state == 0 else -1.0, 1.8, 1.0 - CROSSING_Z if arch_state == 0 else 2.0))
 	courtyard.draw_paths()
 
 func update_overview_camera() -> void:
@@ -217,6 +218,14 @@ func update_overview_camera() -> void:
 	# the authored sightline. Endpoint projection alignment survives every roll.
 	var ground_up := (walker.support.global_basis * walker.normal).normalized()
 	overview.look_at(focus, ground_up)
+	update_architecture_cutaway()
+
+func update_architecture_cutaway() -> void:
+	for entry in overview_cutaways:
+		var facing: Vector3 = entry.mesh.get_parent().global_basis * entry.normal
+		var cut: bool = entry.normal == Vector3.ZERO or facing.dot(overview.global_basis.z) > 0
+		entry.mesh.layers = 16 if cut else 1
+		entry.mesh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF if cut and architectural else GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 
 func make_piece(label_text: String, at: Vector3, size: Vector3, color: Color, movable := false) -> SurfacePiece:
 	var piece := Piece.new()
@@ -246,12 +255,11 @@ func build_arch() -> void:
 func build_landing_detail(piece: SurfacePiece, is_destination: bool) -> void:
 	var stone := Piece.material(Color("aca4b0"))
 	var shadow := Piece.material(Color("50526b"))
-	# A stepped base explains thickness; the matching neck joins in projection.
-	var z_start := -16.0 if is_destination else -12.0
+	# A single shallow edge keeps both halves at the same apparent floor level.
+	var z_start := -16.0 if is_destination else -11.0
 	var z_end := -11.0 if is_destination else -1.2
-	var width := 6.3 if is_destination else 4.1
-	Piece.box(piece, Vector3(0, -0.72, (z_start + z_end) * 0.5), Vector3(width, 0.28, z_end - z_start), stone)
-	Piece.box(piece, Vector3(0, -1.08, (z_start + z_end) * 0.5), Vector3(width - 0.3, 0.18, z_end - z_start), shadow)
+	var width := 6.0 if is_destination else 3.8
+	Piece.box(piece, Vector3(0, 0.73, (z_start + z_end) * 0.5), Vector3(width, 0.06, z_end - z_start), shadow)
 	if not is_destination:
 		# The carrier enters a small inhabited landing instead of hitting a wall.
 		for side in [-1.0, 1.0]:
@@ -261,16 +269,12 @@ func build_landing_detail(piece: SurfacePiece, is_destination: bool) -> void:
 		for side in [-1.0, 1.0]:
 			Piece.box(piece, Vector3(side * 2.75, 1.2, -13.5), Vector3(0.18, 0.4, 5.0), stone)
 
-func build_beacon_chamber(parent: Node3D) -> void:
+func build_beacon(parent: Node3D) -> void:
 	var stone := Piece.material(Color("bcb2a4"))
-	var recess := Piece.material(Color("4b5862"))
-	for side in [-1.0, 1.0]:
-		gallery_solids.append(Piece.box(parent, Vector3(side * 1.7, 2.0, 0), Vector3(0.55, 4.0, 2.0), stone))
-		Piece.box(parent, Vector3(side * 1.7, 0.22, 0), Vector3(0.78, 0.44, 2.3), stone)
-	gallery_solids.append(Piece.box(parent, Vector3(0, 2.0, -0.85), Vector3(3.9, 4.0, 0.3), recess))
-	gallery_solids.append(Piece.box(parent, Vector3(0, 4.05, 0), Vector3(4.5, 0.3, 2.5), stone))
-	Piece.box(parent, Vector3(0, 4.3, 0), Vector3(4.8, 0.18, 2.75), stone)
-	Piece.box(parent, Vector3(0, 0.10, 0), Vector3(3.85, 0.2, 2.3), stone)
+	# An open court exposes the destination and the approach to it from above.
+	Piece.box(parent, Vector3(0, 0.04, 0), Vector3(1.9, 0.08, 1.9), stone)
+	gallery_solids.append(Piece.box(parent, Vector3(0, 0.8, 0), Vector3(0.65, 1.5, 0.65), stone))
+	Piece.box(parent, Vector3(0, 1.61, 0), Vector3(0.95, 0.12, 0.95), stone)
 
 func build_gallery(parent: Node3D) -> Node3D:
 	var gallery := Node3D.new()
@@ -316,6 +320,13 @@ func build_gallery(parent: Node3D) -> Node3D:
 	Piece.box(gallery, Vector3(0, 0.015, 0), Vector3(1.8, 0.02, 10.2), Piece.material(Color("d8c8ac")))
 	for z in [-4.8, -2.4, 0.0, 2.4, 4.8]:
 		Piece.box(gallery, Vector3(0, 3.72, z), Vector3(2.45, 0.10, 0.10), warm)
+	for part in gallery.get_children():
+		if not part is MeshInstance3D:
+			continue
+		if part.mesh is ArrayMesh or part.position.y > 3.5:
+			overview_cutaways.append({"mesh": part, "normal": Vector3.ZERO})
+		elif absf(part.position.x) > 1.2:
+			overview_cutaways.append({"mesh": part, "normal": Vector3(signf(part.position.x), 0, 0)})
 	return gallery
 
 func build_passage_view(gallery: Node3D, offset: Vector3) -> void:
@@ -325,7 +336,7 @@ func build_passage_view(gallery: Node3D, offset: Vector3) -> void:
 	add_child(view)
 	view.world_3d = get_world_3d()
 	var camera := Camera3D.new()
-	camera.cull_mask = 1
+	camera.cull_mask = 17
 	view.add_child(camera)
 	camera.current = true
 	var seam := MeshInstance3D.new()
@@ -374,6 +385,7 @@ func _process(delta: float) -> void:
 			complete()
 	walker.sync_pose(delta)
 	walker.avatar.visible = architectural or walker.third_person
+	update_architecture_cutaway()
 	walker.update_overview_visibility(overview, architectural)
 	update_passage_views()
 	hud.refresh()
@@ -744,7 +756,7 @@ func run_self_test() -> void:
 	new_journey()
 	walker.set_third_person(true)
 	walker.keep_world_horizon = false
-	if courtyard.contains_solid(Vector3(3, 0, 8)) or not courtyard.contains_solid(Vector3(-3, 0, 0)) or not courtyard.contains_solid(Vector3(0, 0, -6)):
+	if courtyard.contains_solid(Vector3(3, 0, 8)) or not courtyard.contains_solid(Vector3(-3, 0, 0)) or not courtyard.contains_solid(Vector3(0, 0.85, -6)):
 		failures.append("Compound support solids must match the landing and gallery neck")
 	walker.update_overview_visibility(overview, true)
 	if walker.overview_silhouette.visible:
@@ -874,8 +886,12 @@ func run_self_test() -> void:
 	walker.place(courtyard, Vector3(0, 1, -6), Vector3.UP, Vector3.FORWARD)
 	update_overview_camera()
 	walker.update_overview_visibility(overview, true)
-	if not walker.overview_silhouette.visible:
-		failures.append("Covered gallery must retain an overview silhouette")
+	if walker.overview_silhouette.visible:
+		failures.append("Gallery cutaway must expose the traveller without a silhouette")
+	if not walker.camera.cull_mask & 16 or not passage_views[0].camera.cull_mask & 16 or overview.cull_mask & 16:
+		failures.append("Cutaway must be restricted to the architectural camera")
+	if courtyard.contains_solid(Vector3(0, 0.85, -11.5)) or not destination.contains_solid(Vector3(0, 0.85, -11.5)):
+		failures.append("Source floor must end at the seam and destination must continue it")
 	walker.update_overview_visibility(overview, false)
 	if walker.overview_silhouette.visible or walker.camera.cull_mask & 8:
 		failures.append("Occlusion silhouette must be restricted to overview")
@@ -930,7 +946,7 @@ func run_self_test() -> void:
 	if not overview.global_basis.y.is_equal_approx(Vector3.UP.slide(composed_direction).normalized()):
 		failures.append("New journey must restore the entrance camera frame")
 	if failures.is_empty():
-		print("SELF TEST PASS: authored boundaries, compound solids, occupied gravity roll, ground-relative overview, occlusion silhouette, camera matrix, landing, undo, safe gallery rotation, composed alignment, two-way concealed crossing, recovery, camera modes")
+		print("SELF TEST PASS: authored boundaries, compound solids, occupied gravity roll, ground-relative overview, architectural cutaway, camera matrix, landing, undo, safe gallery rotation, composed alignment, two-way concealed crossing, recovery, camera modes")
 	else:
 		for failure in failures:
 			push_error("SELF TEST FAIL: " + failure)

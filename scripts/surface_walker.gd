@@ -102,6 +102,8 @@ func update_overview_visibility(view: Camera3D, enabled: bool) -> void:
 					overview_silhouette.visible = true
 					return
 		for solid in camera_obstacles:
+			if (solid.layers & view.cull_mask) == 0:
+				continue
 			var size: Vector3 = (solid.mesh as BoxMesh).size
 			if AABB(-size * 0.5, size).intersects_segment(solid.to_local(origin), solid.to_local(point)):
 				overview_silhouette.visible = true
@@ -224,7 +226,7 @@ func sync_pose(delta: float) -> void:
 	var orientation := Basis(right, up, -heading).orthonormalized()
 	var contact := support.to_global(foot)
 	avatar.global_transform = Transform3D(orientation, contact)
-	camera.cull_mask = 7 if third_person else 3
+	camera.cull_mask = 23 if third_person else 19
 	if third_person:
 		sync_follow_camera(contact, up, delta)
 		return

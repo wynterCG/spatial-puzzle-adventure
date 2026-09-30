@@ -41,6 +41,8 @@ Prioritize misleading boundaries, loss of orientation and exposed seams before e
 
 - Turn while aboard: does the new surface read as the floor, and can you still locate the traveller?
 - Turn an unoccupied mechanism: the view should keep its orientation.
-- Inspect from inside the covered gallery: the warm silhouette should show the traveller without opening the roof or revealing the seam.
+- Inspect from inside the covered gallery: the architectural cutaway should expose the traveller and floor without revealing the spatial separation. Switching to traversal should restore the full walls and roof.
 - Compare normal and reduced motion; report discomfort separately from puzzle difficulty.
 - Check all four carrier states, undo and restarting the journey. Distinguish interesting spatial uncertainty from losing track of the character.
+
+- At the gallery exit, identify the next walking surface and goal before entering. Does it read as one continuous level floor rather than two stacked structures?
