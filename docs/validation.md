@@ -16,9 +16,11 @@ The headless integration run must exit 0 and print SELF TEST PASS. Current check
 - Undo after disembarking restores the configuration and passenger pose.
 - An unaligned gallery blocks forward passage; an occupied sweep rejects rotation.
 - The safe landing permits alignment.
-- The actual source/destination endpoints overlap through a full revolution of the ground-relative orthographic frame. Projected character-up remains screen-up.
-- Reduced motion holds the camera during the turn and cuts at settling; off-support turns leave its orientation alone.
+- Both settled sightline directions preserve source/destination endpoint projection alignment. Projected character-up remains screen-up.
+- All eight directed occupied quarter-turns are sampled through their actual tweens. The camera stays above the ground with finite transforms and returns to the composed sightline.
+- Reduced motion changes geometry and camera together in a discrete turn; off-support turns leave its orientation alone.
 - New journey resets the camera ground frame; recovery and undo retain the correct frame.
+- Default full models, stable roof hover, hover exit, independent unaligned reveals, paired aligned reveals, interior occupancy and leaving for the goal court are checked.
 - An unobstructed arrival needs no silhouette; the cutaway exposes the traveller without needing one inside the aligned gallery. Cutaway geometry is excluded only from overview, and both traversal and remote cameras include it.
 - Compound volumes retain structural support and remove the obsolete slab collision.
 - Switching architectural/traversal views does not change the puzzle snapshot.
@@ -35,15 +37,19 @@ Walked the entrance path to the carrier through the actual walker, rolled the oc
 
 The visual pass found that a two-sided return aperture could obscure the character and destination after arrival. The aperture now faces the reverse direction, uses back-face culling, and casts no shadow. Inspected the corrected rendered result and added an orientation regression check.
 
-The camera now rolls about the composed sightline with the occupied ground. This keeps the parallel endpoint projections aligned while making the traveller upright on screen. The overview cuts away gallery roofs and the camera-facing side wall, exposing the floor and actual traveller. Other visible obstructions can still trigger the silhouette fallback. Traversal and passage cameras retain the enclosure. Inspected the junction at the user's preserved destination position through MCP Pro.
+The camera now chooses the upper side of the composed sightline and takes a synchronized overhead arc when an occupied rotation changes sides. Both settled directions preserve endpoint alignment. During the arc the projected galleries may separate while movement and traversal are disabled.
+
+Modules remain complete by default. A gallery opens on hover or physical interior occupancy and closes when neither applies. The reveal uses stable full geometry bounds; aligned overlapping shells reveal together. Other visible obstructions can still trigger the silhouette fallback. Traversal and passage cameras retain the enclosure.
 
 The gallery now has framed reveals, pilasters, recessed panels and a pitched roof. Compact compound volumes replace the oversized backing slabs. The beacon sits on a low pedestal in an open destination court. The former roofed chamber and deep overlapping end slab are removed; the source floor/paving now end at the seam. Shallow floor edges expose the continuation to the goal. Existing version-3 authored path coordinates remain compatible.
 
 ## Current screenshots
 
-- [Architectural cutaway at the preserved player position](junction-cutaway.png)
-- [Close inspection of the route and beacon court (zoomed, HUD hidden)](junction-detail.png)
-- [Enclosed passage in third person](junction-traversal.png)
+- [Complete modules with the character outside](module-full.png)
+- [Gallery reveal selected by the roof hover ray](module-hover.png)
+- [Occupied gallery with no hover](module-occupied.png)
+- [Mid-turn overhead arc](overview-overhead-turn.png)
+- [Camera above the underside walking surface](overview-above-underside.png)
 
 Earlier images document previous iterations; they are not visual evidence for the rebuilt gallery.
 

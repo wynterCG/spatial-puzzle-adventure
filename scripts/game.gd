@@ -8,6 +8,7 @@ const SAVE_VERSION := 3
 const PASSAGE_OFFSET := Vector3(-18, -15, -24)
 const CROSSING_Z := -11.0
 const START_FOOT := Vector3(-1.8, 1, 0)
+const OVERVIEW_OFFSET := Vector3(36, 30, 48)
 var pieces: Array[SurfacePiece] = []
 var arrival: SurfacePiece
 var causeway: SurfacePiece
@@ -19,6 +20,9 @@ var arch_state := 1
 var passage_views: Array[Dictionary] = []
 var gallery_solids: Array[MeshInstance3D] = []
 var overview_cutaways: Array[Dictionary] = []
+var gallery_modules: Array[Node3D] = []
+var hovered_gallery: Node3D
+var pointer_in_viewport := true
 var walker: SurfaceWalker
 var overview: Camera3D
 var hud: CanvasLayer
@@ -45,6 +49,8 @@ var transition_camera: Camera3D
 var input_bindings := {"forward": KEY_W, "back": KEY_S, "left": KEY_A, "right": KEY_D, "view": KEY_TAB, "rotate_left": KEY_Q, "rotate_right": KEY_E, "undo": KEY_Z, "reset": KEY_R, "hint": KEY_H}
 
 func _ready() -> void:
+	get_viewport().mouse_entered.connect(func(): pointer_in_viewport = true)
+	get_viewport().mouse_exited.connect(func(): pointer_in_viewport = false)
 	configure_input()
 	build_world()
 	walker = Walker.new()
@@ -211,21 +217,78 @@ func update_connections() -> void:
 	courtyard.walk_regions.append(Rect2(-0.9, CROSSING_Z if arch_state == 0 else -1.0, 1.8, 1.0 - CROSSING_Z if arch_state == 0 else 2.0))
 	courtyard.draw_paths()
 
-func update_overview_camera() -> void:
+func overview_direction_for(up: Vector3) -> Vector3:
+	# Both ends of this sightline preserve the authored endpoint projection.
+	return OVERVIEW_OFFSET.normalized() * (1.0 if OVERVIEW_OFFSET.dot(up) >= 0 else -1.0)
+
+func overview_turn_direction(from: Vector3, to: Vector3, middle_up: Vector3, weight: float) -> Vector3:
+	var direction := from.lerp(to, weight)
+	if from.dot(to) < -0.5:
+		# Arc over the passenger instead of crossing through the ground or camera
+		# pivot when a half-turn changes which side of the composition is above.
+		var overpass := middle_up + Vector3.RIGHT * signf(from.x) * 0.65
+		direction += overpass * 4.0 * weight * (1.0 - weight)
+	return direction.normalized()
+
+func update_overview_camera(turn_direction := Vector3.ZERO) -> void:
 	var focus := Vector3(-1, -2, -7)
-	overview.position = focus + Vector3(36, 30, 48)
-	# Roll the composed frame with the occupied ground; do not orbit away from
-	# the authored sightline. Endpoint projection alignment survives every roll.
 	var ground_up := (walker.support.global_basis * walker.normal).normalized()
+	var direction := overview_direction_for(ground_up) if turn_direction == Vector3.ZERO else turn_direction
+	overview.position = focus + direction * OVERVIEW_OFFSET.length()
 	overview.look_at(focus, ground_up)
 	update_architecture_cutaway()
 
 func update_architecture_cutaway() -> void:
+	var revealed: Array[Node3D] = []
+	if architectural:
+		for gallery in gallery_modules:
+			if gallery == hovered_gallery or gallery_contains_player(gallery):
+				revealed.append(gallery)
+		# In alignment the two galleries are one apparent module. Leaving the
+		# duplicate roof visible would cover the very interior being revealed.
+		if arch_state == 0 and not revealed.is_empty():
+			revealed.assign(gallery_modules)
 	for entry in overview_cutaways:
 		var facing: Vector3 = entry.mesh.get_parent().global_basis * entry.normal
-		var cut: bool = entry.normal == Vector3.ZERO or facing.dot(overview.global_basis.z) > 0
+		var cut: bool = entry.mesh.get_parent() in revealed and (entry.normal == Vector3.ZERO or facing.dot(overview.global_basis.z) > 0)
 		entry.mesh.layers = 16 if cut else 1
 		entry.mesh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF if cut and architectural else GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+
+func gallery_contains_player(gallery: Node3D) -> bool:
+	if walker.support != gallery.get_parent():
+		return false
+	var contact := gallery.to_local(walker.support.to_global(walker.foot))
+	return AABB(Vector3(-1.2, -0.1, -5.15), Vector3(2.4, 0.4, 10.3)).has_point(contact)
+
+func gallery_at_screen(screen: Vector2) -> Node3D:
+	if not get_viewport().get_visible_rect().has_point(screen):
+		return null
+	var origin := overview.project_ray_origin(screen)
+	var direction := overview.project_ray_normal(screen)
+	var nearest := INF
+	var found: Node3D
+	# Stable bounds include the full roof even while it is cut away. Otherwise
+	# hovering the roof would alternate between showing and hiding every frame.
+	var bounds := AABB(Vector3(-1.95, -0.17, -5.5), Vector3(3.9, 4.97, 11))
+	for gallery in gallery_modules:
+		var hit: Variant = bounds.intersects_ray(gallery.to_local(origin), gallery.global_basis.inverse() * direction)
+		if hit is Vector3:
+			var distance := origin.distance_to(gallery.to_global(hit))
+			if distance < nearest:
+				nearest = distance
+				found = gallery
+	# A foreground support must not permit hovering through its visible mass.
+	for piece in pieces:
+		for solid in piece.solid_boxes:
+			var hit: Variant = solid.intersects_ray(piece.to_local(origin), piece.global_basis.inverse() * direction)
+			if hit is Vector3 and origin.distance_to(piece.to_global(hit)) < nearest:
+				return null
+	return found
+
+func update_gallery_hover() -> void:
+	hovered_gallery = null
+	if architectural and not paused and not won and not busy and pointer_in_viewport and get_viewport().gui_get_hovered_control() == null:
+		hovered_gallery = gallery_at_screen(get_viewport().get_mouse_position())
 
 func make_piece(label_text: String, at: Vector3, size: Vector3, color: Color, movable := false) -> SurfacePiece:
 	var piece := Piece.new()
@@ -279,6 +342,7 @@ func build_beacon(parent: Node3D) -> void:
 func build_gallery(parent: Node3D) -> Node3D:
 	var gallery := Node3D.new()
 	parent.add_child(gallery)
+	gallery_modules.append(gallery)
 	gallery.position = Vector3(0, 1, -6)
 	var stone := Piece.material(Color("aaa3b0"))
 	var moulding := Piece.material(Color("c4bbae"))
@@ -385,6 +449,7 @@ func _process(delta: float) -> void:
 			complete()
 	walker.sync_pose(delta)
 	walker.avatar.visible = architectural or walker.third_person
+	update_gallery_hover()
 	update_architecture_cutaway()
 	walker.update_overview_visibility(overview, architectural)
 	update_passage_views()
@@ -421,6 +486,7 @@ func _unhandled_input(event: InputEvent) -> void:
 func toggle_view() -> void:
 	var from := overview.global_transform if architectural else walker.camera.global_transform
 	architectural = not architectural
+	hovered_gallery = null
 	walker.moving = false
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE if architectural else Input.MOUSE_MODE_CAPTURED
 	walker.avatar.visible = architectural or walker.third_person
@@ -477,15 +543,20 @@ func rotate_selected(direction: int) -> void:
 	var target: Node3D = carrier if selected == 0 else arch
 	var axis := "rotation:x" if selected == 0 else "rotation:y"
 	var start := target.rotation.x if selected == 0 else target.rotation.y
+	var camera_from := overview.global_basis.z
+	var ground_from := (walker.support.global_basis * walker.normal).normalized()
+	var ground_to := Basis(Vector3.RIGHT, start + direction * PI * 0.5) * walker.normal if selected == 0 and walker.support == carrier else ground_from
+	var camera_to := overview_direction_for(ground_to)
+	var middle_up := (ground_from + ground_to).normalized()
 	if selected == 0:
 		carrier.state = posmod(carrier.state + direction, 4)
 	else:
 		arch_state = posmod(arch_state + direction, 4)
 	play_tone(175, 0.45, 0.12)
 	rotation_tween = create_tween().set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
-	rotation_tween.tween_property(target, axis, start + direction * PI * 0.5, 0.12 if walker.reduced_motion else 0.8)
+	rotation_tween.tween_property(target, axis, start + direction * PI * 0.5, 0.0 if walker.reduced_motion else 0.8)
 	if not walker.reduced_motion:
-		rotation_tween.parallel().tween_method(func(_weight: float): update_overview_camera(), 0.0, 1.0, 0.8)
+		rotation_tween.parallel().tween_method(func(weight: float): update_overview_camera(overview_turn_direction(camera_from, camera_to, middle_up, weight)), 0.0, 1.0, 0.8)
 	rotation_tween.tween_callback(func():
 		busy = false
 		update_overview_camera()
@@ -549,6 +620,7 @@ func snapshot() -> Dictionary:
 	return {"version": SAVE_VERSION, "carrier": carrier.state, "arch": arch_state, "player": walker.snapshot(), "boarded": boarded, "court": reached_court, "crossed": crossed}
 
 func restore(data: Dictionary) -> void:
+	hovered_gallery = null
 	if rotation_tween and rotation_tween.is_running():
 		rotation_tween.kill()
 	if camera_tween and camera_tween.is_valid():
@@ -588,6 +660,7 @@ func restart_checkpoint() -> void:
 	notify("Back at your last safe arrival.")
 
 func new_journey() -> void:
+	hovered_gallery = null
 	if rotation_tween:
 		rotation_tween.kill()
 	if camera_tween and camera_tween.is_valid():
@@ -703,7 +776,7 @@ func show_hint() -> void:
 		"disembark":
 			hints = ["The violet path is your new neighbour.", "Keep following the deck toward the violet landing.", "Return to traversal and walk off the end opposite the entrance. Stay on the ivory paving."]
 		"gallery", "gallery_clear":
-			hints = ["The two galleries can become one corridor.", "Use the fixed architectural view to compare the corridor directions.", "Stand on the landing near the carrier. In architectural view select 2, then turn until ALIGNED. Walk along the ivory path into the gallery."]
+			hints = ["The two galleries can become one corridor.", "Use architectural view to compare the corridor directions. Hover a gallery to inspect inside.", "Stand on the landing near the carrier. In architectural view select 2, then turn until ALIGNED. Walk along the ivory path into the gallery."]
 		"passage":
 			hints = ["The route continues through the architecture.", "The covered gallery is now part of the ivory path.", "Follow the path into and through the gallery. The light is beyond its far end."]
 		"light":
@@ -799,14 +872,34 @@ func run_self_test() -> void:
 		carrier.rotation.x = TAU * float(frame) / 120.0
 		update_overview_camera()
 		var ground_up := carrier.global_basis * walker.normal
-		if not overview.global_basis.z.is_equal_approx(composed_direction) or absf(overview.global_basis.x.dot(ground_up)) > 0.001 or overview.global_basis.y.dot(ground_up) <= 0:
-			failures.append("Overview must keep its sightline and orient occupied ground upward")
+		if absf(overview.global_basis.z.dot(composed_direction)) < 0.999 or overview.global_basis.z.dot(ground_up) < -0.001 or absf(overview.global_basis.x.dot(ground_up)) > 0.001 or overview.global_basis.y.dot(ground_up) <= 0:
+			failures.append("Settled overview must use the upper side of its composed sightline")
 		var near_point := courtyard.to_global(Vector3(0, 1, CROSSING_Z))
 		var far_point := destination.to_global(Vector3(0, 1, CROSSING_Z))
 		if overview.unproject_position(near_point).distance_to(overview.unproject_position(far_point)) > 0.02:
 			failures.append("Overview roll must preserve endpoint projection alignment")
 	carrier.rotation.x = PI / 2
 	update_overview_camera()
+	# Sample actual occupied tweens in both directions through every orientation.
+	for turn in [1, -1]:
+		for orientation in range(4):
+			carrier.state = orientation
+			carrier.rotation.x = orientation * PI / 2
+			walker.place(carrier, Vector3(0, 1, 0), Vector3.UP, Vector3.RIGHT)
+			update_overview_camera()
+			rotate_selected(turn)
+			for sample in range(81):
+				rotation_tween.custom_step(0.01)
+				walker.sync_pose(1)
+				var up := carrier.global_basis.y
+				if overview.global_basis.z.dot(up) < 0.25 or not overview.global_transform.is_finite() or absf(overview.global_basis.x.dot(up)) > 0.001:
+					failures.append("Animated overview must remain above the occupied ground without singularities")
+					break
+			if absf(overview.global_basis.z.dot(composed_direction)) < 0.999:
+				failures.append("Completed camera arc must restore passage projection alignment")
+	restore(before_turn)
+	rotate_selected(1)
+	rotation_tween.custom_step(1)
 	# Frame and clearance across roll orientations at all supported distances.
 	for distance in [3.0, 5.5, 8.0]:
 		for instant in [false, true]:
@@ -832,9 +925,8 @@ func run_self_test() -> void:
 	walker.reduced_motion = true
 	var reduced_frame := overview.global_basis
 	rotate_selected(1)
-	rotation_tween.custom_step(0.06)
 	if not overview.global_basis.is_equal_approx(reduced_frame):
-		failures.append("Reduced motion must hold the overview during the turn")
+		failures.append("Reduced motion must retain the old frame until the atomic turn")
 	rotation_tween.custom_step(1.0)
 	if overview.global_basis.y.dot(carrier.global_basis.y) <= 0 or overview.global_basis.is_equal_approx(reduced_frame):
 		failures.append("Reduced motion must cut to the settled ground frame")
@@ -865,6 +957,7 @@ func run_self_test() -> void:
 		rotation_tween.custom_step(1.0)
 	if arch_state != 0 or busy:
 		failures.append("Gallery should settle aligned")
+	test_contextual_cutaway(failures)
 	# The authored pair really overlaps in the composed architectural projection.
 	update_overview_camera()
 	var near_end := courtyard.to_global(Vector3(0, 1, CROSSING_Z))
@@ -951,6 +1044,59 @@ func run_self_test() -> void:
 		for failure in failures:
 			push_error("SELF TEST FAIL: " + failure)
 	get_tree().quit(0 if failures.is_empty() else 1)
+
+func test_contextual_cutaway(failures: Array[String]) -> void:
+	var saved := snapshot()
+	arch_state = 1
+	arch.rotation.y = PI / 2
+	update_connections()
+	hovered_gallery = null
+	update_overview_camera()
+	for entry in overview_cutaways:
+		if entry.mesh.layers != 1 or entry.mesh.cast_shadow != GeometryInstance3D.SHADOW_CASTING_SETTING_ON:
+			failures.append("Unoccupied galleries must show the complete model by default")
+	var roof_screen := overview.unproject_position(arch.to_global(Vector3(0, 4.4, 0)))
+	hovered_gallery = gallery_at_screen(roof_screen)
+	if hovered_gallery != arch:
+		failures.append("Hover must pick the nearest full gallery volume")
+	update_architecture_cutaway()
+	var opened := false
+	for entry in overview_cutaways:
+		if entry.mesh.get_parent() == arch:
+			opened = opened or entry.mesh.layers == 16
+		elif entry.mesh.layers != 1:
+			failures.append("Hover must leave an unaligned counterpart complete")
+	if not opened or gallery_at_screen(roof_screen) != arch:
+		failures.append("Hovering a cut roof must keep a stable reveal")
+	hovered_gallery = gallery_at_screen(Vector2(-10, -10))
+	update_architecture_cutaway()
+	for entry in overview_cutaways:
+		if entry.mesh.layers != 1:
+			failures.append("Leaving a module must restore its roof and walls")
+	restore(saved)
+	walker.place(courtyard, Vector3(0, 1, -6), Vector3.UP, Vector3.FORWARD)
+	update_architecture_cutaway()
+	if not gallery_contains_player(arch) or gallery_contains_player(gallery_modules[1]):
+		failures.append("Occupancy must use the physical module and current support")
+	for gallery in gallery_modules:
+		opened = false
+		for entry in overview_cutaways:
+			if entry.mesh.get_parent() == gallery and entry.mesh.layers == 16:
+				opened = true
+		if not opened:
+			failures.append("An occupied aligned passage must reveal both overlapping shells")
+	architectural = false
+	update_architecture_cutaway()
+	for entry in overview_cutaways:
+		if entry.mesh.layers != 1 or entry.mesh.cast_shadow != GeometryInstance3D.SHADOW_CASTING_SETTING_ON:
+			failures.append("Traversal must restore complete architecture and shadows")
+	architectural = true
+	walker.place(destination, Vector3(0, 1, -12.5), Vector3.UP, Vector3.FORWARD)
+	update_architecture_cutaway()
+	for entry in overview_cutaways:
+		if entry.mesh.layers != 1:
+			failures.append("Leaving the gallery for the goal court must close the cutaway")
+	restore(saved)
 
 func follow_view_is_clear() -> bool:
 	var pivot := walker.avatar.global_position + walker.avatar.global_basis.y * 0.85

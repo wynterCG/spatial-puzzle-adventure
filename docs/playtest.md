@@ -46,3 +46,11 @@ Prioritize misleading boundaries, loss of orientation and exposed seams before e
 - Check all four carrier states, undo and restarting the journey. Distinguish interesting spatial uncertainty from losing track of the character.
 
 - At the gallery exit, identify the next walking surface and goal before entering. Does it read as one continuous level floor rather than two stacked structures?
+
+### Contextual cutaway and upper-side camera
+
+- With the traveller outside, verify that the complete roof and walls are present. Hover the roof, hold still, move away, and hover the UI: opening should be stable and limited to the module.
+- Enter the gallery and switch to overview with the pointer elsewhere. The interior should stay open. Leave for the goal court and verify that it closes.
+- Compare aligned galleries (one apparent passage) with unaligned galleries (independent reveals).
+- While aboard, test all four carrier orientations in both directions. The camera should stay above your floor throughout the animated turns, with your head upright on screen. Observe the larger overhead arcs when changing sides.
+- Compare reduced motion: geometry and camera should change together in one discrete turn. Test undo and checkpoint recovery afterward.
