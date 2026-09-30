@@ -1,0 +1,14 @@
+.godot/
+build/
+*.log
+
+# Local Godot MCP Pro installation and machine-specific configuration.
+addons/godot_mcp/
+.mcp.json
+override.cfg
+
+# Local credentials and exports.
+.env
+.env.*
+!.env.example
+export_credentials.cfg
