@@ -7,14 +7,14 @@
       "avatar_up": 1,
       "camera_distance": 5.5,
       "camera_finite": true,
-      "camera_upright": 0.855334579944611,
+      "camera_upright": 0.675447463989258,
       "curve_distance": -1,
       "foot": [
         0,
         0.200000002980232,
         -1.74999928474426
       ],
-      "max_frame_degrees": 0,
+      "max_frame_degrees": 0.0395646811852521,
       "max_frame_jump": 0.0583333969116211,
       "support": "Arrival",
       "view": "third_person"
@@ -22,221 +22,221 @@
     {
       "action": "forward",
       "avatar_up": 0.984726548194885,
-      "camera_distance": 5.49999952316284,
+      "camera_distance": 5.09999942779541,
       "camera_finite": true,
-      "camera_upright": 0.855334639549255,
+      "camera_upright": 0.679765343666077,
       "curve_distance": 0.525000029959668,
       "foot": [
         0,
         -0.0458203852176666,
         -0.522324442863464
       ],
-      "max_frame_degrees": 0.0395646811852521,
-      "max_frame_jump": 0.0833330154418945,
+      "max_frame_degrees": 0.0791293690406109,
+      "max_frame_jump": 0.261964678764343,
       "support": "Rounded_path",
       "view": "third_person"
     },
     {
       "action": "stop",
       "avatar_up": 0.984726548194885,
-      "camera_distance": 5.5,
+      "camera_distance": 5.49999952316284,
       "camera_finite": true,
-      "camera_upright": 0.855334579944611,
+      "camera_upright": 0.684062004089355,
       "curve_distance": 0.525000029959668,
       "foot": [
         0,
         -0.0458203852176666,
         -0.522324442863464
       ],
-      "max_frame_degrees": 0.0395646811852521,
-      "max_frame_jump": 4.76837158203125e-7,
+      "max_frame_degrees": 0.0559529096807445,
+      "max_frame_jump": 0.0669655650854111,
       "support": "Rounded_path",
       "view": "third_person"
     },
     {
       "action": "look_up",
       "avatar_up": 0.984726548194885,
-      "camera_distance": 5.49999952316284,
+      "camera_distance": 5.5,
       "camera_finite": true,
-      "camera_upright": 0.877294778823853,
+      "camera_upright": 0.711461782455444,
       "curve_distance": 0.525000029959668,
       "foot": [
         0,
         -0.0458203852176666,
         -0.522324442863464
       ],
-      "max_frame_degrees": 2.5210356292564,
-      "max_frame_jump": 0.241980701684952,
+      "max_frame_degrees": 0.461400782858076,
+      "max_frame_jump": 0.0441136173903942,
       "support": "Rounded_path",
       "view": "third_person"
     },
     {
       "action": "orbit_check",
-      "avatar_up": 0.932544589042664,
-      "camera_distance": 5.5,
+      "avatar_up": 0.932528078556061,
+      "camera_distance": 4.30000019073486,
       "camera_finite": true,
-      "camera_upright": 0.877294778823853,
-      "curve_distance": 1.10819655111367,
+      "camera_upright": 0.731152355670929,
+      "curve_distance": 1.10833345792997,
       "foot": [
-        0.0126363355666399,
-        -0.202366322278976,
-        -1.08316469192505
+        0,
+        -0.202415749430656,
+        -1.08329236507416
       ],
-      "max_frame_degrees": 1.26114000217291,
-      "max_frame_jump": 0.129515767097473,
+      "max_frame_degrees": 1.26423952067392,
+      "max_frame_jump": 0.27760323882103,
       "support": "Rounded_path",
       "view": "third_person"
     },
     {
       "action": "switch_view",
-      "avatar_up": 0.932544589042664,
-      "camera_distance": 5.5,
+      "avatar_up": 0.932528078556061,
+      "camera_distance": 4.96666669845581,
       "camera_finite": true,
-      "camera_upright": 0.877294778823853,
-      "curve_distance": 1.10819655111367,
+      "camera_upright": 0.741995811462402,
+      "curve_distance": 1.10833345792997,
       "foot": [
-        0.0126363355666399,
-        -0.202366322278976,
-        -1.08316469192505
+        0,
+        -0.202415749430656,
+        -1.08329236507416
       ],
-      "max_frame_degrees": 1.26114000217291,
-      "max_frame_jump": 0.10615037381649,
+      "max_frame_degrees": 0.193826654699372,
+      "max_frame_jump": 0.0682389065623283,
       "support": "Rounded_path",
       "view": "overview"
     },
     {
       "action": "switch_view",
-      "avatar_up": 0.932544589042664,
+      "avatar_up": 0.932528078556061,
       "camera_distance": 5.5,
       "camera_finite": true,
-      "camera_upright": 0.877294778823853,
-      "curve_distance": 1.10819655111367,
+      "camera_upright": 0.743448793888092,
+      "curve_distance": 1.10833345792997,
       "foot": [
-        0.0126363355666399,
-        -0.202366322278976,
-        -1.08316469192505
+        0,
+        -0.202415749430656,
+        -1.08329236507416
       ],
       "max_frame_degrees": 0,
-      "max_frame_jump": 0,
+      "max_frame_jump": 0.0667054131627083,
       "support": "Rounded_path",
       "view": "third_person"
     },
     {
       "action": "forward",
-      "avatar_up": 0.579458832740784,
-      "camera_distance": 5.5,
+      "avatar_up": 0.57942134141922,
+      "camera_distance": 3.40376353263855,
       "camera_finite": true,
-      "camera_upright": 0.877294778823853,
-      "curve_distance": 2.85819536343055,
+      "camera_upright": 0.874327659606934,
+      "curve_distance": 2.85833340095978,
       "foot": [
-        0.0146453380584717,
-        -1.26162350177765,
-        -2.4450044631958
+        0,
+        -1.2617359161377,
+        -2.44508457183838
       ],
-      "max_frame_degrees": 3.81977518247999,
-      "max_frame_jump": 0.356781274080276,
+      "max_frame_degrees": 0.656109625857864,
+      "max_frame_jump": 0.278152585029602,
       "support": "Rounded_path",
       "view": "third_person"
     },
     {
       "action": "forward",
-      "avatar_up": 0.0347249582409859,
-      "camera_distance": 5.5,
+      "avatar_up": 0.0346781350672245,
+      "camera_distance": 4.56530141830444,
       "camera_finite": true,
-      "camera_upright": 0.877294778823853,
-      "curve_distance": 4.60819317781886,
+      "camera_upright": 0.995465099811554,
+      "curve_distance": 4.60833369552869,
       "foot": [
-        0.0166543554514647,
-        -2.89582514762878,
-        -2.9981906414032
+        0,
+        -2.89596557617188,
+        -2.99819564819336
       ],
-      "max_frame_degrees": 3.81977518247999,
-      "max_frame_jump": 0.360248148441315,
+      "max_frame_degrees": 0.863207631599262,
+      "max_frame_jump": 0.516274929046631,
       "support": "Rounded_path",
       "view": "third_person"
     },
     {
       "action": "forward",
-      "avatar_up": -0.521494090557098,
+      "avatar_up": -0.521534383296967,
+      "camera_distance": 5.49999952316284,
+      "camera_finite": true,
+      "camera_upright": 0.940138697624207,
+      "curve_distance": 6.35833403803663,
+      "foot": [
+        0,
+        -4.56460332870483,
+        -2.55969071388245
+      ],
+      "max_frame_degrees": 0.870431357059344,
+      "max_frame_jump": 0.178134888410568,
+      "support": "Rounded_path",
+      "view": "third_person"
+    },
+    {
+      "action": "forward",
+      "avatar_up": -0.90525609254837,
       "camera_distance": 5.50000047683716,
       "camera_finite": true,
-      "camera_upright": 1,
-      "curve_distance": 6.35819255803414,
+      "camera_upright": 0.780223727226257,
+      "curve_distance": 8.10833502516066,
       "foot": [
-        0.0186633858829737,
-        -4.56448268890381,
-        -2.55976462364197
+        0,
+        -5.71576833724976,
+        -1.27459931373596
       ],
-      "max_frame_degrees": 2.86484686150733,
-      "max_frame_jump": 0.344696491956711,
+      "max_frame_degrees": 0.776321061971795,
+      "max_frame_jump": 0.134056150913239,
       "support": "Rounded_path",
       "view": "third_person"
     },
     {
       "action": "forward",
-      "avatar_up": -0.905235707759857,
-      "camera_distance": 5.50000095367432,
+      "avatar_up": -1,
+      "camera_distance": 5.5,
       "camera_finite": true,
-      "camera_upright": 1,
-      "curve_distance": 8.10819104766601,
+      "camera_upright": 0.708293974399567,
+      "curve_distance": 9.85833520292445,
       "foot": [
-        0.0206724163144827,
-        -5.71570682525635,
-        -1.27472949028015
+        0,
+        -6,
+        0.433557242155075
+      ],
+      "max_frame_degrees": 0.429783463664117,
+      "max_frame_jump": 0.0760032385587692,
+      "support": "Rounded_path",
+      "view": "third_person"
+    },
+    {
+      "action": "forward",
+      "avatar_up": -1,
+      "camera_distance": 5.50000047683716,
+      "camera_finite": true,
+      "camera_upright": 0.707231819629669,
+      "curve_distance": 11.608334517471,
+      "foot": [
+        0,
+        -6,
+        2.18355655670166
       ],
       "max_frame_degrees": 0.0395646811852521,
-      "max_frame_jump": 0.074860468506813,
+      "max_frame_jump": 0.0583302974700928,
       "support": "Rounded_path",
       "view": "third_person"
     },
     {
       "action": "forward",
       "avatar_up": -1,
-      "camera_distance": 5.5,
+      "camera_distance": 5.50000047683716,
       "camera_finite": true,
-      "camera_upright": 1,
-      "curve_distance": 9.85818946956798,
-      "foot": [
-        0.0226814467459917,
-        -6,
-        0.433411508798599
-      ],
-      "max_frame_degrees": 3.81977518247999,
-      "max_frame_jump": 0.439437419176102,
-      "support": "Rounded_path",
-      "view": "third_person"
-    },
-    {
-      "action": "forward",
-      "avatar_up": -1,
-      "camera_distance": 5.5,
-      "camera_finite": true,
-      "camera_upright": 1,
-      "curve_distance": 11.6081883668821,
-      "foot": [
-        0.0246904771775007,
-        -6,
-        2.18341040611267
-      ],
-      "max_frame_degrees": 0.0395646811852521,
-      "max_frame_jump": 0.0583334378898144,
-      "support": "Rounded_path",
-      "view": "third_person"
-    },
-    {
-      "action": "forward",
-      "avatar_up": -1,
-      "camera_distance": 5.5,
-      "camera_finite": true,
-      "camera_upright": 1,
+      "camera_upright": 0.707229137420654,
       "curve_distance": -1,
       "foot": [
-        0.026699448004365,
+        0,
         0.200000002980232,
         -0.800000011920929
       ],
       "max_frame_degrees": 0.0395646811852521,
-      "max_frame_jump": 0.0583334378898144,
+      "max_frame_jump": 0.0583338737487793,
       "support": "Lower_landing",
       "view": "third_person"
     },
@@ -245,117 +245,117 @@
       "avatar_up": -1,
       "camera_distance": 5.5,
       "camera_finite": true,
-      "camera_upright": 1,
-      "curve_distance": 11.47477886676,
+      "camera_upright": 0.707229197025299,
+      "curve_distance": 11.4497778177182,
       "foot": [
-        0.0246902070939541,
+        0,
         -6,
-        2.0500009059906
+        2.02499985694885
       ],
       "max_frame_degrees": 0.0395646811852521,
-      "max_frame_jump": 0.0583334378898144,
+      "max_frame_jump": 0.0833332538604736,
       "support": "Rounded_path",
       "view": "third_person"
     },
     {
       "action": "backward",
       "avatar_up": -1,
-      "camera_distance": 5.5,
+      "camera_distance": 5.49999904632568,
       "camera_finite": true,
-      "camera_upright": 1,
-      "curve_distance": 9.72478041648074,
+      "camera_upright": 0.707229256629944,
+      "curve_distance": 9.6997787117879,
       "foot": [
-        0.0226811766624451,
+        0,
         -6,
-        0.300002455711365
+        0.275000751018524
       ],
       "max_frame_degrees": 0.0395646811852521,
-      "max_frame_jump": 0.0583334378898144,
+      "max_frame_jump": 0.0583336353302002,
       "support": "Rounded_path",
       "view": "third_person"
     },
     {
       "action": "backward",
-      "avatar_up": -0.885451197624207,
+      "avatar_up": -0.881547331809998,
       "camera_distance": 5.5,
       "camera_finite": true,
-      "camera_upright": 0.877294778823853,
-      "curve_distance": 7.97478133693388,
+      "camera_upright": 0.752707421779633,
+      "curve_distance": 7.94977827598445,
       "foot": [
-        0.0206721462309361,
-        -5.65635395050049,
-        -1.39419686794281
+        0,
+        -5.6446418762207,
+        -1.41628706455231
       ],
-      "max_frame_degrees": 2.86512028251754,
-      "max_frame_jump": 0.28083124756813,
+      "max_frame_degrees": 0.335717938332143,
+      "max_frame_jump": 0.0746909752488136,
       "support": "Rounded_path",
       "view": "third_person"
     },
     {
       "action": "backward",
-      "avatar_up": -0.48304694890976,
-      "camera_distance": 5.5,
+      "avatar_up": -0.475732058286667,
+      "camera_distance": 4.09999990463257,
       "camera_finite": true,
-      "camera_upright": 0.877294719219208,
-      "curve_distance": 6.22478299171358,
+      "camera_upright": 0.908767819404602,
+      "curve_distance": 6.19977769970251,
       "foot": [
-        0.018663115799427,
-        -4.44914102554321,
-        -2.6267831325531
+        0,
+        -4.42719650268555,
+        -2.63877058029175
       ],
-      "max_frame_degrees": 3.81977518247999,
-      "max_frame_jump": 0.363682091236115,
+      "max_frame_degrees": 0.721992456653044,
+      "max_frame_jump": 0.283798336982727,
       "support": "Rounded_path",
       "view": "third_person"
     },
     {
       "action": "backward",
-      "avatar_up": 0.0791188776493073,
-      "camera_distance": 5.5,
-      "camera_finite": true,
-      "camera_upright": 0.877294778823853,
-      "curve_distance": 4.47478398468672,
-      "foot": [
-        0.016654085367918,
-        -2.76264333724976,
-        -2.99059557914734
-      ],
-      "max_frame_degrees": 3.81977518247999,
-      "max_frame_jump": 0.358434647321701,
-      "support": "Rounded_path",
-      "view": "third_person"
-    },
-    {
-      "action": "backward",
-      "avatar_up": 0.615117192268372,
-      "camera_distance": 5.50000095367432,
+      "avatar_up": 0.0874254927039146,
+      "camera_distance": 3.50635480880737,
       "camera_finite": true,
       "camera_upright": 1,
-      "curve_distance": 2.72478510683901,
+      "curve_distance": 4.44977731284102,
       "foot": [
-        0.0146450689062476,
-        -1.1546483039856,
-        -2.36530709266663
+        0,
+        -2.73772358894348,
+        -2.98851323127747
       ],
-      "max_frame_degrees": 2.86484686150733,
-      "max_frame_jump": 0.344737619161606,
+      "max_frame_degrees": 0.870431357059344,
+      "max_frame_jump": 0.276665389537811,
       "support": "Rounded_path",
       "view": "third_person"
     },
     {
       "action": "backward",
-      "avatar_up": 0.947673499584198,
-      "camera_distance": 5.50000095367432,
+      "avatar_up": 0.621668219566345,
+      "camera_distance": 3.55788040161133,
       "camera_finite": true,
-      "camera_upright": 1,
-      "curve_distance": 0.974786312742315,
+      "camera_upright": 0.908758044242859,
+      "curve_distance": 2.69977701316309,
       "foot": [
-        0.0126360664144158,
-        -0.156979590654373,
-        -0.95772385597229
+        0,
+        -1.13499546051025,
+        -2.3498420715332
       ],
-      "max_frame_degrees": 0.0395646811852521,
-      "max_frame_jump": 0.0748605132102966,
+      "max_frame_degrees": 0.870431357059344,
+      "max_frame_jump": 0.425688803195953,
+      "support": "Rounded_path",
+      "view": "third_person"
+    },
+    {
+      "action": "backward",
+      "avatar_up": 0.950301885604858,
+      "camera_distance": 5.5,
+      "camera_finite": true,
+      "camera_upright": 0.752728223800659,
+      "curve_distance": 0.949776867533837,
+      "foot": [
+        0,
+        -0.149094432592392,
+        -0.933990061283112
+      ],
+      "max_frame_degrees": 0.721992456653044,
+      "max_frame_jump": 0.155037522315979,
       "support": "Rounded_path",
       "view": "third_person"
     },
@@ -364,15 +364,15 @@
       "avatar_up": 1,
       "camera_distance": 5.5,
       "camera_finite": true,
-      "camera_upright": 1,
+      "camera_upright": 0.707532227039337,
       "curve_distance": -1,
       "foot": [
-        0.0106271393597126,
+        0,
         0.200000002980232,
         -2.24166584014893
       ],
-      "max_frame_degrees": 3.81977518247999,
-      "max_frame_jump": 0.439409077167511,
+      "max_frame_degrees": 0.335717938332143,
+      "max_frame_jump": 0.0692191421985626,
       "support": "Arrival",
       "view": "third_person"
     }

@@ -11,6 +11,10 @@ var deployed := false
 var segments: Array[Node3D] = []
 var deployment := 0.0
 var stowed_roll: Node3D
+var cutaway_materials: Dictionary = {}
+
+func transports_controls() -> bool:
+	return true
 
 func length() -> float:
 	return PI * RADIUS + tail_length
@@ -84,6 +88,27 @@ func build() -> void:
 		for side in [-1.0, 1.0]:
 			box(segment, Vector3(side * 0.96, 0.04, 0), Vector3(0.08, 0.12, size), trim_mat)
 	set_deployment(0.0)
+	for segment in segments:
+		for visual in segment.get_children():
+			var original: StandardMaterial3D = visual.material_override
+			visual.set_meta("opaque_material", original)
+			if not cutaway_materials.has(original):
+				var faded: StandardMaterial3D = original.duplicate()
+				faded.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+				faded.albedo_color.a = .12
+				cutaway_materials[original] = faded
+
+func update_camera_cutaway(view: Camera3D, target: Vector3, active: bool) -> void:
+	# Only sections between the camera and traveller become translucent. The
+	# path constraint and body collisions are unchanged; overview restores all
+	# opaque materials immediately. No whole-track hiding or camera side swap.
+	for i in range(segments.size()):
+		var solid := solid_meshes[i]
+		var size: Vector3 = (solid.mesh as BoxMesh).size
+		var obscures: bool = active and solid.is_visible_in_tree() and AABB(-size * .5, size).grow(.9).intersects_segment(solid.to_local(view.global_position), solid.to_local(target)) != null
+		for visual in segments[i].get_children():
+			var original: StandardMaterial3D = visual.get_meta("opaque_material")
+			visual.material_override = cutaway_materials[original] if obscures else original
 
 func set_deployment(amount: float) -> void:
 	deployment = clampf(amount, 0.0, 1.0)

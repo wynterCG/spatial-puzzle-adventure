@@ -18,6 +18,7 @@ function runtime(code) {
 const observe = `
 g.update_camera()
 g.walker.avatar.visible = true
+g.walker.update_overview_visibility(g.overview, g.architectural)
 g.hud.refresh()
 var s = g.walker.support
 _mcp_print(JSON.stringify({

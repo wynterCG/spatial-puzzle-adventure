@@ -30,9 +30,9 @@ Inspected the running 1280 x 800 game with its 1440 x 900 UI viewport. Each stud
 - [Study 3: carrier, docking arms and receiver](study-3-receiver.png)
 - [World-aligned third person: inverted avatar on the lower landing](study-world-camera.png)
 
-The curved walkway tail ends at the lower landing edge instead of overlapping its paving. The Study 2 hub uses slender structural arms, leaving the separate paths legible. The world-up camera keeps its screen upright and now avoids obstructions through bounded orbit changes rather than a sudden swap to the surface-relative arm.
+The curved walkway tail ends at the lower landing edge instead of overlapping its paving. The Study 2 hub uses slender structural arms, leaving the separate paths legible. The world-up camera now preserves mouse-owned azimuth; see the current regression notes below.
 
-## Third-person curve regression
+## Earlier third-person fix - superseded after user feedback
 
 Reproduced two faults through MCP: the old obstruction fallback jumped up to 11.05 units and flipped 180 degrees in a single 60 Hz frame; recalculating forward after a key release or blocked step reversed W on the curved track. The previous finite-transform checks did not catch either fault.
 
@@ -40,9 +40,21 @@ Reproduced two faults through MCP: the old obstruction fallback jumped up to 11.
 
 Jev is used through the TypeSafe API with structured observations, not screenshots. The first exploratory run exhausted its 36-action budget by reversing near the entrance; its [trace is preserved](jev-camera-exploratory-report.json). A second, directed runner restricts movement to the outward leg and then the return leg while Jev chooses the order/timing of stop, pitch, orbit and view-switch checks. This is regression coverage, not evidence of blind puzzle understanding.
 
-The [directed Jev run](jev-camera-report.json) passed in 22 actions: lower landing reached, stop/restart, pitch, orbit and both view changes covered, then return to Arrival. All reported camera transforms remained finite and upright, with frame displacement below 0.65 units and rotation below 8 degrees. The live scene state was restored after the run.
+The [earlier directed Jev run](jev-camera-b921456-report.json) passed in 22 actions: lower landing reached, stop/restart, pitch, orbit and both view changes covered, then return to Arrival. All reported camera transforms remained finite and upright, with frame displacement below 0.65 units and rotation below 8 degrees. The live scene state was restored after the run. **The user subsequently reported worse movement and camera behavior. Those checks did not establish usable general controls.**
 
 Inspected the [updated third-person view on the curved wall](camera-curve-stability.png): the traveller remains visible, the screen stays world-upright and the arm clears the track. The camera regression and original gallery suite also pass from a clean staged checkout without the MCP addon.
+
+## Current regression: camera ownership and ordinary movement
+
+Captured the reported live state on Arrival. The stored walking heading had a dot product of only 0.223 with the camera's projected forward: W was nearly sideways relative to the view. The previous fix locked that transported heading on all surfaces and integrated mouse steering separately from the visible camera. Its automatic obstacle search also changed the chosen azimuth.
+
+Removed the obstacle side-search and persistent platform heading. Ordinary platforms now establish camera-relative controls on a fresh gesture; only an authored curve preserves controls through release/restart. Added screen-right handedness for upside-down ground and a check for a mouse event arriving before the camera frame update.
+
+A rendered test rejected a zoom-only version: it met continuity checks but pushed the camera into the avatar at the curved wall. The current version uses a [local translucent track cutaway](camera-curve-cutaway.png) at that obstruction, keeping a roughly five-unit arm in the inspected case. It restores the opaque track in overview and retains physical walking/body constraints. This is a visual tradeoff that still needs user feedback. Alpha blending follows [Godot's standard-material transparency support](https://docs.godotengine.org/en/4.6/tutorials/3d/standard_material_3d.html#transparency).
+
+The expanded suite checks fresh W/D against the visible view on upper and underside platforms at four azimuths, stale-heading recovery, a single mouse event before movement alignment, stationary mouse look, unchanged mouse-owned azimuth around the curve, adequate framing at the wall and complete material restoration in isometric view. The eight camera configurations currently measure maximum 0.629 units / 1.111 degrees per 60 Hz frame. Both mechanical suites pass. These are targeted checks, not a claim that all camera situations are solved.
+
+The [current directed Jev run](jev-camera-report.json), using Jev 1.13.0, completed the same 22-action outward/return scenario with stop, pitch, orbit and view-switch coverage. It passed its continuity checks. Ordinary platform control alignment and cutaway restoration are covered separately by the expanded local tests and rendered inspection; Jev's structured observations do not establish visual comfort.
 
 ## Limits
 

@@ -19,6 +19,9 @@ var pick_body: StaticBody3D
 func surface_frame(_point: Vector3) -> Basis:
 	return Basis.IDENTITY
 
+func transports_controls() -> bool:
+	return false
+
 func step_contact(point: Vector3, direction: Vector3, distance: float) -> Vector3:
 	return constrain_to_path(point + direction * distance)
 

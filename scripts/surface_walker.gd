@@ -23,12 +23,12 @@ var follow_frame := Basis.IDENTITY
 var camera_initialized := false
 var world_orbit_initialized := false
 var world_orbit_heading := Vector3.FORWARD
-var avoidance_yaw := 0.0
-var avoidance_pitch := 0.42
+var follow_elevation := 0.42
 var arm_length := 5.5
 var last_walk_input := Vector2.ZERO
 var orbit_changed := false
 var movement_frame_initialized := false
+var movement_right_sign := 1.0
 var camera: Camera3D
 var avatar: Node3D
 var overview_silhouette: Node3D
@@ -95,6 +95,9 @@ func _ready() -> void:
 
 func update_overview_visibility(view: Camera3D, enabled: bool) -> void:
 	overview_silhouette.visible = false
+	for piece in pieces:
+		if piece.transports_controls():
+			piece.update_camera_cutaway(camera, avatar.to_global(Vector3(0, .85, 0)), not enabled and third_person and keep_world_horizon)
 	if not enabled:
 		return
 	# Parallel rays are essential for orthographic projection. Perspective camera
@@ -140,28 +143,29 @@ func look(relative: Vector2) -> void:
 	if third_person:
 		orbit_yaw -= relative.x * sensitivity
 		orbit_pitch = clampf(orbit_pitch + relative.y * sensitivity, 0.12, 1.0)
-		# Pitch changes the view, not the direction of travel on the track.
-		if keep_world_horizon and movement_frame_initialized:
-			# Apply mouse yaw to the transported control frame continuously. Its
-			# tangent component goes to zero on a vertical wall, rather than
-			# projecting screen-up again and reversing forward at that point.
-			var yaw_on_ground := (support.global_basis * normal).dot(Vector3.UP)
-			forward = forward.rotated(normal, -relative.x * sensitivity * yaw_on_ground).normalized()
-		else:
-			orbit_changed = orbit_changed or absf(relative.x) > 0.001
+		orbit_changed = orbit_changed or absf(relative.x) > 0.001
 		return
 	forward = forward.rotated(normal, -relative.x * sensitivity).normalized()
 	pitch = clampf(pitch - relative.y * sensitivity, -1.35, 1.35)
 
-func align_movement_to_camera(_input: Vector2) -> void:
+func align_movement_to_camera(input: Vector2) -> void:
 	if not third_person:
 		return
-	# Transport the controls with the ground, including across key releases and
-	# blocked steps. A world-upright screen reverses its projected 'up' on a loop;
-	# recalculating after every stop made W turn around or stall halfway through.
-	# Automatic camera avoidance must never establish a new movement frame.
-	if movement_frame_initialized and not orbit_changed:
+	# Only the authored curve transports the control frame through key releases.
+	# On flat platforms, each fresh gesture is relative to the visible camera.
+	if support.transports_controls() and movement_frame_initialized:
+		orbit_changed = false
 		return
+	if input.length_squared() < .01:
+		movement_frame_initialized = false
+		return
+	# A blocked held key is still the same gesture: don't reverse it at an edge.
+	if movement_frame_initialized and last_walk_input.length_squared() > .01 and not orbit_changed:
+		return
+	if orbit_changed and keep_world_horizon:
+		# Input is handled before the frame's camera update. Apply the requested
+		# yaw first so a single mouse event cannot latch yesterday's direction.
+		sync_pose(0.0)
 	orbit_changed = false
 	var world_up := (support.global_basis * normal).normalized()
 	# Screen-up projected onto the surface keeps W intuitive on walls/undersides.
@@ -170,13 +174,15 @@ func align_movement_to_camera(_input: Vector2) -> void:
 		screen_up = (-camera.global_basis.z).slide(world_up)
 	if screen_up.length_squared() > 0.001:
 		forward = (support.global_basis.inverse() * screen_up.normalized()).normalized()
+		var world_right := support.global_basis * forward.cross(normal)
+		movement_right_sign = 1.0 if world_right.dot(camera.global_basis.x) >= 0 else -1.0
 		movement_frame_initialized = true
 
 func set_third_person(enabled: bool) -> void:
 	third_person = enabled
 	# Returning from first person must preserve the tangent heading too, rather
 	# than reversing it because the world-upright camera sees a different 'up'.
-	movement_frame_initialized = enabled and keep_world_horizon
+	movement_frame_initialized = enabled and support.transports_controls()
 	camera_initialized = false
 	sync_pose(1.0)
 
@@ -185,7 +191,7 @@ func walk(input: Vector2, delta: float) -> void:
 	if input.length() < 0.01:
 		moving = false
 		return
-	var right := forward.cross(normal).normalized()
+	var right := forward.cross(normal).normalized() * (movement_right_sign if third_person else 1.0)
 	var direction := (right * input.x - forward * input.y).normalized()
 	var distance := speed * delta
 	var count := maxi(1, int(ceil(distance / 0.08)))
@@ -289,7 +295,7 @@ func sync_follow_camera(contact: Vector3, up: Vector3, delta: float) -> void:
 			world_orbit_initialized = true
 		heading = world_orbit_heading.rotated(Vector3.UP, orbit_yaw)
 		arm_up = Vector3.UP
-		camera.global_position = world_follow_position(pivot, -heading, delta)
+		camera.global_position = world_follow_position(pivot, -heading, up, delta)
 		camera.look_at(pivot, Vector3.UP)
 		camera_initialized = true
 		return
@@ -317,52 +323,46 @@ func sync_follow_camera(contact: Vector3, up: Vector3, delta: float) -> void:
 		camera.look_at(pivot, view_up)
 	camera_initialized = true
 
-func world_follow_position(pivot: Vector3, back: Vector3, delta: float) -> Vector3:
-	# Stay on a world-up orbit, including during obstruction avoidance. Switching
-	# to a surface-relative arm here used to teleport across the player on curves.
-	var requested_yaw := atan2(back.x, back.z)
+func world_follow_position(pivot: Vector3, back: Vector3, up: Vector3, delta: float) -> Vector3:
+	# Mouse yaw owns the azimuth. Obstacles may shorten the arm, never orbit it.
+	# Lower the arm continuously as the ground turns upside down; keep the
+	# screen world-upright and avoid the poles of a world-up look-at frame.
+	var target_elevation := orbit_pitch * up.dot(Vector3.UP)
 	if not camera_initialized:
-		avoidance_yaw = requested_yaw
-		avoidance_pitch = orbit_pitch
-		arm_length = camera_distance
-	var best_yaw := requested_yaw
-	var best_pitch := orbit_pitch
-	var best_cost := INF
-	for yaw_offset in [0.0, 0.35, -0.35, 0.7, -0.7, 1.05, -1.05, 1.57, -1.57, 2.1, -2.1, PI]:
-		for elevation in [orbit_pitch, 0.0, -orbit_pitch]:
-			var candidate_yaw: float = requested_yaw + yaw_offset
-			var candidate_direction := Vector3(sin(candidate_yaw) * cos(elevation), sin(elevation), cos(candidate_yaw) * cos(elevation))
-			# Plan with a wider envelope than the final camera collision probe so
-			# avoidance starts before a thin edge enters the line of sight.
-			var candidate_clearance := pivot.distance_to(safe_camera_position(pivot, pivot + candidate_direction * camera_distance, 0.65))
-			var continuity := angle_difference(avoidance_yaw, candidate_yaw)
-			var cost: float = pow(camera_distance - candidate_clearance, 2) * 4.0 + yaw_offset * yaw_offset * 0.3 + pow(elevation - orbit_pitch, 2) * 0.3 + continuity * continuity + pow(elevation - avoidance_pitch, 2)
-			if cost < best_cost:
-				best_cost = cost
-				best_yaw = candidate_yaw
-				best_pitch = elevation
-	if not camera_initialized:
-		avoidance_yaw = best_yaw
-		avoidance_pitch = best_pitch
+		follow_elevation = target_elevation
 	elif delta < 1.0:
-		# Bound angular travel even when the best free direction changes suddenly.
-		avoidance_yaw += clampf(angle_difference(avoidance_yaw, best_yaw), -4.0 * delta, 4.0 * delta)
-		avoidance_pitch = move_toward(avoidance_pitch, best_pitch, 3.0 * delta)
-	var direction := Vector3(sin(avoidance_yaw) * cos(avoidance_pitch), sin(avoidance_pitch), cos(avoidance_yaw) * cos(avoidance_pitch))
-	var available := pivot.distance_to(safe_camera_position(pivot, pivot + direction * camera_distance))
-	# Retract for real obstructions, but ease out as the view clears.
+		follow_elevation = lerpf(follow_elevation, target_elevation, 1.0 - exp(-delta * 12.0))
+	var direction := back * cos(follow_elevation) + Vector3.UP * sin(follow_elevation)
+	var available := pivot.distance_to(safe_camera_position(pivot, pivot + direction * camera_distance, .18, true))
+	var anticipated := available
+	if moving and last_walk_input.length_squared() > .01:
+		var right := forward.cross(normal) * movement_right_sign
+		var travel := (right * last_walk_input.x - forward * last_walk_input.y).normalized()
+		# Look ahead along the same authored path. Start shortening before a
+		# corner enters the sightline instead of snapping inward at that frame.
+		for seconds in [.2, .4, .6, .8]:
+			var ahead := support.step_contact(foot, travel, speed * seconds)
+			var ahead_up := support.global_basis * support.surface_frame(ahead).y
+			var ahead_pivot := support.to_global(ahead) + ahead_up * .85
+			var ahead_elevation := orbit_pitch * ahead_up.dot(Vector3.UP)
+			var ahead_direction := back * cos(ahead_elevation) + Vector3.UP * sin(ahead_elevation)
+			anticipated = minf(anticipated, ahead_pivot.distance_to(safe_camera_position(ahead_pivot, ahead_pivot + ahead_direction * camera_distance, .18, true)))
+	# Real geometry remains the hard limit; anticipation makes normal traversal
+	# reach that limit gradually. No sideways search changes the mouse's azimuth.
 	if not camera_initialized:
 		arm_length = available
 	elif delta < 1.0:
-		arm_length = minf(available, lerpf(arm_length, available, 1.0 - exp(-delta * 7.0)))
+		arm_length = minf(available, move_toward(arm_length, anticipated, delta * (12.0 if anticipated < arm_length else 4.0)))
 	else:
 		arm_length = minf(arm_length, available)
 	return pivot + direction * maxf(0.001, arm_length)
 
-func safe_camera_position(pivot: Vector3, desired: Vector3, padding := 0.18) -> Vector3:
+func safe_camera_position(pivot: Vector3, desired: Vector3, padding := 0.18, cutaway_curves := false) -> Vector3:
 	var fraction := 1.0
 	var solids: Array[Node3D] = []
 	for piece in pieces:
+		if cutaway_curves and piece.transports_controls():
+			continue
 		solids.append_array(piece.solid_meshes)
 	solids.append_array(camera_obstacles)
 	for solid in solids:
@@ -393,13 +393,14 @@ func safe_camera_position(pivot: Vector3, desired: Vector3, padding := 0.18) -> 
 	return pivot.lerp(desired, fraction)
 
 func snapshot() -> Dictionary:
-	return {"piece": support.name, "foot": foot, "normal": normal, "forward": forward, "pitch": pitch, "orbit_heading": orbit_heading, "orbit_yaw": orbit_yaw, "orbit_pitch": orbit_pitch, "world_orbit_heading": world_orbit_heading}
+	return {"piece": support.name, "foot": foot, "normal": normal, "forward": forward, "pitch": pitch, "orbit_heading": orbit_heading, "orbit_yaw": orbit_yaw, "orbit_pitch": orbit_pitch, "world_orbit_heading": world_orbit_heading, "movement_right_sign": movement_right_sign}
 
 func restore(data: Dictionary, root: Node) -> void:
 	support = root.get_node(NodePath(data.piece)) as SurfacePiece
 	foot = data.foot
 	normal = data.normal
 	forward = data.forward
+	movement_right_sign = data.get("movement_right_sign", 1.0)
 	pitch = data.pitch
 	orbit_heading = data.get("orbit_heading", forward)
 	orbit_yaw = data.get("orbit_yaw", 0.0)

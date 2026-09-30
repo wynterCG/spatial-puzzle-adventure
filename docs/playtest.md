@@ -31,6 +31,8 @@ Ask the player to identify the goal, available walking paths and the structure t
 
 Try world-aligned third person through a curve: the avatar can become inverted while the screen stays world-up. Switch to isometric view and check whether ground-relative framing restores orientation. Look for arm repositioning near solids, clipped views or unexpectedly changing movement. Compare the optional surface-following mode and first person; neither is required. Compare reduced motion and follow distances 3 and 8 if useful. Stop if uncomfortable and identify the exact contact/turn.
 
+After returning to an ordinary platform, release all walking keys, orbit the camera substantially, then try W and D. They should follow the visible screen directions. Repeat on the underside. On the curve, stop/restart and freely look around: movement retains the transported route direction there. Check whether the local track cutaway makes the character readable without hiding too much of the route. A successful scripted loop is insufficient evidence that these general controls feel right.
+
 ## What to record
 
 Record actions, predictions, hesitations, requested hints and the player's explanation before revealing the completion explanation. Completing by repeated turns is not sufficient evidence of understanding. A useful success is being able to predict and explain a wrong-order outcome on a replay. Separate clarity, enjoyment and camera comfort observations.
