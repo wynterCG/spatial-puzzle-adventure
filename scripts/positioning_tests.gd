@@ -113,4 +113,5 @@ static func run(g: Node3D) -> Array[String]:
 			break
 	if g.walker.avatar.global_basis.y.dot(Vector3.DOWN) < 0.99 or g.overview.global_basis.y.dot(Vector3.DOWN) < 0.5:
 		failures.append("Inverted traveller needs world-up traversal and ground-up overview")
+	failures.append_array(preload("res://scripts/camera_tests.gd").run(g))
 	return failures

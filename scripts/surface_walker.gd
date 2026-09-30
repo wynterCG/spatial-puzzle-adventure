@@ -23,8 +23,12 @@ var follow_frame := Basis.IDENTITY
 var camera_initialized := false
 var world_orbit_initialized := false
 var world_orbit_heading := Vector3.FORWARD
+var avoidance_yaw := 0.0
+var avoidance_pitch := 0.42
+var arm_length := 5.5
 var last_walk_input := Vector2.ZERO
 var orbit_changed := false
+var movement_frame_initialized := false
 var camera: Camera3D
 var avatar: Node3D
 var overview_silhouette: Node3D
@@ -129,22 +133,34 @@ func place(piece: SurfacePiece, point: Vector3, up := Vector3.UP, heading := Vec
 		pitch = -0.08
 	moving = false
 	last_walk_input = Vector2.ZERO
+	movement_frame_initialized = false
 	sync_pose(1.0)
 
 func look(relative: Vector2) -> void:
 	if third_person:
 		orbit_yaw -= relative.x * sensitivity
 		orbit_pitch = clampf(orbit_pitch + relative.y * sensitivity, 0.12, 1.0)
-		orbit_changed = true
+		# Pitch changes the view, not the direction of travel on the track.
+		if keep_world_horizon and movement_frame_initialized:
+			# Apply mouse yaw to the transported control frame continuously. Its
+			# tangent component goes to zero on a vertical wall, rather than
+			# projecting screen-up again and reversing forward at that point.
+			var yaw_on_ground := (support.global_basis * normal).dot(Vector3.UP)
+			forward = forward.rotated(normal, -relative.x * sensitivity * yaw_on_ground).normalized()
+		else:
+			orbit_changed = orbit_changed or absf(relative.x) > 0.001
 		return
 	forward = forward.rotated(normal, -relative.x * sensitivity).normalized()
 	pitch = clampf(pitch - relative.y * sensitivity, -1.35, 1.35)
 
-func align_movement_to_camera(input: Vector2) -> void:
+func align_movement_to_camera(_input: Vector2) -> void:
 	if not third_person:
 		return
-	# Keep held input consistent on the support; orbiting reestablishes screen-relative movement.
-	if input.length_squared() > 0.01 and moving and input.is_equal_approx(last_walk_input) and not orbit_changed:
+	# Transport the controls with the ground, including across key releases and
+	# blocked steps. A world-upright screen reverses its projected 'up' on a loop;
+	# recalculating after every stop made W turn around or stall halfway through.
+	# Automatic camera avoidance must never establish a new movement frame.
+	if movement_frame_initialized and not orbit_changed:
 		return
 	orbit_changed = false
 	var world_up := (support.global_basis * normal).normalized()
@@ -154,9 +170,13 @@ func align_movement_to_camera(input: Vector2) -> void:
 		screen_up = (-camera.global_basis.z).slide(world_up)
 	if screen_up.length_squared() > 0.001:
 		forward = (support.global_basis.inverse() * screen_up.normalized()).normalized()
+		movement_frame_initialized = true
 
 func set_third_person(enabled: bool) -> void:
 	third_person = enabled
+	# Returning from first person must preserve the tangent heading too, rather
+	# than reversing it because the world-upright camera sees a different 'up'.
+	movement_frame_initialized = enabled and keep_world_horizon
 	camera_initialized = false
 	sync_pose(1.0)
 
@@ -269,6 +289,10 @@ func sync_follow_camera(contact: Vector3, up: Vector3, delta: float) -> void:
 			world_orbit_initialized = true
 		heading = world_orbit_heading.rotated(Vector3.UP, orbit_yaw)
 		arm_up = Vector3.UP
+		camera.global_position = world_follow_position(pivot, -heading, delta)
+		camera.look_at(pivot, Vector3.UP)
+		camera_initialized = true
+		return
 	else:
 		world_orbit_initialized = false
 	var target_frame := Basis(heading.cross(arm_up).normalized(), arm_up, -heading).orthonormalized()
@@ -283,23 +307,59 @@ func sync_follow_camera(contact: Vector3, up: Vector3, delta: float) -> void:
 	# provides a clear fallback, instead of collapsing the camera onto the head.
 	if safe.distance_to(pivot) < minf(2.0, camera_distance * 0.5):
 		var settled_offset := (target_frame.z * cos(orbit_pitch) + arm_up * sin(orbit_pitch)) * camera_distance
-		if keep_world_horizon:
-			# A world-up arm can enter the floor while the traveller is inverted.
-			# Move the arm to the clear surface side, keeping the screen's world-up
-			# orientation. The character still appears sideways/upside down.
-			var surface_back := -(support.global_basis * orbit_heading.rotated(normal, orbit_yaw)).normalized()
-			settled_offset = (surface_back * cos(orbit_pitch) + up * sin(orbit_pitch)) * camera_distance
 		var fallback := safe_camera_position(pivot, pivot + settled_offset)
 		if fallback.distance_to(pivot) > safe.distance_to(pivot):
 			safe = fallback
 	camera.global_position = safe
 	var view_direction := pivot - camera.global_position
-	var view_up := Vector3.UP if keep_world_horizon else follow_frame.y
+	var view_up := follow_frame.y
 	if view_direction.length_squared() > 0.001 and view_direction.normalized().cross(view_up).length_squared() > 0.00001:
 		camera.look_at(pivot, view_up)
 	camera_initialized = true
 
-func safe_camera_position(pivot: Vector3, desired: Vector3) -> Vector3:
+func world_follow_position(pivot: Vector3, back: Vector3, delta: float) -> Vector3:
+	# Stay on a world-up orbit, including during obstruction avoidance. Switching
+	# to a surface-relative arm here used to teleport across the player on curves.
+	var requested_yaw := atan2(back.x, back.z)
+	if not camera_initialized:
+		avoidance_yaw = requested_yaw
+		avoidance_pitch = orbit_pitch
+		arm_length = camera_distance
+	var best_yaw := requested_yaw
+	var best_pitch := orbit_pitch
+	var best_cost := INF
+	for yaw_offset in [0.0, 0.35, -0.35, 0.7, -0.7, 1.05, -1.05, 1.57, -1.57, 2.1, -2.1, PI]:
+		for elevation in [orbit_pitch, 0.0, -orbit_pitch]:
+			var candidate_yaw: float = requested_yaw + yaw_offset
+			var candidate_direction := Vector3(sin(candidate_yaw) * cos(elevation), sin(elevation), cos(candidate_yaw) * cos(elevation))
+			# Plan with a wider envelope than the final camera collision probe so
+			# avoidance starts before a thin edge enters the line of sight.
+			var candidate_clearance := pivot.distance_to(safe_camera_position(pivot, pivot + candidate_direction * camera_distance, 0.65))
+			var continuity := angle_difference(avoidance_yaw, candidate_yaw)
+			var cost: float = pow(camera_distance - candidate_clearance, 2) * 4.0 + yaw_offset * yaw_offset * 0.3 + pow(elevation - orbit_pitch, 2) * 0.3 + continuity * continuity + pow(elevation - avoidance_pitch, 2)
+			if cost < best_cost:
+				best_cost = cost
+				best_yaw = candidate_yaw
+				best_pitch = elevation
+	if not camera_initialized:
+		avoidance_yaw = best_yaw
+		avoidance_pitch = best_pitch
+	elif delta < 1.0:
+		# Bound angular travel even when the best free direction changes suddenly.
+		avoidance_yaw += clampf(angle_difference(avoidance_yaw, best_yaw), -4.0 * delta, 4.0 * delta)
+		avoidance_pitch = move_toward(avoidance_pitch, best_pitch, 3.0 * delta)
+	var direction := Vector3(sin(avoidance_yaw) * cos(avoidance_pitch), sin(avoidance_pitch), cos(avoidance_yaw) * cos(avoidance_pitch))
+	var available := pivot.distance_to(safe_camera_position(pivot, pivot + direction * camera_distance))
+	# Retract for real obstructions, but ease out as the view clears.
+	if not camera_initialized:
+		arm_length = available
+	elif delta < 1.0:
+		arm_length = minf(available, lerpf(arm_length, available, 1.0 - exp(-delta * 7.0)))
+	else:
+		arm_length = minf(arm_length, available)
+	return pivot + direction * maxf(0.001, arm_length)
+
+func safe_camera_position(pivot: Vector3, desired: Vector3, padding := 0.18) -> Vector3:
 	var fraction := 1.0
 	var solids: Array[Node3D] = []
 	for piece in pieces:
@@ -311,7 +371,7 @@ func safe_camera_position(pivot: Vector3, desired: Vector3) -> Vector3:
 		var origin := solid.to_local(pivot)
 		var ray := solid.to_local(desired) - origin
 		var half_size: Vector3 = (solid.mesh as BoxMesh).size * 0.5
-		var bounds := half_size + Vector3.ONE * 0.18
+		var bounds := half_size + Vector3.ONE * padding
 		var enter := 0.0
 		var leave := 1.0
 		var intersects := true
@@ -346,4 +406,6 @@ func restore(data: Dictionary, root: Node) -> void:
 	orbit_pitch = clampf(data.get("orbit_pitch", 0.42), 0.12, 1.0)
 	world_orbit_heading = data.get("world_orbit_heading", Vector3.FORWARD)
 	world_orbit_initialized = data.has("world_orbit_heading")
+	movement_frame_initialized = true
+	camera_initialized = false
 	sync_pose(1.0)

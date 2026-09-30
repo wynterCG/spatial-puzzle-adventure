@@ -1,0 +1,626 @@
+{
+  "model": "jev-1.13.0",
+  "mode": "Jev chooses real input actions from structured observations; no screenshot perception",
+  "steps": [
+    {
+      "action": "forward",
+      "avatar_up": 1,
+      "camera_distance": 5.5,
+      "camera_finite": true,
+      "camera_upright": 0.855334579944611,
+      "curve_distance": -1,
+      "foot": [
+        0,
+        0.200000002980232,
+        -1.74999928474426
+      ],
+      "max_frame_degrees": 0,
+      "max_frame_jump": 0.0583333969116211,
+      "support": "Arrival",
+      "view": "third_person"
+    },
+    {
+      "action": "forward",
+      "avatar_up": 0.984726548194885,
+      "camera_distance": 5.49999952316284,
+      "camera_finite": true,
+      "camera_upright": 0.855334639549255,
+      "curve_distance": 0.525000029959668,
+      "foot": [
+        0,
+        -0.0458203852176666,
+        -0.522324442863464
+      ],
+      "max_frame_degrees": 0.0395646811852521,
+      "max_frame_jump": 0.0833330154418945,
+      "support": "Rounded_path",
+      "view": "third_person"
+    },
+    {
+      "action": "stop",
+      "avatar_up": 0.984726548194885,
+      "camera_distance": 5.5,
+      "camera_finite": true,
+      "camera_upright": 0.855334579944611,
+      "curve_distance": 0.525000029959668,
+      "foot": [
+        0,
+        -0.0458203852176666,
+        -0.522324442863464
+      ],
+      "max_frame_degrees": 0.0395646811852521,
+      "max_frame_jump": 4.76837158203125e-7,
+      "support": "Rounded_path",
+      "view": "third_person"
+    },
+    {
+      "action": "look_up",
+      "avatar_up": 0.984726548194885,
+      "camera_distance": 5.49999952316284,
+      "camera_finite": true,
+      "camera_upright": 0.877294778823853,
+      "curve_distance": 0.525000029959668,
+      "foot": [
+        0,
+        -0.0458203852176666,
+        -0.522324442863464
+      ],
+      "max_frame_degrees": 2.5210356292564,
+      "max_frame_jump": 0.241980701684952,
+      "support": "Rounded_path",
+      "view": "third_person"
+    },
+    {
+      "action": "switch_view",
+      "avatar_up": 0.984726548194885,
+      "camera_distance": 5.49999952316284,
+      "camera_finite": true,
+      "camera_upright": 0.877294778823853,
+      "curve_distance": 0.525000029959668,
+      "foot": [
+        0,
+        -0.0458203852176666,
+        -0.522324442863464
+      ],
+      "max_frame_degrees": 0,
+      "max_frame_jump": 0,
+      "support": "Rounded_path",
+      "view": "overview"
+    },
+    {
+      "action": "switch_view",
+      "avatar_up": 0.984726548194885,
+      "camera_distance": 5.49999952316284,
+      "camera_finite": true,
+      "camera_upright": 0.877294778823853,
+      "curve_distance": 0.525000029959668,
+      "foot": [
+        0,
+        -0.0458203852176666,
+        -0.522324442863464
+      ],
+      "max_frame_degrees": 0,
+      "max_frame_jump": 0,
+      "support": "Rounded_path",
+      "view": "third_person"
+    },
+    {
+      "action": "backward",
+      "avatar_up": 1,
+      "camera_distance": 5.5,
+      "camera_finite": true,
+      "camera_upright": 0.877294719219208,
+      "curve_distance": -1,
+      "foot": [
+        0,
+        0.200000002980232,
+        -1.77499914169312
+      ],
+      "max_frame_degrees": 0,
+      "max_frame_jump": 0.0748603194952011,
+      "support": "Arrival",
+      "view": "third_person"
+    },
+    {
+      "action": "backward",
+      "avatar_up": 1,
+      "camera_distance": 5.5,
+      "camera_finite": true,
+      "camera_upright": 0.877294719219208,
+      "curve_distance": -1,
+      "foot": [
+        0,
+        0.200000002980232,
+        -0.0249998010694981
+      ],
+      "max_frame_degrees": 0,
+      "max_frame_jump": 0.0583333969116211,
+      "support": "Arrival",
+      "view": "third_person"
+    },
+    {
+      "action": "backward",
+      "avatar_up": 1,
+      "camera_distance": 5.5,
+      "camera_finite": true,
+      "camera_upright": 0.877294719219208,
+      "curve_distance": -1,
+      "foot": [
+        0,
+        0.200000002980232,
+        0.800000011920929
+      ],
+      "max_frame_degrees": 0,
+      "max_frame_jump": 0.0583333969116211,
+      "support": "Arrival",
+      "view": "third_person"
+    },
+    {
+      "action": "backward",
+      "avatar_up": 1,
+      "camera_distance": 5.5,
+      "camera_finite": true,
+      "camera_upright": 0.877294719219208,
+      "curve_distance": -1,
+      "foot": [
+        0,
+        0.200000002980232,
+        0.800000011920929
+      ],
+      "max_frame_degrees": 0,
+      "max_frame_jump": 0,
+      "support": "Arrival",
+      "view": "third_person"
+    },
+    {
+      "action": "backward",
+      "avatar_up": 1,
+      "camera_distance": 5.5,
+      "camera_finite": true,
+      "camera_upright": 0.877294719219208,
+      "curve_distance": -1,
+      "foot": [
+        0,
+        0.200000002980232,
+        0.800000011920929
+      ],
+      "max_frame_degrees": 0,
+      "max_frame_jump": 0,
+      "support": "Arrival",
+      "view": "third_person"
+    },
+    {
+      "action": "backward",
+      "avatar_up": 1,
+      "camera_distance": 5.5,
+      "camera_finite": true,
+      "camera_upright": 0.877294719219208,
+      "curve_distance": -1,
+      "foot": [
+        0,
+        0.200000002980232,
+        0.800000011920929
+      ],
+      "max_frame_degrees": 0,
+      "max_frame_jump": 0,
+      "support": "Arrival",
+      "view": "third_person"
+    },
+    {
+      "action": "forward",
+      "avatar_up": 1,
+      "camera_distance": 5.5,
+      "camera_finite": true,
+      "camera_upright": 0.877294719219208,
+      "curve_distance": -1,
+      "foot": [
+        0,
+        0.200000002980232,
+        -0.950000047683716
+      ],
+      "max_frame_degrees": 0,
+      "max_frame_jump": 0.0583333969116211,
+      "support": "Arrival",
+      "view": "third_person"
+    },
+    {
+      "action": "forward",
+      "avatar_up": 1,
+      "camera_distance": 5.5,
+      "camera_finite": true,
+      "camera_upright": 0.877294719219208,
+      "curve_distance": -1,
+      "foot": [
+        0,
+        0.200000002980232,
+        -2.69999980926514
+      ],
+      "max_frame_degrees": 0,
+      "max_frame_jump": 0.0583333969116211,
+      "support": "Arrival",
+      "view": "third_person"
+    },
+    {
+      "action": "forward",
+      "avatar_up": 0.884156405925751,
+      "camera_distance": 5.49999952316284,
+      "camera_finite": true,
+      "camera_upright": 0.877294778823853,
+      "curve_distance": 1.45833340259408,
+      "foot": [
+        0,
+        -0.347530871629715,
+        -1.40157318115234
+      ],
+      "max_frame_degrees": 0,
+      "max_frame_jump": 0.074860692024231,
+      "support": "Rounded_path",
+      "view": "third_person"
+    },
+    {
+      "action": "backward",
+      "avatar_up": 1,
+      "camera_distance": 5.5,
+      "camera_finite": true,
+      "camera_upright": 0.877294719219208,
+      "curve_distance": -1,
+      "foot": [
+        0,
+        0.200000002980232,
+        -2.70833301544189
+      ],
+      "max_frame_degrees": 0,
+      "max_frame_jump": 0.0748605132102966,
+      "support": "Arrival",
+      "view": "third_person"
+    },
+    {
+      "action": "forward",
+      "avatar_up": 0.884156346321106,
+      "camera_distance": 5.49999904632568,
+      "camera_finite": true,
+      "camera_upright": 0.877294778823853,
+      "curve_distance": 1.45833353584049,
+      "foot": [
+        0,
+        -0.34753093123436,
+        -1.40157330036163
+      ],
+      "max_frame_degrees": 0,
+      "max_frame_jump": 0.074860692024231,
+      "support": "Rounded_path",
+      "view": "third_person"
+    },
+    {
+      "action": "backward",
+      "avatar_up": 1,
+      "camera_distance": 5.5,
+      "camera_finite": true,
+      "camera_upright": 0.877294719219208,
+      "curve_distance": -1,
+      "foot": [
+        0,
+        0.200000002980232,
+        -2.70833349227905
+      ],
+      "max_frame_degrees": 0,
+      "max_frame_jump": 0.0748605132102966,
+      "support": "Arrival",
+      "view": "third_person"
+    },
+    {
+      "action": "switch_view",
+      "avatar_up": 1,
+      "camera_distance": 5.5,
+      "camera_finite": true,
+      "camera_upright": 0.877294719219208,
+      "curve_distance": -1,
+      "foot": [
+        0,
+        0.200000002980232,
+        -2.70833349227905
+      ],
+      "max_frame_degrees": 0,
+      "max_frame_jump": 0,
+      "support": "Arrival",
+      "view": "overview"
+    },
+    {
+      "action": "switch_view",
+      "avatar_up": 1,
+      "camera_distance": 5.5,
+      "camera_finite": true,
+      "camera_upright": 0.877294719219208,
+      "curve_distance": -1,
+      "foot": [
+        0,
+        0.200000002980232,
+        -2.70833349227905
+      ],
+      "max_frame_degrees": 0,
+      "max_frame_jump": 0,
+      "support": "Arrival",
+      "view": "third_person"
+    },
+    {
+      "action": "backward",
+      "avatar_up": 1,
+      "camera_distance": 5.5,
+      "camera_finite": true,
+      "camera_upright": 0.877294719219208,
+      "curve_distance": -1,
+      "foot": [
+        0,
+        0.200000002980232,
+        -0.958333671092987
+      ],
+      "max_frame_degrees": 0,
+      "max_frame_jump": 0.0583333969116211,
+      "support": "Arrival",
+      "view": "third_person"
+    },
+    {
+      "action": "forward",
+      "avatar_up": 1,
+      "camera_distance": 5.5,
+      "camera_finite": true,
+      "camera_upright": 0.877294719219208,
+      "curve_distance": -1,
+      "foot": [
+        0,
+        0.200000002980232,
+        -2.70833349227905
+      ],
+      "max_frame_degrees": 0,
+      "max_frame_jump": 0.0583333969116211,
+      "support": "Arrival",
+      "view": "third_person"
+    },
+    {
+      "action": "backward",
+      "avatar_up": 1,
+      "camera_distance": 5.5,
+      "camera_finite": true,
+      "camera_upright": 0.877294719219208,
+      "curve_distance": -1,
+      "foot": [
+        0,
+        0.200000002980232,
+        -0.958333671092987
+      ],
+      "max_frame_degrees": 0,
+      "max_frame_jump": 0.0583333969116211,
+      "support": "Arrival",
+      "view": "third_person"
+    },
+    {
+      "action": "forward",
+      "avatar_up": 1,
+      "camera_distance": 5.5,
+      "camera_finite": true,
+      "camera_upright": 0.877294719219208,
+      "curve_distance": -1,
+      "foot": [
+        0,
+        0.200000002980232,
+        -2.70833349227905
+      ],
+      "max_frame_degrees": 0,
+      "max_frame_jump": 0.0583333969116211,
+      "support": "Arrival",
+      "view": "third_person"
+    },
+    {
+      "action": "forward",
+      "avatar_up": 0.884156346321106,
+      "camera_distance": 5.49999952316284,
+      "camera_finite": true,
+      "camera_upright": 0.877294778823853,
+      "curve_distance": 1.45833380233331,
+      "foot": [
+        0,
+        -0.347531050443649,
+        -1.40157353878021
+      ],
+      "max_frame_degrees": 0,
+      "max_frame_jump": 0.0748604908585548,
+      "support": "Rounded_path",
+      "view": "third_person"
+    },
+    {
+      "action": "backward",
+      "avatar_up": 1,
+      "camera_distance": 5.5,
+      "camera_finite": true,
+      "camera_upright": 0.877294719219208,
+      "curve_distance": -1,
+      "foot": [
+        0,
+        0.200000002980232,
+        -2.70833349227905
+      ],
+      "max_frame_degrees": 0,
+      "max_frame_jump": 0.0748609229922295,
+      "support": "Arrival",
+      "view": "third_person"
+    },
+    {
+      "action": "forward",
+      "avatar_up": 0.884156346321106,
+      "camera_distance": 5.49999952316284,
+      "camera_finite": true,
+      "camera_upright": 0.877294778823853,
+      "curve_distance": 1.45833380233331,
+      "foot": [
+        0,
+        -0.347531050443649,
+        -1.40157353878021
+      ],
+      "max_frame_degrees": 0,
+      "max_frame_jump": 0.0748604908585548,
+      "support": "Rounded_path",
+      "view": "third_person"
+    },
+    {
+      "action": "backward",
+      "avatar_up": 1,
+      "camera_distance": 5.5,
+      "camera_finite": true,
+      "camera_upright": 0.877294719219208,
+      "curve_distance": -1,
+      "foot": [
+        0,
+        0.200000002980232,
+        -2.70833349227905
+      ],
+      "max_frame_degrees": 0,
+      "max_frame_jump": 0.0748609229922295,
+      "support": "Arrival",
+      "view": "third_person"
+    },
+    {
+      "action": "forward",
+      "avatar_up": 0.884156346321106,
+      "camera_distance": 5.49999952316284,
+      "camera_finite": true,
+      "camera_upright": 0.877294778823853,
+      "curve_distance": 1.45833380233331,
+      "foot": [
+        0,
+        -0.347531050443649,
+        -1.40157353878021
+      ],
+      "max_frame_degrees": 0,
+      "max_frame_jump": 0.0748604908585548,
+      "support": "Rounded_path",
+      "view": "third_person"
+    },
+    {
+      "action": "backward",
+      "avatar_up": 1,
+      "camera_distance": 5.5,
+      "camera_finite": true,
+      "camera_upright": 0.877294719219208,
+      "curve_distance": -1,
+      "foot": [
+        0,
+        0.200000002980232,
+        -2.70833349227905
+      ],
+      "max_frame_degrees": 0,
+      "max_frame_jump": 0.0748609229922295,
+      "support": "Arrival",
+      "view": "third_person"
+    },
+    {
+      "action": "forward",
+      "avatar_up": 0.884156346321106,
+      "camera_distance": 5.49999952316284,
+      "camera_finite": true,
+      "camera_upright": 0.877294778823853,
+      "curve_distance": 1.45833380233331,
+      "foot": [
+        0,
+        -0.347531050443649,
+        -1.40157353878021
+      ],
+      "max_frame_degrees": 0,
+      "max_frame_jump": 0.0748604908585548,
+      "support": "Rounded_path",
+      "view": "third_person"
+    },
+    {
+      "action": "backward",
+      "avatar_up": 1,
+      "camera_distance": 5.5,
+      "camera_finite": true,
+      "camera_upright": 0.877294719219208,
+      "curve_distance": -1,
+      "foot": [
+        0,
+        0.200000002980232,
+        -2.70833349227905
+      ],
+      "max_frame_degrees": 0,
+      "max_frame_jump": 0.0748609229922295,
+      "support": "Arrival",
+      "view": "third_person"
+    },
+    {
+      "action": "forward",
+      "avatar_up": 0.884156346321106,
+      "camera_distance": 5.49999952316284,
+      "camera_finite": true,
+      "camera_upright": 0.877294778823853,
+      "curve_distance": 1.45833380233331,
+      "foot": [
+        0,
+        -0.347531050443649,
+        -1.40157353878021
+      ],
+      "max_frame_degrees": 0,
+      "max_frame_jump": 0.0748604908585548,
+      "support": "Rounded_path",
+      "view": "third_person"
+    },
+    {
+      "action": "backward",
+      "avatar_up": 1,
+      "camera_distance": 5.5,
+      "camera_finite": true,
+      "camera_upright": 0.877294719219208,
+      "curve_distance": -1,
+      "foot": [
+        0,
+        0.200000002980232,
+        -2.70833349227905
+      ],
+      "max_frame_degrees": 0,
+      "max_frame_jump": 0.0748609229922295,
+      "support": "Arrival",
+      "view": "third_person"
+    },
+    {
+      "action": "forward",
+      "avatar_up": 0.884156346321106,
+      "camera_distance": 5.49999952316284,
+      "camera_finite": true,
+      "camera_upright": 0.877294778823853,
+      "curve_distance": 1.45833380233331,
+      "foot": [
+        0,
+        -0.347531050443649,
+        -1.40157353878021
+      ],
+      "max_frame_degrees": 0,
+      "max_frame_jump": 0.0748604908585548,
+      "support": "Rounded_path",
+      "view": "third_person"
+    },
+    {
+      "action": "backward",
+      "avatar_up": 1,
+      "camera_distance": 5.5,
+      "camera_finite": true,
+      "camera_upright": 0.877294719219208,
+      "curve_distance": -1,
+      "foot": [
+        0,
+        0.200000002980232,
+        -2.70833349227905
+      ],
+      "max_frame_degrees": 0,
+      "max_frame_jump": 0.0748609229922295,
+      "support": "Arrival",
+      "view": "third_person"
+    }
+  ],
+  "completed": false,
+  "coverage": {
+    "reachedLower": false,
+    "stoppedOnCurve": true,
+    "changedPitchOnCurve": true,
+    "changedViewOnCurve": true
+  },
+  "cameraChecksPassed": true
+}

@@ -28,6 +28,7 @@ Godot 4.6.1, GDScript, Compatibility renderer. F5 runs `scenes/positioning.tscn`
 8. Undo restores configuration, contact and camera frame. `positioning.save` is separate from `journey.save`; never overwrite gallery progress when testing the studies. Test mode does not read/write progress.
 9. Isometric azimuth must not switch because of walking heading or local-axis differences at a same-ground seam. Preserve a transported camera frame. The optional gallery retains its earlier calibrated offset and contextual cover behavior.
 10. The world-aligned third-person camera may move its arm to avoid solids, but must keep world-up screen orientation. Do not auto-roll its screen back to match the feet. Preserve first person, sensitivity, follow distance and reduced motion. Geometry tests do not establish human comfort.
+11. Camera avoidance, pitch, key release and a blocked step must not remap forward on a curve. Transport the control frame with the surface. Test the real `align_movement_to_camera` + `walk` path with stops, view switches and a return using S; forced-heading solution tests alone miss this regression. Check frame-to-frame camera displacement and angle, not only finite transforms.
 
 ## Presentation and playtest goals
 
@@ -68,5 +69,7 @@ $godot = 'C:\Users\Wynter\Downloads\Godot_v4.6.1-stable_mono_win64\Godot_v4.6.1-
 Also import/test a clean staged checkout without local addons. Through MCP Pro inspect all three studies, wrong-order feedback, completion, settings, upside-down traversal and the corresponding isometric view. Restore useful player state after testing.
 
 The existing `tools/jev_playtest.mjs` is specifically for the optional gallery scene, not the studies. It uses structured state rather than screenshots and has not established visual clarity or human comfort. Historical runs are recorded in gallery-validation.md.
+
+`tools/jev_camera_playtest.mjs` is a bounded directed regression for the positioning scene. Jev chooses when to stop, pitch, orbit and switch views on a known outward/return route, using the real input-alignment path. It restores live scene state afterward. Credentials are read from `TYPESAFE_API_KEY`; the CLI path comes from `GODOT_MCP_CLI`. Its JSON report records observations and camera continuity. Do not present this directed state-based check as a blind puzzle solve or visual review.
 
 Keep spec, README, validation and the human playtest aligned. Preserve original-concept.md unchanged. Clearly label historical screenshots and distinguish proposed campaign content from implemented mechanics.

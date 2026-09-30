@@ -12,7 +12,7 @@ A clean staged checkout also imported successfully and passed both suites withou
 - Exhaustive settled-orientation checks in Studies 1 and 2 verify that the wrong path never joins the goal, the correct path never joins the starting platform directly, and the two carrier paths never join each other.
 - A 280-frame traversal around the curved track checks finite camera transforms, minimum pivot separation, world-up screen orientation, an upside-down avatar and a ground-relative overview.
 - The original gallery's `SELF TEST PASS` covers local interactions, the rounded track and return, authored boundaries, passenger rotation, overview/cutaway behavior, camera cases, undo, gallery clearance and two-way concealed crossing.
-- `node --check tools/jev_playtest.mjs` passes. Its scene guard rejects the new studies before accessing gallery-specific state. No new Jev API run was performed: this runner remains specific to the original gallery and observes structured state, not screenshots.
+- `node --check` passes for both Jev runners. The original runner's scene guard rejects the new studies before accessing gallery-specific state. The separate camera runner exercises the new scene (see below).
 
 Commands from the project root:
 
@@ -30,7 +30,19 @@ Inspected the running 1280 x 800 game with its 1440 x 900 UI viewport. Each stud
 - [Study 3: carrier, docking arms and receiver](study-3-receiver.png)
 - [World-aligned third person: inverted avatar on the lower landing](study-world-camera.png)
 
-The curved walkway tail now ends at the lower landing edge instead of overlapping its paving. The Study 2 hub uses slender structural arms, leaving the separate paths legible. The world-up camera keeps its screen upright; when its normal arm is obstructed, it moves to the open side of the surface without rolling the screen.
+The curved walkway tail ends at the lower landing edge instead of overlapping its paving. The Study 2 hub uses slender structural arms, leaving the separate paths legible. The world-up camera keeps its screen upright and now avoids obstructions through bounded orbit changes rather than a sudden swap to the surface-relative arm.
+
+## Third-person curve regression
+
+Reproduced two faults through MCP: the old obstruction fallback jumped up to 11.05 units and flipped 180 degrees in a single 60 Hz frame; recalculating forward after a key release or blocked step reversed W on the curved track. The previous finite-transform checks did not catch either fault.
+
+`camera_tests.gd`, included in the positioning suite, checks eight camera configurations spanning four azimuths and the distance/pitch limits. Maximum measured displacement is now 0.642 units and angular change 4.774 degrees per 60 Hz frame in this matrix. It also exercises actual W/S input alignment, repeated stops, a pitch change, small mouse yaw on the wall, isometric toggles and a first/third-person round trip. W finishes on the lower landing and stays there at its boundary; S returns to Arrival.
+
+Jev is used through the TypeSafe API with structured observations, not screenshots. The first exploratory run exhausted its 36-action budget by reversing near the entrance; its [trace is preserved](jev-camera-exploratory-report.json). A second, directed runner restricts movement to the outward leg and then the return leg while Jev chooses the order/timing of stop, pitch, orbit and view-switch checks. This is regression coverage, not evidence of blind puzzle understanding.
+
+The [directed Jev run](jev-camera-report.json) passed in 22 actions: lower landing reached, stop/restart, pitch, orbit and both view changes covered, then return to Arrival. All reported camera transforms remained finite and upright, with frame displacement below 0.65 units and rotation below 8 degrees. The live scene state was restored after the run.
+
+Inspected the [updated third-person view on the curved wall](camera-curve-stability.png): the traveller remains visible, the screen stays world-upright and the arm clears the track. The camera regression and original gallery suite also pass from a clean staged checkout without the MCP addon.
 
 ## Limits
 

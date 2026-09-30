@@ -66,11 +66,13 @@ The receiver can be arranged while the carrier is withdrawn. Once the carrier do
 
 The user's latest correction intentionally separates the two views:
 
-- **Third person defaults to world alignment.** The screen uses world up; the character can appear sideways or upside down. Mouse yaw uses a world-aligned orbit heading instead of inheriting each support rotation. If that arm would enter a floor, obstruction handling places it on the clear side of the surface while retaining world-up screen orientation. This can reposition the camera near obstructions and still needs human comfort testing.
+- **Third person defaults to world alignment.** The screen uses world up; the character can appear sideways or upside down. Mouse yaw uses a world-aligned orbit heading instead of inheriting each support rotation. Obstruction avoidance searches nearby yaw/elevation positions with advance clearance, limits angular movement and eases the arm back out. It never switches instantly to the opposite surface-relative arm. Switching to isometric and back preserves the current arm. This still needs human comfort testing.
 - **Isometric view provides orientation.** It remains above the occupied ground with a consistent local angle. The studies use offset (30, 40, -30) in the transported contact frame. Matching seams preserve world azimuth even when the adjoining pieces have different local axes. Walking heading never chooses a camera side. No free overview orbit is added.
 - A setting restores surface-following third person. First person remains optional and keeps its surface-relative look. Follow distance (3?8), sensitivity and reduced motion remain available. Reduced motion skips transformation animation; it does not eliminate orientation changes caused by walking around a curve.
 
 No camera orientation activates puzzle connections. The shared avatar silhouette remains an overview-only fallback for occlusion.
+
+Traversal controls retain their transported direction around curves, including after releasing W, reaching a boundary or switching views. S reverses along that same direction. Camera avoidance and mouse pitch cannot silently remap forward. In world-aligned mode mouse yaw adjusts the tangent heading continuously; its steering component approaches zero on a vertical wall. Returning from first person preserves the existing traversal heading.
 
 ## Interface, progression and recovery
 
