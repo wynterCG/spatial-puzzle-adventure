@@ -16,8 +16,8 @@ The headless integration run must exit 0 and print SELF TEST PASS. Current check
 - Undo after disembarking restores the configuration and passenger pose.
 - An unaligned gallery blocks forward passage; an occupied sweep rejects rotation.
 - The safe landing permits alignment.
-- Both settled sightline directions preserve source/destination endpoint projection alignment. Projected character-up remains screen-up.
-- All eight directed occupied quarter-turns are sampled through their actual tweens. The camera stays above the ground with finite transforms and returns to the composed sightline.
+- The landing/gallery view preserves source/destination endpoint projection alignment. Projected character-up remains screen-up.
+- All eight directed occupied quarter-turns are sampled through their actual tweens. The camera retains exactly the same surface-local basis and remains above the ground, with finite transforms, throughout each turn and at settling. Reversing walking direction does not change the camera.
 - Reduced motion changes geometry and camera together in a discrete turn; off-support turns leave its orientation alone.
 - New journey resets the camera ground frame; recovery and undo retain the correct frame.
 - Default full models, stable roof hover, hover exit, independent unaligned reveals, paired aligned reveals, interior occupancy and leaving for the goal court are checked.
@@ -37,7 +37,7 @@ Walked the entrance path to the carrier through the actual walker, rolled the oc
 
 The visual pass found that a two-sided return aperture could obscure the character and destination after arrival. The aperture now faces the reverse direction, uses back-face culling, and casts no shadow. Inspected the corrected rendered result and added an orientation regression check.
 
-The camera now chooses the upper side of the composed sightline and takes a synchronized overhead arc when an occupied rotation changes sides. Both settled directions preserve endpoint alignment. During the arc the projected galleries may separate while movement and traversal are disabled.
+The camera now transports one fixed local frame with the occupied support, replacing the opposite-viewpoint selection and overhead side-switch arc. The local offset (36, 48, -30) preserves the previous landing view while keeping front/back azimuth and elevation consistent through all rotations. Gallery projection alignment is checked on the landing plane; it is not claimed for other gravity planes. Background-only monuments are kept behind the playable composition in overview to avoid obstructing the new viewing angles.
 
 Modules remain complete by default. A gallery opens on hover or physical interior occupancy and closes when neither applies. The reveal uses stable full geometry bounds; aligned overlapping shells reveal together. Other visible obstructions can still trigger the silhouette fallback. Traversal and passage cameras retain the enclosure.
 
@@ -48,8 +48,9 @@ The gallery now has framed reveals, pilasters, recessed panels and a pitched roo
 - [Complete modules with the character outside](module-full.png)
 - [Gallery reveal selected by the roof hover ray](module-hover.png)
 - [Occupied gallery with no hover](module-occupied.png)
-- [Mid-turn overhead arc](overview-overhead-turn.png)
-- [Camera above the underside walking surface](overview-above-underside.png)
+- [Consistent camera on the landing orientation](consistent-camera-landing.png)
+- [Same camera angle on the underside](consistent-camera-underside.png)
+- [Same camera angle on the opposite orientation](consistent-camera-opposite.png)
 
 Earlier images document previous iterations; they are not visual evidence for the rebuilt gallery.
 

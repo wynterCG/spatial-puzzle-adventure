@@ -8,7 +8,8 @@ const SAVE_VERSION := 3
 const PASSAGE_OFFSET := Vector3(-18, -15, -24)
 const CROSSING_Z := -11.0
 const START_FOOT := Vector3(-1.8, 1, 0)
-const OVERVIEW_OFFSET := Vector3(36, 30, 48)
+# Fixed in the walking surface's frame; preserves the existing landing view.
+const OVERVIEW_LOCAL_OFFSET := Vector3(36, 48, -30)
 var pieces: Array[SurfacePiece] = []
 var arrival: SurfacePiece
 var causeway: SurfacePiece
@@ -19,6 +20,7 @@ var arch: Node3D
 var arch_state := 1
 var passage_views: Array[Dictionary] = []
 var gallery_solids: Array[MeshInstance3D] = []
+var backdrop_visuals: Array[MeshInstance3D] = []
 var overview_cutaways: Array[Dictionary] = []
 var gallery_modules: Array[Node3D] = []
 var hovered_gallery: Node3D
@@ -182,9 +184,9 @@ func build_world() -> void:
 		var radius := rng.randf_range(45, 75)
 		var height := rng.randf_range(6, 28)
 		var pos := Vector3(cos(angle) * radius, -34 - height * 0.5, sin(angle) * radius - 8)
-		Piece.box(self, pos, Vector3(rng.randf_range(3, 7), height, rng.randf_range(3, 7)), Piece.material(Color("29374f")))
+		backdrop_visuals.append(Piece.box(self, pos, Vector3(rng.randf_range(3, 7), height, rng.randf_range(3, 7)), Piece.material(Color("29374f"))))
 		if i % 3 == 0:
-			Piece.box(self, pos + Vector3(0, height * 0.5, 0), Vector3(2.5, 0.06, 2.5), Piece.material(Color("a0b6c1"), 0.4))
+			backdrop_visuals.append(Piece.box(self, pos + Vector3(0, height * 0.5, 0), Vector3(2.5, 0.06, 2.5), Piece.material(Color("a0b6c1"), 0.4)))
 	for i in range(100):
 		var at := Vector3(rng.randf_range(-90, 90), rng.randf_range(15, 65), rng.randf_range(-95, -40))
 		Piece.box(self, at, Vector3.ONE * rng.randf_range(0.035, 0.12), Piece.material(Color("afbdd9"), 0.8))
@@ -217,26 +219,27 @@ func update_connections() -> void:
 	courtyard.walk_regions.append(Rect2(-0.9, CROSSING_Z if arch_state == 0 else -1.0, 1.8, 1.0 - CROSSING_Z if arch_state == 0 else 2.0))
 	courtyard.draw_paths()
 
-func overview_direction_for(up: Vector3) -> Vector3:
-	# Both ends of this sightline preserve the authored endpoint projection.
-	return OVERVIEW_OFFSET.normalized() * (1.0 if OVERVIEW_OFFSET.dot(up) >= 0 else -1.0)
-
-func overview_turn_direction(from: Vector3, to: Vector3, middle_up: Vector3, weight: float) -> Vector3:
-	var direction := from.lerp(to, weight)
-	if from.dot(to) < -0.5:
-		# Arc over the passenger instead of crossing through the ground or camera
-		# pivot when a half-turn changes which side of the composition is above.
-		var overpass := middle_up + Vector3.RIGHT * signf(from.x) * 0.65
-		direction += overpass * 4.0 * weight * (1.0 - weight)
-	return direction.normalized()
-
-func update_overview_camera(turn_direction := Vector3.ZERO) -> void:
+func update_overview_camera() -> void:
 	var focus := Vector3(-1, -2, -7)
 	var ground_up := (walker.support.global_basis * walker.normal).normalized()
-	var direction := overview_direction_for(ground_up) if turn_direction == Vector3.ZERO else turn_direction
-	overview.position = focus + direction * OVERVIEW_OFFSET.length()
+	# Transport one authored camera frame with the ground. Do not select a new
+	# side based on world-up or walking heading: either causes front/back swaps.
+	overview.position = focus + walker.support.global_basis * OVERVIEW_LOCAL_OFFSET
 	overview.look_at(focus, ground_up)
 	update_architecture_cutaway()
+	update_backdrop_visibility()
+
+func update_backdrop_visibility() -> void:
+	# Scenic monuments must remain behind the playable composition as its view
+	# rotates, rather than becoming foreground walls or intersecting the camera.
+	var view := overview.global_basis.z
+	var rear_depth := INF
+	for piece in pieces:
+		var local_view := piece.global_basis.inverse() * view
+		rear_depth = minf(rear_depth, view.dot(piece.global_position) - local_view.abs().dot(piece.half))
+	for visual in backdrop_visuals:
+		var half_size: Vector3 = (visual.mesh as BoxMesh).size * 0.5
+		visual.visible = not architectural or view.dot(visual.global_position) + view.abs().dot(half_size) < rear_depth - 2.0
 
 func update_architecture_cutaway() -> void:
 	var revealed: Array[Node3D] = []
@@ -451,6 +454,7 @@ func _process(delta: float) -> void:
 	walker.avatar.visible = architectural or walker.third_person
 	update_gallery_hover()
 	update_architecture_cutaway()
+	update_backdrop_visibility()
 	walker.update_overview_visibility(overview, architectural)
 	update_passage_views()
 	hud.refresh()
@@ -543,11 +547,6 @@ func rotate_selected(direction: int) -> void:
 	var target: Node3D = carrier if selected == 0 else arch
 	var axis := "rotation:x" if selected == 0 else "rotation:y"
 	var start := target.rotation.x if selected == 0 else target.rotation.y
-	var camera_from := overview.global_basis.z
-	var ground_from := (walker.support.global_basis * walker.normal).normalized()
-	var ground_to := Basis(Vector3.RIGHT, start + direction * PI * 0.5) * walker.normal if selected == 0 and walker.support == carrier else ground_from
-	var camera_to := overview_direction_for(ground_to)
-	var middle_up := (ground_from + ground_to).normalized()
 	if selected == 0:
 		carrier.state = posmod(carrier.state + direction, 4)
 	else:
@@ -556,7 +555,7 @@ func rotate_selected(direction: int) -> void:
 	rotation_tween = create_tween().set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
 	rotation_tween.tween_property(target, axis, start + direction * PI * 0.5, 0.0 if walker.reduced_motion else 0.8)
 	if not walker.reduced_motion:
-		rotation_tween.parallel().tween_method(func(weight: float): update_overview_camera(overview_turn_direction(camera_from, camera_to, middle_up, weight)), 0.0, 1.0, 0.8)
+		rotation_tween.parallel().tween_method(func(_weight: float): update_overview_camera(), 0.0, 1.0, 0.8)
 	rotation_tween.tween_callback(func():
 		busy = false
 		update_overview_camera()
@@ -857,6 +856,7 @@ func run_self_test() -> void:
 		failures.append("Entrance path must lead onto the carrier and save boarding")
 	var before_turn := snapshot()
 	var composed_direction := overview.global_basis.z
+	var local_camera_frame := walker.support.global_basis.inverse() * overview.global_basis
 	var old_up := walker.avatar.global_basis.y
 	select_piece(0)
 	rotate_selected(1)
@@ -866,18 +866,14 @@ func run_self_test() -> void:
 	walker.sync_pose(1)
 	if busy or carrier.state != 1 or walker.snapshot() != before_turn.player or old_up.dot(walker.avatar.global_basis.y) > 0.01:
 		failures.append("Occupied roll must transport local pose onto a new gravity plane")
-	# Rolling the frame preserves impossible alignment while projected player-up
-	# stays screen-up, including a complete revolution and the opposite ground.
+	# The full camera frame, including front/back azimuth, stays fixed relative
+	# to the occupied surface through an entire revolution.
 	for frame in range(121):
 		carrier.rotation.x = TAU * float(frame) / 120.0
 		update_overview_camera()
 		var ground_up := carrier.global_basis * walker.normal
-		if absf(overview.global_basis.z.dot(composed_direction)) < 0.999 or overview.global_basis.z.dot(ground_up) < -0.001 or absf(overview.global_basis.x.dot(ground_up)) > 0.001 or overview.global_basis.y.dot(ground_up) <= 0:
-			failures.append("Settled overview must use the upper side of its composed sightline")
-		var near_point := courtyard.to_global(Vector3(0, 1, CROSSING_Z))
-		var far_point := destination.to_global(Vector3(0, 1, CROSSING_Z))
-		if overview.unproject_position(near_point).distance_to(overview.unproject_position(far_point)) > 0.02:
-			failures.append("Overview roll must preserve endpoint projection alignment")
+		if not (carrier.global_basis.inverse() * overview.global_basis).is_equal_approx(local_camera_frame) or overview.global_basis.z.dot(ground_up) < 0.7:
+			failures.append("Overview must retain its surface-local azimuth and elevation")
 	carrier.rotation.x = PI / 2
 	update_overview_camera()
 	# Sample actual occupied tweens in both directions through every orientation.
@@ -892,11 +888,11 @@ func run_self_test() -> void:
 				rotation_tween.custom_step(0.01)
 				walker.sync_pose(1)
 				var up := carrier.global_basis.y
-				if overview.global_basis.z.dot(up) < 0.25 or not overview.global_transform.is_finite() or absf(overview.global_basis.x.dot(up)) > 0.001:
-					failures.append("Animated overview must remain above the occupied ground without singularities")
+				if overview.global_basis.z.dot(up) < 0.7 or not overview.global_transform.is_finite() or not (carrier.global_basis.inverse() * overview.global_basis).is_equal_approx(local_camera_frame):
+					failures.append("Animated overview must retain the same upper-side viewing angle")
 					break
-			if absf(overview.global_basis.z.dot(composed_direction)) < 0.999:
-				failures.append("Completed camera arc must restore passage projection alignment")
+			if not (carrier.global_basis.inverse() * overview.global_basis).is_equal_approx(local_camera_frame):
+				failures.append("Settling must not introduce a camera side swap")
 	restore(before_turn)
 	rotate_selected(1)
 	rotation_tween.custom_step(1)
@@ -964,6 +960,12 @@ func run_self_test() -> void:
 	var far_end := destination.to_global(Vector3(0, 1, CROSSING_Z))
 	if overview.unproject_position(near_end).distance_to(overview.unproject_position(far_end)) > 0.02:
 		failures.append("Composed view must align the actual corridor endpoints")
+	var before_heading_change := overview.global_transform
+	walker.forward = -walker.forward
+	update_overview_camera()
+	if not overview.global_transform.is_equal_approx(before_heading_change):
+		failures.append("Reversing walking direction must not swing the overview around")
+	walker.forward = -walker.forward
 	var before_view := snapshot()
 	var off_support_frame := overview.global_basis
 	carrier.rotation.x += PI / 2

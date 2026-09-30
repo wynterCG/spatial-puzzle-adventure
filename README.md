@@ -4,9 +4,9 @@ A playable Godot prototype about arranging architecture, choosing where to stand
 
 **The current revision uses authored paths.** Ordinary edges stop the character. Walls and undersides are not freely walkable. Board the terracotta deck, then rotate it to carry your ground onto the vertical landing. Ivory paving marks the walkable route.
 
-**The architectural camera stays above the traveller's current ground.** It rolls with the surface and arcs overhead when a turn requires changing sides. Full modules appear by default; hover over a gallery or enter it to reveal its interior. Moving away restores the full model. Traversal remains enclosed.
+**The architectural camera stays above the traveller's current ground.** It keeps the same angle relative to the surface as it turns, without swapping front and back views. Full modules appear by default; hover over a gallery or enter it to reveal its interior. Moving away restores the full model. Traversal remains enclosed.
 
-Align the turning gallery with its counterpart, then walk through it in third person. A concealed, two-way portal implements the spatial connection inside matching architecture. Settled overview views preserve the endpoint alignment.
+Align the turning gallery with its counterpart, then walk through it in third person. A concealed, two-way portal implements the spatial connection inside matching architecture. The landing/gallery overview preserves the endpoint alignment.
 
 Open **project.godot** in Godot 4.6 and press **F5**.
 

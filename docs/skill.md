@@ -47,7 +47,7 @@ Godot 4.6 can save a stale open script-editor buffer over an externally edited f
 7. Impossible adjacency is activated by the authored configuration, independently of the active camera. Accepted connections must work in traversal.
 8. Source/destination rendering and traversal use the same endpoint transform. The current pair is parallel, translated by (-18, -15, -24).
 9. Undo and recovery restore the full player/configuration snapshot. Save only settled valid contacts. Version 3 rejects old free-surface coordinates.
-10. Keep settled architectural views parallel to the endpoint separation, choosing the upper of the two opposite directions. Roll with the occupied ground and arc above it when switching sides; never leave the traveller viewed from below during an occupied turn. The controlled arc may separate projected endpoints during disabled manipulation; settled alignment must return. Reduced motion changes structure and camera atomically. Off-support turns leave the camera unchanged. Do not add a free inspection orbit.
+10. Transport one architectural camera frame with the occupied support: local offset (36, 48, -30) and local UP. Keep azimuth, elevation and distance constant; do not select opposite world-space directions or follow walking heading. The landing/gallery frame preserves endpoint projection alignment. Other surface frames may expose separation. Reduced motion changes structure and camera atomically; off-support turns leave the view unchanged. Do not add a free inspection orbit.
 
 ## Layout and workflow
 
@@ -79,7 +79,7 @@ Run the integration test and require both exit 0 and the literal SELF TEST PASS 
 & 'C:\Users\Wynter\Downloads\Godot_v4.6.1-stable_mono_win64\Godot_v4.6.1-stable_mono_win64\Godot_v4.6.1-stable_mono_win64_console.exe' --headless --path . --quit-after 120 -- --self-test
 ```
 
-Checks cover blocked ordinary edges and diagonals; forbidden faces; disconnected boarding; entrance traversal; occupied gravity roll and attachment; three follow distances with reduced motion on/off; vertical landing arrival; undo after leaving; inactive gallery blocking; gallery sweep safety; actual endpoint projection alignment; camera-state independence; upper-side framing through all eight directed quarter-turns; default/hover/occupancy/exit cutaway states; two-way passage mapping; reverse-aperture orientation; completion route and snapshot recovery.
+Checks cover blocked ordinary edges and diagonals; forbidden faces; disconnected boarding; entrance traversal; occupied gravity roll and attachment; three follow distances with reduced motion on/off; vertical landing arrival; undo after leaving; inactive gallery blocking; gallery sweep safety; actual endpoint projection alignment; camera-state independence; constant surface-local camera basis through a full revolution and all eight directed quarter-turns; walking-heading independence; default/hover/occupancy/exit cutaway states; two-way passage mapping; reverse-aperture orientation; completion route and snapshot recovery.
 
 The Jev runner in tools/jev_playtest.mjs can make bounded structured-state playtest decisions through MCP Pro using TYPESAFE_API_KEY and GODOT_MCP_CLI from the environment. It preserves runtime state and the checkpoint file, and writes its actual decisions to docs/jev-playtest-report.json. It does not inspect screenshots or establish human comfort. Never commit credentials.
 

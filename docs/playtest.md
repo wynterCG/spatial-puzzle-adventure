@@ -52,5 +52,5 @@ Prioritize misleading boundaries, loss of orientation and exposed seams before e
 - With the traveller outside, verify that the complete roof and walls are present. Hover the roof, hold still, move away, and hover the UI: opening should be stable and limited to the module.
 - Enter the gallery and switch to overview with the pointer elsewhere. The interior should stay open. Leave for the goal court and verify that it closes.
 - Compare aligned galleries (one apparent passage) with unaligned galleries (independent reveals).
-- While aboard, test all four carrier orientations in both directions. The camera should stay above your floor throughout the animated turns, with your head upright on screen. Observe the larger overhead arcs when changing sides.
+- While aboard, test all four carrier orientations in both directions. The camera should stay above your floor throughout the animated turns, with your head upright on screen. Check that the viewing angle stays on the same side relative to the deck, without a front/back swap or an extra overhead swing. Reverse walking direction and verify that the overview stays put.
 - Compare reduced motion: geometry and camera should change together in one discrete turn. Test undo and checkpoint recovery afterward.
