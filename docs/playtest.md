@@ -1,37 +1,38 @@
-# Opening playtest
+# Revised opening playtest
 
-Allow about ten minutes. This is a human evaluation checklist, not a claim about completion time or comfort. The automated mechanics/camera checks and MCP walkthrough are recorded in [validation.md](validation.md).
+Allow about ten minutes. This evaluates clarity and comfort, not speed. Technical checks are recorded in [validation.md](validation.md).
 
-## First pass: discovery and clarity
+## First pass
 
-For a fresh test, use Escape → Start a new journey. This replaces the local checkpoint, so finish any progress you want to keep first. Leave contextual guidance on. Use the in-game prompts; avoid reading the walkthrough in the README until afterward.
+Use Escape > Start a new journey if you want to restart; this replaces the current local checkpoint. Leave contextual guidance on and use in-game instructions before consulting the README walkthrough.
 
-1. At arrival, identify something that suggests where to walk. Can you predict what happens at the edge before crossing it?
-2. Cross onto the wall and underside. Can you tell where the character's feet are and which way the next movement will go? Try stopping and starting again after a turn.
-3. Find and board the carrier. Before turning it, say which connection you expect to close and which one should open. Does the panel make your occupancy clear?
-4. Rotate while aboard, then find the arch. Does the courtyard prompt help you understand why you arrived underneath?
-5. Align and cross the arch. Does the opening read as a traversable connection? Can you finish without external instructions?
+1. Follow the ivory path. Try walking sideways toward its boundary. Is it clear why the character stops instead of moving onto the wall?
+2. Before boarding, predict what rolling the terracotta deck will do. Try it, observe the missing entrance connection, and bring it back.
+3. Board and roll to the vertical landing. Can you locate your feet and predict which way walking will go after returning to third person?
+4. Step onto the violet path and align the turning gallery from a safe position. Does the fixed overview make the accepted arrangement readable?
+5. Walk through the covered gallery toward the light. Does it feel like walking through architecture? Note any visible pop, missing character, discontinuous wall or sudden change of view.
+6. Before finishing, walk back through the corridor. Does the return work as expected? Then return toward the light and finish.
 
-Record where you hesitated, which cue helped, and how often you requested H hints. A wrong prediction is useful feedback; this is not a speed test.
+Record where you hesitated, which cue helped, and how many H hints you requested.
 
-## Second pass: camera and recovery
+## Camera and recovery pass
 
-- Revisit an exposed edge with a diagonal approach. Try both holding a direction through the turn and releasing/restarting it.
-- Compare the default follow distance of 5.5 with 3 and 8 in settings. Check that the character remains easy to locate and geometry does not hide the next step.
-- Compare Reduced motion and Keep world horizon level only if useful to you. Note the preference and the exact transition that feels disorienting; stop if uncomfortable.
-- Rotate the carrier while aboard, walk off, then use Undo. Confirm you understand both your restored position and the restored connection.
-- Backtrack to arrival after visiting the carrier. Do the contextual card and H hints still describe your current situation?
-- Turn Show contextual guidance off. Are the landmark and connection panel enough once the rules are familiar?
+- Compare follow distances 3, 5.5 and 8 while riding the deck and walking inside the gallery.
+- Compare reduced motion and optional world horizon only if useful to you. Stop if uncomfortable; report the exact turn or crossing.
+- Try restarting movement after a roll and orbiting at corridor entrances. Watch for camera clipping or an exposed spatial seam.
+- Turn the carrier while aboard, disembark and use Undo. Confirm the structure and your position both return.
+- Return to a checkpoint, switch first/third person and cross again. Accepted connections should survive all camera changes.
+- Disable contextual guidance after learning the rules. Check whether the paving, mechanism and fixed composition remain understandable.
 
-## Capture feedback
+## Useful feedback
 
 | Observation | Record |
 |---|---|
-| Location | Support and face shown in the HUD |
-| Camera | Distance, horizon preference, reduced motion |
-| Action | Held/restarted/diagonal movement, orbit, or rotation |
+| Location | Entrance, deck, landing, gallery or destination |
+| Settings | Camera mode, distance, horizon, reduced motion |
+| Action | Movement, orbit, roll, gallery turn or crossing |
 | Expectation | What you thought would happen |
-| Result | What was confusing or uncomfortable |
-| Helpful cue | Landmark, contextual card, panel, or H hint |
+| Result | Confusion, discomfort or visible discontinuity |
+| Helpful cue | Paving, landmark, fixed view, panel or hint |
 
-Prioritize repeatable loss of orientation or misleading cues before adding the next region. Technical pass results alone do not establish accessibility or an intuitive first playthrough.
+Prioritize misleading boundaries, loss of orientation and exposed seams before expanding the campaign. Instrumented completion is not evidence that a first-time player understands the puzzle.

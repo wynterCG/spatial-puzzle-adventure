@@ -4,8 +4,10 @@ extends Node3D
 const Piece = preload("res://scripts/surface_piece.gd")
 const Walker = preload("res://scripts/surface_walker.gd")
 const HUD = preload("res://scripts/hud.gd")
-const SAVE_VERSION := 2
-const START_FOOT := Vector3(-1, 3, 1)
+const SAVE_VERSION := 3
+const PASSAGE_OFFSET := Vector3(-18, -15, -24)
+const CROSSING_Z := -11.0
+const START_FOOT := Vector3(-1.8, 1, 0)
 var pieces: Array[SurfacePiece] = []
 var arrival: SurfacePiece
 var causeway: SurfacePiece
@@ -14,9 +16,8 @@ var courtyard: SurfacePiece
 var destination: SurfacePiece
 var arch: Node3D
 var arch_state := 1
-var portal: MeshInstance3D
-var portal_view: SubViewport
-var portal_camera: Camera3D
+var passage_views: Array[Dictionary] = []
+var gallery_solids: Array[MeshInstance3D] = []
 var walker: SurfaceWalker
 var overview: Camera3D
 var hud: CanvasLayer
@@ -26,24 +27,21 @@ var busy := false
 var paused := false
 var won := false
 var boarded := false
-var found_underside := false
-var reached_causeway := false
-var inspect_below := false
 var reached_court := false
 var crossed := false
 var history: Array[Dictionary] = []
 var checkpoint: Dictionary
 var hint_level := 0
 var hint_context := ""
-var message := "The way across begins on another face."
+var message := "Follow the ivory path. Board before changing the arrangement."
 var message_time := 8.0
 var rotation_tween: Tween
 var camera_tween: Tween
 var audio: AudioStreamPlayer
-var portal_previous := 0.0
+var passage_previous := 0.0
 var time := 0.0
 var transition_camera: Camera3D
-var input_bindings := {"forward": KEY_W, "back": KEY_S, "left": KEY_A, "right": KEY_D, "view": KEY_TAB, "inspect": KEY_F, "rotate_left": KEY_Q, "rotate_right": KEY_E, "undo": KEY_Z, "reset": KEY_R, "hint": KEY_H}
+var input_bindings := {"forward": KEY_W, "back": KEY_S, "left": KEY_A, "right": KEY_D, "view": KEY_TAB, "rotate_left": KEY_Q, "rotate_right": KEY_E, "undo": KEY_Z, "reset": KEY_R, "hint": KEY_H}
 
 func _ready() -> void:
 	configure_input()
@@ -52,14 +50,15 @@ func _ready() -> void:
 	walker.name = "Walker"
 	add_child(walker)
 	walker.pieces = pieces
-	walker.place(arrival, START_FOOT, Vector3.UP, Vector3.BACK)
+	walker.camera_obstacles = gallery_solids
+	walker.place(arrival, START_FOOT, Vector3.UP, Vector3.RIGHT)
 	walker.stepped.connect(func(): play_tone(130.0, 0.035, 0.05))
 	walker.changed_surface.connect(surface_changed)
 	overview = Camera3D.new()
 	add_child(overview)
 	overview.projection = Camera3D.PROJECTION_ORTHOGONAL
-	overview.size = 52.0
-	update_inspection_camera()
+	overview.size = 46.0
+	update_overview_camera()
 	overview.current = true
 	transition_camera = Camera3D.new()
 	transition_camera.fov = 76
@@ -122,48 +121,40 @@ func build_world() -> void:
 	fill.light_color = Color("899adb")
 	fill.light_energy = 0.25
 	add_child(fill)
-	arrival = make_piece("Arrival", Vector3(-16, 2, 0), Vector3(8, 6, 8), Color("647790"))
-	causeway = make_piece("Causeway", Vector3(-9, 0.4, 0), Vector3(6, 2.8, 2.2), Color("8b8798"))
+	arrival = make_piece("Arrival", Vector3(-13, 0, 0), Vector3(6, 2, 6), Color("647790"))
+	causeway = make_piece("Causeway", Vector3(-8, 0, 0), Vector3(4, 2, 2), Color("8b8798"))
 	carrier = make_piece("Carrier", Vector3.ZERO, Vector3(12, 2, 3), Color("a97166"), true)
-	courtyard = make_piece("Courtyard", Vector3(0, 0, -10), Vector3(7, 2, 8), Color("777299"))
-	destination = make_piece("Destination", Vector3(19, 0, -22), Vector3(8, 2, 10), Color("719899"))
-	# Unequal heights and widths leave only the underside walking planes aligned.
-	# The exposed bottom is continuous at y=-1 all the way to the carrier.
-	build_other_ground()
-	# An inscription confirms the discovery without drawing the solution.
-	var inscription := Label3D.new()
-	inscription.text = "THERE IS NO OTHER SIDE"
-	inscription.font_size = 40
-	inscription.outline_size = 0
-	inscription.pixel_size = 0.008
-	inscription.modulate = Color("ffe2ac")
-	arrival.add_child(inscription)
-	inscription.position = Vector3(-0.5, -3.025, 0.5)
-	inscription.rotation_degrees.x = 90
-	# Surface inlays: directional architecture, never an axis legend.
-	for p in [arrival, carrier, courtyard, destination]:
-		for i in range(-2, 3):
-			Piece.box(p, Vector3(i * 0.8, p.half.y + 0.012, 0), Vector3(0.035, 0.018, minf(p.half.z * 1.5, 3.0)), Piece.material(Color("decda9"), 0.15))
+	courtyard = make_piece("Courtyard", Vector3(10, 0, 0), Vector3(8, 2, 24), Color("777299"))
+	courtyard.rotation.x = PI / 2
+	destination = make_piece("Destination", courtyard.position + PASSAGE_OFFSET, Vector3(6, 2, 32), Color("719899"))
+	destination.rotation.x = PI / 2
+	arrival.walk_regions = [Rect2(-2.8, -0.8, 5.8, 1.6)]
+	causeway.walk_regions = [Rect2(-2, -0.8, 4, 1.6)]
+	carrier.walk_regions = [Rect2(-6, -0.8, 12, 1.6)]
+	destination.walk_regions = [Rect2(-0.9, -15.5, 1.8, 14.5)]
+	for piece in [arrival, causeway, carrier, destination]:
+		piece.draw_paths()
 	build_arch()
-	# Goal is its own volume, unreachable across the visible gap.
+	update_connections()
+	# The destination's shrine shares the landing's local gravity frame.
 	var shrine := Node3D.new()
 	destination.add_child(shrine)
-	shrine.position = Vector3(0, 1, -3.5)
+	shrine.position = Vector3(0, 1, -14.6)
 	arch_frame(shrine, Color("d1c2a8"), 3.8)
 	var orb := MeshInstance3D.new()
 	var sphere := SphereMesh.new()
 	sphere.radius = 0.42
 	sphere.height = 0.84
 	orb.mesh = sphere
-	orb.material_override = Piece.material(Color("ffdda0"), 2.0)
+	orb.material_override = Piece.material(Color("ffdda0"), 1.2)
 	shrine.add_child(orb)
 	orb.position.y = 2.2
 	var light := OmniLight3D.new()
-	light.position = Vector3(19, 4, -25.5)
+	shrine.add_child(light)
+	light.position.y = 2.2
 	light.light_color = Color("ffca81")
-	light.light_energy = 2
-	light.omni_range = 9
-	add_child(light)
+	light.light_energy = 1.0
+	light.omni_range = 8
 	# Disconnected distant monuments establish scale without false traversal.
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 431
@@ -178,64 +169,39 @@ func build_world() -> void:
 	for i in range(100):
 		var at := Vector3(rng.randf_range(-90, 90), rng.randf_range(15, 65), rng.randf_range(-95, -40))
 		Piece.box(self, at, Vector3.ONE * rng.randf_range(0.035, 0.12), Piece.material(Color("afbdd9"), 0.8))
-	# Recessed pivot marks both faces without occupying the underside route.
+	# Axle collars make the carrier's roll axis legible from either end.
 	for side in [-1.0, 1.0]:
 		var ring := MeshInstance3D.new()
 		var torus := TorusMesh.new()
 		torus.inner_radius = 0.55
-		torus.outer_radius = 0.63
+		torus.outer_radius = 0.67
 		ring.mesh = torus
-		ring.material_override = Piece.material(Color("c3aa86"), 0.3)
+		ring.material_override = Piece.material(Color("c3aa86"), 0.2)
 		carrier.add_child(ring)
-		ring.position.y = side * 1.01
+		ring.position.x = side * 5.9
+		ring.rotation.z = PI / 2
 
-func build_other_ground() -> void:
-	var warm := Piece.material(Color("e2b778"), 0.45)
-	var stone := Piece.material(Color("9aa7b8"))
-	# One recognizable threshold wraps over the exposed edge. It teaches
-	# continuity locally, without drawing the whole route through the puzzle.
-	for x in [-1.65, -0.35]:
-		Piece.box(arrival, Vector3(x, 3.025, 3.0), Vector3(0.09, 0.025, 2.0), warm)
-		Piece.box(arrival, Vector3(x, 0, 4.025), Vector3(0.09, 6.0, 0.025), warm)
-		Piece.box(arrival, Vector3(x, -3.025, 3.0), Vector3(0.09, 0.025, 2.0), warm)
-	# Crossbars identify the same threshold from either side of gravity.
-	for y in [-3.025, 3.025]:
-		Piece.box(arrival, Vector3(-1, y, 2.0), Vector3(1.39, 0.025, 0.09), warm)
-	# Small wall recesses hint that a vertical face is inhabitable.
-	for x in [-2.0, 1.0]:
-		Piece.box(arrival, Vector3(x, 0.0, 4.018), Vector3(0.65, 1.3, 0.025), stone)
-		Piece.box(arrival, Vector3(x, 0.0, 4.036), Vector3(0.38, 0.9, 0.012), warm)
-	# Architectural ribs and two narrow inset lights reveal the lower causeway.
-	for x in [-2.1, 0.0, 2.1]:
-		Piece.box(causeway, Vector3(x, -1.415, 0), Vector3(0.14, 0.025, 1.65), stone)
-	for z in [-0.8, 0.8]:
-		Piece.box(causeway, Vector3(0, -1.43, z), Vector3(5.7, 0.025, 0.035), warm)
-	var lantern := OmniLight3D.new()
-	lantern.position = Vector3(-9, -3.8, 0)
-	lantern.light_color = Color("ffce98")
-	lantern.light_energy = 0.5
-	lantern.omni_range = 10
-	add_child(lantern)
-	var signpost := Label3D.new()
-	signpost.text = "THE OTHER GROUND"
-	signpost.font_size = 42
-	signpost.outline_size = 0
-	signpost.pixel_size = 0.009
-	signpost.modulate = Color("e2d1af")
-	arrival.add_child(signpost)
-	signpost.position = Vector3(0, 3.02, -2.1)
-	signpost.rotation_degrees.x = -90
-
-func update_inspection_camera() -> void:
-	overview.position = Vector3(28, -32, 38) if inspect_below else Vector3(34, 37, 39)
-	overview.look_at(Vector3(-2, 0, -6))
-
-func toggle_inspection() -> void:
-	if not architectural or busy or paused:
+func update_connections() -> void:
+	for piece in pieces:
+		piece.neighbours.clear()
+	if busy:
 		return
-	inspect_below = not inspect_below
-	update_inspection_camera()
-	notify("Inspecting the lower faces." if inspect_below else "Inspecting the upper faces.")
+	arrival.neighbours.append(causeway)
+	causeway.neighbours.append(arrival)
+	if carrier.state == 0:
+		causeway.neighbours.append(carrier)
+		carrier.neighbours.append(causeway)
+	elif carrier.state == 1:
+		carrier.neighbours.append(courtyard)
+		courtyard.neighbours.append(carrier)
+	courtyard.walk_regions = [Rect2(-4, -0.8, 4.9, 1.6)]
+	courtyard.walk_regions.append(Rect2(-0.9, -12 if arch_state == 0 else -1, 1.8, 13 if arch_state == 0 else 2))
+	courtyard.draw_paths()
+
+func update_overview_camera() -> void:
+	var focus := Vector3(-1, -2, -7)
+	overview.position = focus + Vector3(36, 30, 48)
+	overview.look_at(focus)
 
 func make_piece(label_text: String, at: Vector3, size: Vector3, color: Color, movable := false) -> SurfacePiece:
 	var piece := Piece.new()
@@ -254,36 +220,72 @@ func arch_frame(parent: Node3D, color: Color, height := 4.0) -> void:
 	Piece.box(parent, Vector3(0, height, 0), Vector3(3.8, 0.5, 0.65), mat)
 
 func build_arch() -> void:
-	arch = Node3D.new()
-	arch.name = "DistantArch"
-	add_child(arch)
-	arch.position = Vector3(0, 1, -11.6)
-	arch_frame(arch, Color("d1bd9c"))
-	arch.rotation.y = PI * 0.5
-	portal_view = SubViewport.new()
-	portal_view.size = Vector2i(1280, 800)
-	portal_view.render_target_update_mode = SubViewport.UPDATE_ALWAYS
-	add_child(portal_view)
-	portal_view.world_3d = get_world_3d()
-	portal_camera = Camera3D.new()
-	portal_camera.cull_mask = 1
-	portal_camera.fov = 76
-	portal_view.add_child(portal_camera)
-	portal_camera.current = true
-	portal = MeshInstance3D.new()
+	arch = build_gallery(courtyard)
+	arch.name = "TurningGallery"
+	arch.rotation.y = PI / 2
+	var far_gallery := build_gallery(destination)
+	far_gallery.name = "DistantGallery"
+	build_passage_view(arch, PASSAGE_OFFSET)
+	build_passage_view(far_gallery, -PASSAGE_OFFSET)
+
+func build_gallery(parent: Node3D) -> Node3D:
+	var gallery := Node3D.new()
+	parent.add_child(gallery)
+	gallery.position = Vector3(0, 1, -6)
+	var stone := Piece.material(Color("a39bab"))
+	var dark := Piece.material(Color("4b5067"))
+	var warm := Piece.material(Color("dcc39a"), 0.25)
+	for side in [-1.0, 1.0]:
+		gallery_solids.append(Piece.box(gallery, Vector3(side * 1.4, 1.9, 0), Vector3(0.35, 3.8, 10.2), stone))
+		Piece.box(gallery, Vector3(side * 1.215, 0.48, 0), Vector3(0.025, 0.055, 10.15), warm)
+	gallery_solids.append(Piece.box(gallery, Vector3(0, 3.9, 0), Vector3(3.15, 0.2, 10.2), stone))
+	Piece.box(gallery, Vector3(0, -0.045, 0), Vector3(3.15, 0.08, 10.2), dark)
+	Piece.box(gallery, Vector3(0, 0.015, 0), Vector3(1.8, 0.02, 10.2), Piece.material(Color("d8c8ac")))
+	for z in [-4.8, -2.4, 0.0, 2.4, 4.8]:
+		Piece.box(gallery, Vector3(0, 3.72, z), Vector3(2.45, 0.10, 0.10), warm)
+	return gallery
+
+func build_passage_view(gallery: Node3D, offset: Vector3) -> void:
+	var view := SubViewport.new()
+	view.size = Vector2i(1280, 800)
+	view.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	add_child(view)
+	view.world_3d = get_world_3d()
+	var camera := Camera3D.new()
+	camera.cull_mask = 1
+	view.add_child(camera)
+	camera.current = true
+	var seam := MeshInstance3D.new()
 	var quad := QuadMesh.new()
-	quad.size = Vector2(2.7, 3.8)
-	portal.mesh = quad
-	portal.layers = 2
-	arch.add_child(portal)
-	portal.position = Vector3(0, 1.9, 0)
+	quad.size = Vector2(2.45, 3.8)
+	seam.mesh = quad
+	seam.layers = 2
+	seam.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	if offset != PASSAGE_OFFSET:
+		seam.rotation.y = PI
+	gallery.add_child(seam)
+	seam.position = Vector3(0, 1.9, -5.0)
 	var shader := Shader.new()
-	shader.code = "shader_type spatial; render_mode unshaded, cull_disabled; uniform sampler2D view_texture : source_color, filter_linear; void fragment(){ ALBEDO = texture(view_texture, SCREEN_UV).rgb; }"
+	shader.code = "shader_type spatial; render_mode unshaded, cull_back; uniform sampler2D view_texture : source_color, filter_linear; void fragment(){ ALBEDO = texture(view_texture, SCREEN_UV).rgb; }"
 	var material := ShaderMaterial.new()
 	material.shader = shader
-	material.set_shader_parameter("view_texture", portal_view.get_texture())
-	portal.material_override = material
-	portal.visible = false
+	material.set_shader_parameter("view_texture", view.get_texture())
+	seam.material_override = material
+	passage_views.append({"mesh": seam, "view": view, "camera": camera, "offset": offset})
+
+func update_passage_views() -> void:
+	for entry in passage_views:
+		entry.mesh.visible = arch_state == 0 and not busy and not architectural
+		entry.view.render_target_update_mode = SubViewport.UPDATE_ALWAYS if entry.mesh.visible else SubViewport.UPDATE_DISABLED
+		if not entry.mesh.visible:
+			continue
+		var active_camera := walker.camera
+		entry.camera.global_transform = active_camera.global_transform
+		entry.camera.global_position += entry.offset
+		entry.camera.projection = active_camera.projection
+		entry.camera.fov = active_camera.fov
+		entry.camera.near = 0.07
+		entry.view.size = Vector2i(get_viewport().get_visible_rect().size)
 
 func _process(delta: float) -> void:
 	time += delta
@@ -295,18 +297,11 @@ func _process(delta: float) -> void:
 		walker.align_movement_to_camera(movement)
 		walker.walk(movement, minf(delta, 0.1))
 		check_passage()
-		if walker.support == destination and walker.foot.z < -2.6 and walker.normal.y > 0.9:
+		if walker.support == destination and walker.foot.z < -14.0 and walker.normal.y > 0.9:
 			complete()
 	walker.sync_pose(delta)
 	walker.avatar.visible = architectural or walker.third_person
-	if portal.visible:
-		var active_camera := overview if architectural else walker.camera
-		portal_camera.global_transform = active_camera.global_transform
-		portal_camera.global_position += Vector3(19, 0, -10)
-		portal_camera.projection = active_camera.projection
-		portal_camera.size = active_camera.size
-		portal_camera.fov = active_camera.fov
-		portal_camera.near = maxf(0.08, absf(active_camera.global_position.z + 11.6) - 0.1) if not architectural else 0.1
+	update_passage_views()
 	hud.refresh()
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -317,8 +312,6 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if event.is_action_pressed("view") and not busy:
 		toggle_view()
-	elif event.is_action_pressed("inspect"):
-		toggle_inspection()
 	elif event.is_action_pressed("undo"):
 		undo()
 	elif event.is_action_pressed("reset"):
@@ -346,13 +339,12 @@ func toggle_view() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE if architectural else Input.MOUSE_MODE_CAPTURED
 	walker.avatar.visible = architectural or walker.third_person
 	if architectural:
-		inspect_below = (walker.support.global_basis * walker.normal).y < -0.5
-		update_inspection_camera()
+		update_overview_camera()
 		overview.current = true
 	else:
 		walker.sync_pose(1.0)
 		walker.camera.current = true
-		portal_previous = walker.support.to_global(walker.foot).z + 11.6
+		passage_previous = walker.foot.z
 	if not walker.reduced_motion and not walker.third_person:
 		busy = true
 		transition_camera.global_transform = from
@@ -370,7 +362,7 @@ func toggle_view() -> void:
 	play_tone(420, 0.1, 0.08)
 
 func pick(screen: Vector2) -> void:
-	var arch_screen := overview.unproject_position(arch.global_position + Vector3(0, 2, 0))
+	var arch_screen := overview.unproject_position(arch.to_global(Vector3(0, 2, 0)))
 	if arch_screen.distance_to(screen) < 75:
 		select_piece(1)
 		return
@@ -387,35 +379,36 @@ func select_piece(index: int) -> void:
 func rotate_selected(direction: int) -> void:
 	if busy or paused or not architectural:
 		return
-	if selected == 1 and walker.support == courtyard and walker.foot.distance_to(Vector3(0, 1, -1.6)) < 2.5:
-		notify("Step away from the arch before turning it.")
+	if selected == 1 and walker.support == courtyard and walker.foot.distance_to(Vector3(0, 1, -6)) < 6.6:
+		notify("Step back onto the landing before turning the gallery.")
 		return
 	if selected == 0 and not safe_carrier_turn(direction):
-		notify("That turn would trap you at the joint. Move toward the carrier's centre.")
+		notify("Move farther onto the deck before turning it.")
 		return
 	history.append(snapshot())
 	busy = true
-	portal.visible = false
+	update_connections()
 	var target: Node3D = carrier if selected == 0 else arch
+	var axis := "rotation:x" if selected == 0 else "rotation:y"
+	var start := target.rotation.x if selected == 0 else target.rotation.y
 	if selected == 0:
 		carrier.state = posmod(carrier.state + direction, 4)
 	else:
 		arch_state = posmod(arch_state + direction, 4)
 	play_tone(175, 0.45, 0.12)
-	rotation_tween = create_tween()
-	rotation_tween.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
-	rotation_tween.tween_property(target, "rotation:y", target.rotation.y + direction * PI * 0.5, 0.12 if walker.reduced_motion else 0.8)
+	rotation_tween = create_tween().set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
+	rotation_tween.tween_property(target, axis, start + direction * PI * 0.5, 0.12 if walker.reduced_motion else 0.8)
 	rotation_tween.tween_callback(func():
 		busy = false
-		portal.visible = arch_state == 0
-		play_tone(620 if portal.visible else 300, 0.2, 0.1)
-		notify("The distant passage is connected." if portal.visible else "The structure settles. Your ground travels with you.")
+		update_connections()
+		play_tone(620, 0.2, 0.1)
+		notify("The galleries form one passage." if selected == 1 and arch_state == 0 else "The structure settles. Inspect the path before walking.")
 	)
 
 func safe_carrier_turn(direction: int) -> bool:
 	# Check the attached body through the complete sweep, including side faces.
 	for step in range(1, 25):
-		var basis_at := Basis(Vector3.UP, carrier.rotation.y + direction * PI * 0.5 * float(step) / 24.0)
+		var basis_at := Basis(Vector3.RIGHT, carrier.rotation.x + direction * PI * 0.5 * float(step) / 24.0)
 		for height in [0.25, 0.8, 1.55]:
 			if walker.support != carrier:
 				var stationary_point: Vector3 = walker.support.to_global(walker.foot + walker.normal * height)
@@ -431,45 +424,40 @@ func safe_carrier_turn(direction: int) -> bool:
 	return true
 
 func check_passage() -> void:
-	var position_world := walker.support.to_global(walker.foot)
-	var current := position_world.z + 11.6
-	if arch_state == 0 and not busy and walker.support == courtyard and walker.normal.y > 0.99:
-		if portal_previous > 0 and current <= 0 and absf(position_world.x) < 1.30:
-			var mapped := position_world + Vector3(19, 0, -10.08)
-			var heading := walker.support.global_basis * walker.forward
-			walker.place(destination, destination.to_local(mapped), Vector3.UP, heading, true)
+	if arch_state != 0 or busy or walker.normal != Vector3.UP:
+		passage_previous = walker.foot.z
+		return
+	var forward_crossing := walker.support == courtyard and passage_previous > CROSSING_Z and walker.foot.z <= CROSSING_Z
+	var backward_crossing := walker.support == destination and passage_previous < CROSSING_Z and walker.foot.z >= CROSSING_Z
+	if (forward_crossing or backward_crossing) and absf(walker.foot.x) <= 0.9:
+		var target := destination if forward_crossing else courtyard
+		var point := walker.foot
+		point.z += -0.02 if forward_crossing else 0.02
+		# Parallel gallery frames: contact, orbit and camera translate together.
+		walker.place(target, point, Vector3.UP, walker.forward, true)
+		if forward_crossing and not crossed:
 			crossed = true
-			notify("Far away was only another kind of next door.")
-			play_tone(740, 0.45, 0.15)
 			checkpoint = snapshot()
 			save_progress()
-	portal_previous = current
+		# No flash, transition sound or teleport announcement at the hidden seam.
+	passage_previous = walker.foot.z
 
 func surface_changed() -> void:
-	if walker.normal.y < -0.9 and walker.support == arrival and not found_underside:
-		found_underside = true
-		hint_level = 0
-		notify("The underside is ground, too. The lower causeway meets this face.")
-		play_tone(520, 0.25, 0.12)
-	if walker.support == causeway and not reached_causeway:
-		reached_causeway = true
-		hint_level = 0
-		notify("A path beneath the gap. Keep going to the terracotta carrier.")
 	if walker.support == carrier and not boarded:
 		boarded = true
 		hint_level = 0
 		checkpoint = snapshot()
 		save_progress()
-		notify("The Other Ground complete. Checkpoint saved. You are now the passenger.")
+		notify("Aboard. Your position is part of the arrangement.")
 	if walker.support == courtyard and not reached_court:
 		reached_court = true
 		hint_level = 0
 		checkpoint = snapshot()
 		save_progress()
-		notify("A distant opening. A familiar shape. Try the architectural view.")
+		notify("A new landing. The gallery must meet its distant counterpart.")
 
 func snapshot() -> Dictionary:
-	return {"version": SAVE_VERSION, "carrier": carrier.state, "arch": arch_state, "player": walker.snapshot(), "boarded": boarded, "court": reached_court, "crossed": crossed, "underside": found_underside, "causeway": reached_causeway}
+	return {"version": SAVE_VERSION, "carrier": carrier.state, "arch": arch_state, "player": walker.snapshot(), "boarded": boarded, "court": reached_court, "crossed": crossed}
 
 func restore(data: Dictionary) -> void:
 	if rotation_tween and rotation_tween.is_running():
@@ -478,25 +466,23 @@ func restore(data: Dictionary) -> void:
 		camera_tween.kill()
 	busy = false
 	carrier.state = data.carrier
-	carrier.rotation.y = carrier.state * PI * 0.5
+	carrier.rotation.x = carrier.state * PI * 0.5
 	arch_state = data.arch
 	arch.rotation.y = arch_state * PI * 0.5
-	portal.visible = arch_state == 0
+	update_connections()
 	walker.restore(data.player, self)
 	boarded = data.boarded
 	reached_court = data.court
 	crossed = data.crossed
-	found_underside = data.get("underside", false)
-	reached_causeway = data.get("causeway", false)
 	hint_level = 0
 	won = false
+	hud.completion.hide()
 	if architectural:
-		inspect_below = (walker.support.global_basis * walker.normal).y < -0.5
-		update_inspection_camera()
+		update_overview_camera()
 		overview.current = true
 	else:
 		walker.camera.current = true
-	portal_previous = walker.support.to_global(walker.foot).z + 11.6
+	passage_previous = walker.foot.z
 
 func undo() -> void:
 	if history.is_empty() or busy:
@@ -518,16 +504,14 @@ func new_journey() -> void:
 	if camera_tween and camera_tween.is_valid():
 		camera_tween.kill()
 	busy = false
+	select_piece(0)
 	carrier.state = 0
-	carrier.rotation.y = 0
+	carrier.rotation.x = 0
 	arch_state = 1
 	arch.rotation.y = PI / 2
-	portal.visible = false
+	update_connections()
 	boarded = false
-	found_underside = false
-	reached_causeway = false
-	inspect_below = false
-	update_inspection_camera()
+	update_overview_camera()
 	reached_court = false
 	crossed = false
 	won = false
@@ -536,7 +520,7 @@ func new_journey() -> void:
 	history.clear()
 	walker.orbit_yaw = 0.0
 	walker.orbit_pitch = 0.42
-	walker.place(arrival, START_FOOT, Vector3.UP, Vector3.BACK)
+	walker.place(arrival, START_FOOT, Vector3.UP, Vector3.RIGHT)
 	checkpoint = snapshot()
 	save_progress()
 	set_pause(false)
@@ -545,7 +529,7 @@ func new_journey() -> void:
 	else:
 		overview.current = true
 		walker.avatar.visible = true
-	notify("The way across begins on another face.")
+	notify("Follow the ivory path. Board before changing the arrangement.")
 
 func save_progress() -> void:
 	if busy or "--self-test" in OS.get_cmdline_user_args():
@@ -561,7 +545,7 @@ func load_progress() -> void:
 		var file := FileAccess.open("user://journey.save", FileAccess.READ)
 		var data = file.get_var()
 		if data is Dictionary and data.get("version", 0) != SAVE_VERSION:
-			notify("A new arrival awaits. Your previous checkpoint belongs to the earlier layout.")
+			notify("Revised paths: the earlier free-walking checkpoint is preserved; this journey starts at the new entrance.")
 			return
 		if data is Dictionary and data.has_all(["player", "carrier", "arch", "boarded", "court", "crossed"]):
 			if data.player is Dictionary and str(data.player.get("piece", "")) in ["Arrival", "Causeway", "Carrier", "Courtyard", "Destination"]:
@@ -590,66 +574,54 @@ func notify(text: String) -> void:
 func carrier_connection_text() -> String:
 	if busy:
 		return "Connections settle after the turn."
-	var connection := "Causeway joined · courtyard apart" if carrier.state % 2 == 0 else "Courtyard joined · causeway apart"
+	var connection: String = ["Entrance joined / landing apart", "Landing joined / entrance apart", "Both paths apart", "Both paths apart"][carrier.state]
 	return connection + ("\nYou are aboard." if walker.support == carrier else "\nYou are off the carrier.")
 
 func guidance() -> Dictionary:
-	# Derive prompts from the current pose/configuration, not sticky milestones:
-	# backtracking, undo and recovery must give relevant advice immediately.
 	var view := key_name("view")
 	var turn := key_name("rotate_left") + " / " + key_name("rotate_right")
 	if busy:
-		return {"id": "settling", "title": "Let it settle", "text": "Your feet stay attached while the structure moves."}
+		return {"id": "settling", "title": "Your ground travels with you", "text": "Wait for the structure to settle before walking."}
 	if walker.support == destination:
-		return {"id": "light", "title": "The last few steps", "text": "Approach the warm light on the upper face."}
+		return {"id": "light", "title": "Follow the light", "text": "Follow the ivory path out of the gallery to the light."}
 	if walker.support == courtyard:
-		if walker.normal != Vector3.UP:
-			return {"id": "courtyard_edge", "title": "The arch is above", "text": "Keep walking around an exposed courtyard edge to reach its upper face."}
 		if arch_state == 0:
-			return {"id": "passage", "title": "An opening, not a picture", "text": (view + "  Enter the world.\n" if architectural else "") + "Walk through the connected arch toward the distant light."}
-		if walker.foot.distance_to(Vector3(0, 1, -1.6)) < 2.5:
-			return {"id": "arch_clear", "title": "Give the arch room", "text": (view + "  Enter the world.\n" if architectural else "") + "Step away from the arch before turning it."}
-		return {"id": "arch", "title": "Two places, one opening", "text": "2  Select the arch.\n" + turn + "  Try an alignment." if architectural else view + "  Inspect the arch from outside."}
+			return {"id": "passage", "title": "The galleries meet", "text": (view + "  Enter the world.\n" if architectural else "") + "Follow the ivory path into the covered gallery."}
+		if walker.foot.distance_to(Vector3(0, 1, -6)) < 6.6:
+			return {"id": "gallery_clear", "title": "Return to the landing", "text": "Step back toward the carrier to give the gallery room to turn."}
+		return {"id": "gallery", "title": "Join the two galleries", "text": "2  Select the gallery.\n" + turn + "  Align its corridor." if architectural else view + "  Inspect the two galleries from outside."}
 	if walker.support == carrier:
-		if carrier.state % 2 == 1:
-			return {"id": "disembark", "title": "A new neighbour", "text": (view + "  Enter the world.\n" if architectural else "") + "The violet courtyard now meets the carrier. Walk onto its adjoining face."}
-		return {"id": "passenger", "title": "Take your ground with you", "text": "1  Select the carrier.\n" + turn + "  Turn while aboard." if architectural else view + "  Open architectural view while standing here."}
-	if carrier.state % 2 == 1:
-		return {"id": "recall", "title": "The carrier is turned away", "text": "1  Select the carrier.\n" + turn + "  Rejoin the causeway." if architectural else view + "  Inspect the gap and turn the carrier back toward the causeway."}
-	if walker.support == causeway or walker.normal == Vector3.DOWN:
-		return {"id": "causeway", "title": "Look for the warm inlays", "text": (view + "  Enter the world.\n" if architectural else "") + "The narrow lower causeway leads to the terracotta carrier."}
-	if walker.normal != Vector3.UP:
-		return {"id": "wall", "title": "This wall is ground", "text": "Keep walking around the next exposed edge. Your feet and camera follow the surface."}
-	return {"id": "threshold", "title": "Look beyond the edge", "text": view + "  Enter the world.\nThe paired warm inlays continue over the edge." if architectural else "Walk between the paired warm inlays and keep going over the edge. No jump is needed."}
+		if carrier.state == 1:
+			return {"id": "disembark", "title": "The wall is now your landing", "text": (view + "  Enter the world.\n" if architectural else "") + "Continue along the deck onto the violet path."}
+		return {"id": "passenger", "title": "Carry the path into place", "text": "1  Select the carrier.\n" + turn + "  Join the vertical landing." if architectural else view + "  Turn the deck while standing aboard."}
+	if carrier.state != 0:
+		return {"id": "recall", "title": "Bring the deck back", "text": "1  Select the carrier.\n" + turn + "  Rejoin the entrance." if architectural else view + "  Turn the deck back to meet the entrance path."}
+	return {"id": "board", "title": "Walk the ivory path", "text": view + "  Enter the world.\nBoard the terracotta deck before turning it." if architectural else "Edges end the path. Walk onto the terracotta deck; the structure will carry you onto the next surface."}
 
 func show_hint() -> void:
-	var hints: Array[String]
-	if busy:
-		notify("Let the structure settle before planning the next step.")
-		return
 	var context: String = guidance().id
 	if context != hint_context:
 		hint_level = 0
 		hint_context = context
-	if walker.support == destination:
-		hints = ["The light is on this island.", "Every exposed face is still ground. Round an edge if you are underneath.", "On the upper face, approach the warm light at the far end."]
-	elif walker.support == arrival or walker.support == causeway:
-		if carrier.state % 2 == 1:
-			hints = ["The carrier no longer meets the causeway.", "Architectural view can bring it back, even while you are elsewhere.", "Press " + key_name("view") + " for architectural view if needed. Select 1, then give the carrier one quarter-turn to state A."]
-		elif walker.support == arrival and walker.normal != Vector3.DOWN:
-			hints = ["The causeway has a surface in common with your island. It is not the top.", "In architectural view, press " + key_name("inspect") + " to inspect the lower faces. Walking continues around exposed edges.", "Walk around the near or far edge of the arrival block, down its wall, then onto the underside. Turn toward the narrow causeway."]
-		else:
-			hints = ["The lower faces share one continuous plane.", "The terracotta carrier must point toward the causeway before you can board.", "On the underside, walk along the narrow causeway toward the carrier in state A. Board before rotating."]
-	elif walker.support == carrier:
-		if carrier.state % 2 == 0:
-			hints = ["Your position is part of the arrangement.", "Stand on the carrier, then give it a quarter-turn.", "Open architectural view with " + key_name("view") + ", select 1, then turn once with " + key_name("rotate_right") + ". Your ground travels with you."]
-		else:
-			hints = ["Your new neighbour is the violet courtyard.", "The carrier meets a matching face of the courtyard at one end.", "Enter the world and walk along the carrier toward the courtyard. If you arrive underneath, continue around an exposed courtyard edge to its top."]
-	elif walker.normal != Vector3.UP:
-		hints = ["The arch is on another face of this courtyard.", "The same edge-walking rule still applies here.", "Walk toward either exposed side of the violet courtyard. Continue over its edge, along the wall and around onto the upper face."]
-	else:
-		hints = ["The small arch and the distant tower share an opening.", "Select the arch in architectural view. An accepted alignment will stay connected.", "Press 2 to select the arch, then " + key_name("rotate_left") + " until it reads CONNECTED. Return inside and walk through it toward the light."]
-	notify(hints[mini(hint_level, 2)])
+	var hints: Array[String]
+	match context:
+		"board":
+			hints = ["The ivory paving marks where you can walk.", "The deck joins the entrance now, but not the vertical landing.", "Walk along the entrance path onto the middle of the terracotta deck, then open architectural view with " + key_name("view") + "."]
+		"recall":
+			hints = ["The entrance and deck must share the same ground.", "You can recall the deck from architectural view.", "Select 1 and turn until the panel says Entrance joined, then board before turning again."]
+		"passenger":
+			hints = ["You must travel with the path.", "Rotating the deck changes your ground while your feet stay on it.", "In architectural view, select 1 and turn until the vertical landing is joined. From the initial state, one " + key_name("rotate_right") + " turn does it."]
+		"disembark":
+			hints = ["The violet path is your new neighbour.", "Keep following the deck toward the violet landing.", "Return to traversal and walk off the end opposite the entrance. Stay on the ivory paving."]
+		"gallery", "gallery_clear":
+			hints = ["The two galleries can become one corridor.", "Use the fixed architectural view to compare the corridor directions.", "Stand on the landing near the carrier. In architectural view select 2, then turn until ALIGNED. Walk along the ivory path into the gallery."]
+		"passage":
+			hints = ["The route continues through the architecture.", "The covered gallery is now part of the ivory path.", "Follow the path into and through the gallery. The light is beyond its far end."]
+		"light":
+			hints = ["The light is ahead.", "Stay on the ivory paving beyond the gallery.", "Walk out of the far end of the corridor and approach the light."]
+		_:
+			hints = ["Let the structure settle before walking."]
+	notify(hints[mini(hint_level, hints.size() - 1)])
 	hint_level += 1
 
 func complete() -> void:
@@ -683,274 +655,166 @@ func capture_preview() -> void:
 	get_viewport().get_texture().get_image().save_png("res://docs/prototype-preview.png")
 	get_tree().quit()
 
+func test_walk(frames: int, direction := Vector2(0, -1)) -> void:
+	for frame in range(frames):
+		walker.walk(direction, 1.0 / 60.0)
+		walker.sync_pose(1.0 / 60.0)
+		check_passage()
+
 func run_self_test() -> void:
 	await get_tree().process_frame
 	var failures: Array[String] = []
-	# Probe the shared boundary on every approach plane. Only the underside joins.
-	for source in [arrival, causeway]:
-		var target: SurfacePiece = causeway if source == arrival else carrier
-		for up in [Vector3.UP, Vector3.DOWN, Vector3.FORWARD, Vector3.BACK]:
-			for sample in range(-8, 9):
-				var point: Vector3 = Vector3(source.half.x - 0.02, 0, 0)
-				var normal_axis: int = up.abs().max_axis_index()
-				point[normal_axis] = up[normal_axis] * source.half[normal_axis]
-				var free_axis: int = 2 if normal_axis == 1 else 1
-				point[free_axis] = float(sample) / 8.0 * source.half[free_axis] * 0.95
-				walker.place(source, point, up, Vector3.RIGHT)
-				walker.advance(Vector3.RIGHT, 0.04)
-				if walker.support == target and up != Vector3.DOWN:
-					failures.append("Opening bypass on " + source.title)
-	# Solve the actual opening continuously: over the near edge, down and under.
 	new_journey()
-	for i in range(223):
-		walker.walk(Vector2(0, -1), 1.0 / 60.0)
-	if walker.support != arrival or walker.normal != Vector3.DOWN or not found_underside:
-		failures.append("Arrival edge-to-underside route")
-	walker.forward = Vector3.RIGHT
-	for i in range(292):
-		walker.walk(Vector2(0, -1), 1.0 / 60.0)
-	if walker.support != carrier:
-		failures.append("Underside causeway to carrier")
-	if not reached_causeway or not boarded or walker.normal != Vector3.DOWN:
-		failures.append("Opening progression requires underside boarding")
-	if str(checkpoint.player.piece) != "Carrier" or checkpoint.player.normal != Vector3.DOWN:
-		failures.append("First boarding checkpoint")
-	var local_before := walker.foot
-	var up_before := walker.normal
-	var boarding_snapshot := snapshot()
-	carrier.rotation.y = PI / 2
-	carrier.state = 1
-	walker.sync_pose(1)
-	if not walker.foot.is_equal_approx(local_before) or walker.normal != up_before:
-		failures.append("Carrier local attachment")
-	# Continue upside down, then wrap the courtyard back to its top.
-	for i in range(140):
-		walker.walk(Vector2(0, -1), 1.0 / 60.0)
-	if walker.support != courtyard or walker.normal != Vector3.DOWN:
-		failures.append("Occupied carrier to courtyard underside")
-	walker.forward = Vector3.RIGHT
-	for i in range(154):
-		walker.walk(Vector2(0, -1), 1.0 / 60.0)
-	if walker.support != courtyard or walker.normal != Vector3.UP:
-		failures.append("Courtyard return to top")
-	history.append(boarding_snapshot)
-	undo()
-	if walker.support != carrier or walker.normal != Vector3.DOWN or carrier.state != 0 or not walker.foot.is_equal_approx(local_before):
-		failures.append("Undo after disembarking must restore passenger snapshot")
-	var before_inspection := snapshot()
-	toggle_inspection()
-	toggle_inspection()
-	if snapshot() != before_inspection:
-		failures.append("Inspection camera cannot mutate puzzle state")
-	carrier.rotation.y = PI / 2
-	carrier.state = 1
-	# Separate causeway cannot connect to rotated carrier.
-	walker.place(causeway, Vector3(2.95, -1.4, 0), Vector3.DOWN, Vector3.RIGHT)
-	walker.advance(Vector3.RIGHT, 0.2)
-	if walker.support != causeway or walker.normal != Vector3.RIGHT:
-		failures.append("Gap must fold, never magnetize")
-	# Shared hidden faces cannot admit the body inside the causeway.
-	walker.place(arrival, Vector3(4, 1, 0), Vector3.RIGHT, Vector3.DOWN)
-	for i in range(50):
-		walker.advance(Vector3.DOWN, 0.05)
-	if walker.foot.y < -0.10:
-		failures.append("Shared solid join must block penetration")
-	# Carrier's positive local X ends at courtyard in state B.
-	walker.place(carrier, Vector3(5.95, 1, 0), Vector3.UP, Vector3.RIGHT)
-	walker.advance(Vector3.FORWARD, 0.1)
-	if walker.support != courtyard:
-		failures.append("Carrier to courtyard seam")
-	var saved := snapshot()
-	walker.place(arrival, START_FOOT)
-	restore(saved)
-	if walker.support != courtyard:
-		failures.append("Atomic restore")
-	# Active portal transports to the separate destination volume.
-	arch_state = 1
-	walker.place(courtyard, Vector3(0, 1, -1.5))
-	portal_previous = 0.1
-	walker.advance(Vector3.FORWARD, 0.2)
-	check_passage()
-	if walker.support != courtyard:
-		failures.append("Inactive passage must not transport")
-	arch_state = 0
-	walker.place(courtyard, Vector3(0, 1, -1.5))
-	portal_previous = 0.1
-	walker.advance(Vector3.FORWARD, 0.2)
-	check_passage()
-	if walker.support != destination or not crossed:
-		failures.append("Persistent impossible passage")
-	# Repeated diagonal corner folds must stay on the bounded solid.
-	walker.place(arrival, Vector3(3.95, 3, 3.95), Vector3.UP, Vector3(1, 0, 1).normalized())
-	for i in range(240):
-		walker.walk(Vector2(0.65, -1).normalized(), 1.0 / 60.0)
-		var p := walker.foot.abs()
-		if p.x > walker.support.half.x + 0.001 or p.y > walker.support.half.y + 0.001 or p.z > walker.support.half.z + 0.001:
-			failures.append("Corner folds must remain on support")
-			break
-	# A side-face passenger rotates their world up but retains their local up.
-	walker.place(carrier, Vector3(0, 0, 1.5), Vector3.BACK, Vector3.RIGHT)
-	var world_up_before := carrier.global_basis * walker.normal
-	carrier.rotation.y += PI / 2
-	walker.sync_pose(1)
-	if walker.normal != Vector3.BACK or world_up_before.is_equal_approx(carrier.global_basis * walker.normal):
-		failures.append("Side-face attachment must carry gravity")
-	# Follow-camera framing and controls on every support orientation.
 	walker.set_third_person(true)
 	walker.keep_world_horizon = false
-	for up in [Vector3.UP, Vector3.DOWN, Vector3.LEFT, Vector3.RIGHT, Vector3.FORWARD, Vector3.BACK]:
-		var point: Vector3 = up * destination.half
-		var heading: Vector3 = Vector3.FORWARD if absf(up.y) > 0.5 else Vector3.UP
-		walker.place(destination, point, up, heading)
-		walker.align_movement_to_camera(Vector2(0, -1))
-		if absf(walker.camera.global_basis.x.dot(up)) > 0.001 or walker.camera.global_basis.y.dot(up) < 0.8:
-			failures.append("Surface follow must keep the character upright")
-		var arm: Vector3 = walker.camera.global_position - (walker.avatar.global_position + up * 0.85)
-		if arm.dot(-heading) < walker.camera_distance * 0.7:
-			failures.append("Surface follow must remain behind its transported heading")
-		if (destination.global_basis * walker.forward).dot(walker.camera.global_basis.y) <= 0.0:
-			failures.append("New movement input must follow screen-up")
-		var side := (destination.global_basis * walker.forward).cross(up)
-		if side.dot(walker.camera.global_basis.x) <= 0.0:
-			failures.append("Strafe input must follow screen-right")
-		if walker.camera.global_position.distance_to(walker.avatar.global_position) < 2.0:
-			failures.append("Follow camera must frame the character")
-	var pivot := destination.to_global(Vector3(0, 2, 0))
-	var clipped := walker.safe_camera_position(pivot, destination.global_position)
-	if destination.to_local(clipped).y < destination.half.y + 0.18:
-		failures.append("Camera obstruction must stop before solid geometry")
-	# Regression for losing the camera on a right-edge crossing with an orbited view.
-	walker.place(destination, Vector3(0, 1, 0), Vector3.UP, Vector3.RIGHT)
-	walker.orbit_yaw = -0.21285
-	walker.orbit_pitch = 0.527275
-	walker.reduced_motion = false
-	walker.sync_pose(1.0)
-	var observed_faces: Array[Vector3] = []
-	for i in range(320):
-		walker.align_movement_to_camera(Vector2(0, -1))
-		walker.walk(Vector2(0, -1), 1.0 / 60.0)
-		walker.sync_pose(1.0 / 60.0)
-		if not walker.normal in observed_faces:
-			observed_faces.append(walker.normal)
-		var focus := walker.avatar.global_position + walker.avatar.global_basis.y * 0.85
-		var screen_focus := walker.camera.to_local(focus)
-		if screen_focus.z >= -1.7 or absf(screen_focus.x) > 0.05 or absf(screen_focus.y) > 0.05:
-			failures.append("Camera must retain target and clearance throughout edge turns")
-			break
-	if observed_faces.size() < 3:
-		failures.append("Camera regression must exercise top, side and underside")
-	for i in range(60):
-		walker.sync_pose(1.0 / 60.0)
-	if walker.camera.global_basis.y.dot(walker.avatar.global_basis.y) < 0.8:
-		failures.append("Camera must settle upright after a surface change")
-	var orbit_snapshot := walker.snapshot()
-	walker.orbit_yaw = 1.4
-	walker.orbit_heading = -walker.orbit_heading
-	walker.restore(orbit_snapshot, self)
-	if walker.snapshot() != orbit_snapshot:
-		failures.append("Recovery must restore the transported orbit")
-	walker.keep_world_horizon = true
-	walker.sync_pose(1.0)
-	if walker.camera.global_basis.y.y <= 0.0:
-		failures.append("Optional world-horizon mode must remain world-upright")
-	walker.keep_world_horizon = false
+	# No wall, underside or corner can be entered by walking over a normal edge.
+	for up in [Vector3.DOWN, Vector3.LEFT, Vector3.RIGHT, Vector3.FORWARD, Vector3.BACK]:
+		if arrival.allows_point(up * arrival.half, up):
+			failures.append("Only authored walking faces may accept contact")
+	for direction in [Vector3.LEFT, Vector3.FORWARD, Vector3.BACK, Vector3(-1, 0, 1).normalized()]:
+		walker.place(arrival, START_FOOT, Vector3.UP, direction)
+		test_walk(300)
+		if walker.support != arrival or walker.normal != Vector3.UP or not arrival.allows_point(walker.foot, walker.normal):
+			failures.append("An ordinary edge must stop movement without changing face")
+	# Turning the empty carrier first leaves a genuine break in the authored route.
+	carrier.state = 1
+	carrier.rotation.x = PI / 2
+	update_connections()
+	walker.place(causeway, Vector3(1.9, 1, 0), Vector3.UP, Vector3.RIGHT)
+	test_walk(90)
+	if walker.support != causeway or walker.foot.x > 2.001 or guidance().id != "recall":
+		failures.append("A disconnected carrier must not be boardable")
 	new_journey()
-	for i in range(260):
-		walker.align_movement_to_camera(Vector2(0, -1))
-		walker.walk(Vector2(0, -1), 1.0 / 60.0)
-		walker.sync_pose(1.0 / 60.0)
-	if walker.normal != Vector3.DOWN or not found_underside:
-		failures.append("Held camera-relative movement must continue across edges")
-	var before_camera_mode := snapshot()
+	test_walk(254)
+	if walker.support != carrier or not boarded or str(checkpoint.player.piece) != "Carrier":
+		failures.append("Entrance path must lead onto the carrier and save boarding")
+	var before_turn := snapshot()
+	var old_up := walker.avatar.global_basis.y
+	select_piece(0)
+	rotate_selected(1)
+	if not busy or not carrier.neighbours.is_empty() or guidance().id != "settling":
+		failures.append("Intermediate rotation must disable walking connections")
+	rotation_tween.custom_step(1.0)
+	walker.sync_pose(1)
+	if busy or carrier.state != 1 or walker.snapshot() != before_turn.player or old_up.dot(walker.avatar.global_basis.y) > 0.01:
+		failures.append("Occupied roll must transport local pose onto a new gravity plane")
+	# Frame and clearance across roll orientations at all supported distances.
+	for distance in [3.0, 5.5, 8.0]:
+		for instant in [false, true]:
+			walker.camera_distance = distance
+			walker.reduced_motion = instant
+			for frame in range(120):
+				carrier.rotation.x = float(frame) / 119.0 * TAU
+				walker.sync_pose(1.0 / 60.0)
+				if not follow_view_is_clear():
+					failures.append("Camera must frame a rolling passenger at distance %s" % distance)
+					break
+	walker.camera_distance = 5.5
+	walker.reduced_motion = false
+	carrier.rotation.x = PI / 2
+	walker.sync_pose(1)
+	test_walk(115)
+	if walker.support != courtyard or not reached_court or walker.normal != Vector3.UP:
+		failures.append("Rolled deck must meet the authored vertical landing")
+	# Undo must restore the passenger even after disembarking.
+	undo()
+	if snapshot() != before_turn:
+		failures.append("Undo must restore both geometry and passenger pose")
+	rotate_selected(1)
+	rotation_tween.custom_step(1.0)
+	walker.sync_pose(1)
+	test_walk(115)
+	var landing_snapshot := snapshot()
+	if guidance().id != "gallery":
+		failures.append("Landing should introduce gallery alignment")
+	# The unaligned corridor is physically closed to the authored walking graph.
+	walker.place(courtyard, Vector3(0, 1, 0), Vector3.UP, Vector3.FORWARD)
+	test_walk(260)
+	if walker.support != courtyard or walker.foot.z < -1.001 or crossed:
+		failures.append("An unaligned gallery must not admit a crossing")
+	select_piece(1)
+	rotate_selected(-1)
+	if busy:
+		failures.append("A player in the gallery sweep must block its rotation")
+	restore(landing_snapshot)
+	select_piece(1)
+	rotate_selected(-1)
+	if not busy:
+		failures.append("The safe landing must allow the gallery to turn")
+	else:
+		rotation_tween.custom_step(1.0)
+	if arch_state != 0 or busy:
+		failures.append("Gallery should settle aligned")
+	# The authored pair really overlaps in the composed architectural projection.
+	update_overview_camera()
+	var near_end := courtyard.to_global(Vector3(0, 1, CROSSING_Z))
+	var far_end := destination.to_global(Vector3(0, 1, CROSSING_Z))
+	if overview.unproject_position(near_end).distance_to(overview.unproject_position(far_end)) > 0.02:
+		failures.append("Composed view must align the actual corridor endpoints")
+	var before_view := snapshot()
+	toggle_view()
+	toggle_view()
+	if snapshot() != before_view:
+		failures.append("Switching architectural and traversal views must not change connectivity")
+	# Walk the gallery. Compare frames immediately across the concealed seam.
+	walker.place(courtyard, Vector3(0, 1, -10.95), Vector3.UP, Vector3.FORWARD)
+	walker.pitch = 0.24
+	walker.orbit_yaw = 0.12
+	walker.sync_pose(1)
+	var camera_before := walker.camera.global_transform
+	passage_previous = walker.foot.z
+	walker.advance(courtyard.global_basis * Vector3.FORWARD, 0.1)
+	check_passage()
+	walker.sync_pose(1)
+	if walker.support != destination or not crossed or absf(walker.pitch - 0.24) > 0.001:
+		failures.append("Crossing must preserve local position, gravity and look")
+	if passage_views[1].mesh.to_local(walker.camera.global_position).z >= 0:
+		failures.append("The return seam must face away from the trailing arrival camera")
+	if not walker.camera.global_basis.is_equal_approx(camera_before.basis) or walker.camera.global_position.distance_to(camera_before.origin + PASSAGE_OFFSET) > 0.13:
+		failures.append("Hidden seam must translate the camera with the player")
+	walker.advance(destination.global_basis * Vector3.BACK, 0.15)
+	check_passage()
+	if walker.support != courtyard:
+		failures.append("The joined gallery must support walking back through it")
+	walker.advance(courtyard.global_basis * Vector3.FORWARD, 0.2)
+	check_passage()
+	test_walk(60)
+	if walker.support != destination or walker.foot.z >= -14:
+		failures.append("The continuous gallery route must reach the light")
+	var recovered := snapshot()
+	walker.place(arrival, START_FOOT, Vector3.UP, Vector3.RIGHT)
+	restore(recovered)
+	if snapshot() != recovered or not destination.allows_point(walker.foot, walker.normal):
+		failures.append("Checkpoint restoration must retain an authored contact")
+	var mode_snapshot := snapshot()
 	walker.set_third_person(false)
 	if walker.camera.cull_mask & 4:
-		failures.append("First-person camera must hide the avatar")
+		failures.append("First person must hide its own avatar")
 	walker.set_third_person(true)
-	if snapshot() != before_camera_mode:
-		failures.append("Camera preference must not change puzzle state")
-	run_opening_checks(failures)
+	if snapshot() != mode_snapshot:
+		failures.append("Camera preference must not mutate puzzle state")
+	# First-person crossing uses the same adjacency and preserves intentional look.
+	walker.set_third_person(false)
+	walker.place(courtyard, Vector3(0, 1, -10.95), Vector3.UP, Vector3.FORWARD)
+	walker.pitch = 0.31
+	walker.sync_pose(1)
+	passage_previous = walker.foot.z
+	walker.advance(courtyard.global_basis * Vector3.FORWARD, 0.1)
+	check_passage()
+	if walker.support != destination or absf(walker.pitch - 0.31) > 0.001:
+		failures.append("First-person passage must preserve the player's look")
+	walker.set_third_person(true)
 	if failures.is_empty():
-		print("SELF TEST PASS: puzzle route, recovery, passage, corners, transported camera, edge framing, controls, obstruction, camera modes, opening guidance, camera distance/rotation matrix")
+		print("SELF TEST PASS: authored boundaries, disconnected paths, occupied gravity roll, camera matrix, landing, undo, safe gallery rotation, composed alignment, two-way concealed crossing, recovery, camera modes")
 	else:
 		for failure in failures:
 			push_error("SELF TEST FAIL: " + failure)
 	get_tree().quit(0 if failures.is_empty() else 1)
 
-func run_opening_checks(failures: Array[String]) -> void:
-	new_journey()
-	if guidance().id != "threshold":
-		failures.append("Opening should introduce the wrapped threshold")
-	var initial := snapshot()
-	carrier.state = 1
-	carrier.rotation.y = PI / 2
-	if guidance().id != "recall":
-		failures.append("A disconnected carrier needs a return prompt")
-	walker.place(carrier, Vector3(0, -1, 0), Vector3.DOWN, Vector3.RIGHT)
-	if guidance().id != "disembark" or not carrier_connection_text().contains("aboard"):
-		failures.append("Connection feedback must use actual occupancy")
-	busy = true
-	if guidance().id != "settling" or carrier_connection_text().contains("joined"):
-		failures.append("Guidance must not advertise a mid-turn connection")
-	busy = false
-	restore(initial)
-	# Sticky discovery flags must not override the player's current situation.
-	boarded = true
-	reached_court = true
-	if guidance().id != "threshold":
-		failures.append("Backtracking guidance must follow current pose")
-	show_hint()
-	if not message.contains("causeway"):
-		failures.append("Backtracking hints must describe the current route")
-	walker.place(courtyard, Vector3(0, -1, 0), Vector3.DOWN, Vector3.FORWARD)
-	if guidance().id != "courtyard_edge":
-		failures.append("Courtyard underside must lead back to the arch")
-	show_hint()
-	if hint_level != 1 or not message.contains("another face"):
-		failures.append("A new hint context must restart gentle escalation")
-	walker.place(courtyard, Vector3(0, 1, 3), Vector3.UP, Vector3.FORWARD)
-	var old_turn_key: int = input_bindings.rotate_left
-	bind_key("rotate_left", KEY_J)
-	if not str(guidance().text).contains("J"):
-		failures.append("Guidance must use remapped controls")
-	bind_key("rotate_left", old_turn_key)
-	arch_state = 0
-	if guidance().id != "passage":
-		failures.append("An aligned arch must invite traversal")
-	restore(initial)
-	# Exercise the full follow-distance range at diagonal corners and while the
-	# occupied carrier rotates. Assert target framing and exclusion from solids.
-	for distance in [3.0, 5.5, 8.0]:
-		for instant in [false, true]:
-			walker.camera_distance = distance
-			walker.reduced_motion = instant
-			walker.keep_world_horizon = false
-			walker.place(destination, Vector3(3.95, 1, 4.95), Vector3.UP, Vector3.BACK)
-			walker.orbit_yaw = -0.31
-			walker.sync_pose(1)
-			for frame in range(240):
-				walker.align_movement_to_camera(Vector2(0.65, -1).normalized())
-				walker.walk(Vector2(0.65, -1).normalized(), 1.0 / 60.0)
-				walker.sync_pose(1.0 / 60.0)
-				if not follow_view_is_clear():
-					failures.append("Diagonal camera framing/clearance at distance %s, reduced motion %s, frame %s" % [distance, instant, frame])
-					break
-			carrier.rotation.y = 0
-			walker.place(carrier, Vector3(0, 0, 1.5), Vector3.BACK, Vector3.RIGHT)
-			var passenger := walker.snapshot()
-			for frame in range(1, 61):
-				carrier.rotation.y = PI * 0.5 * float(frame) / 60.0
-				walker.sync_pose(1.0 / 60.0)
-				if not follow_view_is_clear() or walker.snapshot() != passenger:
-					failures.append("Occupied rotation camera/attachment at distance %s, reduced motion %s" % [distance, instant])
-					break
-	walker.camera_distance = 5.5
-	walker.reduced_motion = false
-	restore(initial)
-
 func follow_view_is_clear() -> bool:
 	var pivot := walker.avatar.global_position + walker.avatar.global_basis.y * 0.85
 	var target := walker.camera.to_local(pivot)
-	if not walker.camera.global_transform.is_finite() or target.z > -0.5 or absf(target.x) > 0.05 or absf(target.y) > 0.05:
+	if not walker.camera.global_transform.is_finite() or target.z > -0.45 or absf(target.x) > 0.05 or absf(target.y) > 0.05:
 		return false
 	for piece in pieces:
 		var local := piece.to_local(walker.camera.global_position).abs()

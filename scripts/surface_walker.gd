@@ -5,6 +5,7 @@ extends Node3D
 
 var support: SurfacePiece
 var pieces: Array[SurfacePiece] = []
+var camera_obstacles: Array[MeshInstance3D] = []
 var foot := Vector3.ZERO
 var normal := Vector3.UP
 var forward := Vector3.FORWARD
@@ -80,7 +81,8 @@ func place(piece: SurfacePiece, point: Vector3, up := Vector3.UP, heading := Vec
 	else:
 		orbit_heading = heading
 		orbit_yaw = 0.0
-	pitch = -0.08
+	if not preserve_orbit:
+		pitch = -0.08
 	moving = false
 	last_walk_input = Vector2.ZERO
 	sync_pose(1.0)
@@ -97,8 +99,7 @@ func look(relative: Vector2) -> void:
 func align_movement_to_camera(input: Vector2) -> void:
 	if not third_person:
 		return
-	# Keep a held direction parallel-transported across an edge. Reprojecting W
-	# halfway through a fold would immediately send the player back up the wall.
+	# Keep held input consistent on the support; orbiting reestablishes screen-relative movement.
 	if input.length_squared() > 0.01 and moving and input.is_equal_approx(last_walk_input) and not orbit_changed:
 		return
 	orbit_changed = false
@@ -120,16 +121,18 @@ func walk(input: Vector2, delta: float) -> void:
 	if input.length() < 0.01:
 		moving = false
 		return
-	moving = true
 	var right := forward.cross(normal).normalized()
 	var direction := (right * input.x - forward * input.y).normalized()
 	var distance := speed * delta
-	# Small substeps prevent skipping seams at low frame rates.
 	var count := maxi(1, int(ceil(distance / 0.08)))
 	var world_direction := support.global_basis * direction
+	var travelled := 0.0
 	for i in range(count):
+		var before := support.to_global(foot)
 		world_direction = advance(world_direction, distance / count)
-	step_distance += distance
+		travelled += before.distance_to(support.to_global(foot))
+	moving = travelled > 0.0001
+	step_distance += travelled
 	if step_distance > 1.5:
 		step_distance = 0.0
 		stepped.emit()
@@ -139,65 +142,24 @@ func advance(world_direction: Vector3, distance: float) -> Vector3:
 	var next := foot + direction * distance
 	var world_next := support.to_global(next)
 	var world_normal := support.global_basis * normal
-	# Real contact on a matching plane is the only cross-piece transfer.
-	for other in pieces:
-		if other == support:
-			continue
+	# Authored, settled graph AND touching compatible walking regions are required.
+	for other in support.neighbours:
 		var local := other.to_local(world_next)
-		var up := other.global_basis.inverse() * world_normal
-		var face := up.abs().max_axis_index()
-		if absf(up[face]) < 0.999:
+		var up := (other.global_basis.inverse() * world_normal).normalized()
+		if not other.allows_point(local, up) or not pose_is_clear(other, local, up):
 			continue
-		if absf(local[face] - signf(up[face]) * other.half[face]) > 0.025:
-			continue
-		var inside := true
-		for axis in range(3):
-			if axis != face and absf(local[axis]) > other.half[axis] + 0.001:
-				inside = false
-		if inside:
-			if not pose_is_clear(other, local, up.round()):
-				return world_direction
-			forward = other.global_basis.inverse() * (support.global_basis * forward)
-			orbit_heading = other.global_basis.inverse() * (support.global_basis * orbit_heading)
-			support = other
-			foot = local
-			normal = up.round()
-			changed_surface.emit()
-			return world_direction
-	# Fold excess distance around the first crossed edge. Tie-break uses XYZ order.
-	var face_axis := normal.abs().max_axis_index()
-	var next_normal := normal
-	var next_forward := forward
-	var next_orbit_heading := orbit_heading
-	var folded := false
-	for axis in range(3):
-		if axis == face_axis or absf(next[axis]) <= support.half[axis]:
-			continue
-		var sign_axis := signf(next[axis])
-		var excess := absf(next[axis]) - support.half[axis]
-		var new_normal := Vector3.ZERO
-		new_normal[axis] = sign_axis
-		var rotation_axis := normal.cross(new_normal).normalized()
-		next_forward = forward.rotated(rotation_axis, PI * 0.5).normalized()
-		next_orbit_heading = orbit_heading.rotated(rotation_axis, PI * 0.5).normalized()
-		direction = direction.rotated(rotation_axis, PI * 0.5).normalized()
-		next[axis] = sign_axis * support.half[axis]
-		next[face_axis] -= normal[face_axis] * excess
-		next_normal = new_normal
-		folded = true
-		break
-	# Shared internal faces are solid, not a route through the adjoining volume.
-	if not pose_is_clear(support, next, next_normal):
-		return world_direction
-	foot = next
-	normal = next_normal
-	forward = next_forward
-	orbit_heading = next_orbit_heading
-	if folded:
-		edge_count += 1
-		# Observers and checkpoints must see the committed contact and frame.
+		forward = other.global_basis.inverse() * (support.global_basis * forward)
+		orbit_heading = other.global_basis.inverse() * (support.global_basis * orbit_heading)
+		support = other
+		foot = local
+		normal = Vector3.UP
 		changed_surface.emit()
-	return support.global_basis * direction
+		return world_direction
+	# Ordinary edges are boundaries. No face folding, gravity snapping or wrapping.
+	next = support.constrain_to_path(next)
+	if support.allows_point(next, normal) and pose_is_clear(support, next, normal):
+		foot = next
+	return world_direction
 
 func pose_is_clear(piece: SurfacePiece, point: Vector3, up: Vector3) -> bool:
 	for height in [0.18, 0.8, 1.55]:
@@ -207,6 +169,12 @@ func pose_is_clear(piece: SurfacePiece, point: Vector3, up: Vector3) -> bool:
 				continue
 			var local := other.to_local(centre)
 			if absf(local.x) < other.half.x + 0.10 and absf(local.y) < other.half.y + 0.10 and absf(local.z) < other.half.z + 0.10:
+				return false
+	for obstacle in camera_obstacles:
+		var bounds: Vector3 = (obstacle.mesh as BoxMesh).size * 0.5
+		for height in [0.25, 0.8, 1.55]:
+			var local := obstacle.to_local(piece.to_global(point + up * height)).abs()
+			if local.x < bounds.x + 0.16 and local.y < bounds.y + 0.16 and local.z < bounds.z + 0.16:
 				return false
 	return true
 
@@ -256,10 +224,14 @@ func sync_follow_camera(contact: Vector3, up: Vector3, delta: float) -> void:
 
 func safe_camera_position(pivot: Vector3, desired: Vector3) -> Vector3:
 	var fraction := 1.0
-	for piece in pieces:
-		var origin := piece.to_local(pivot)
-		var ray := piece.to_local(desired) - origin
-		var bounds := piece.half + Vector3.ONE * 0.18
+	var solids: Array[Node3D] = []
+	solids.assign(pieces)
+	solids.append_array(camera_obstacles)
+	for solid in solids:
+		var origin := solid.to_local(pivot)
+		var ray := solid.to_local(desired) - origin
+		var half_size: Vector3 = solid.half if solid is SurfacePiece else (solid.mesh as BoxMesh).size * 0.5
+		var bounds := half_size + Vector3.ONE * 0.18
 		var enter := 0.0
 		var leave := 1.0
 		var intersects := true

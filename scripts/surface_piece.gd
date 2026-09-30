@@ -1,6 +1,6 @@
 class_name SurfacePiece
 extends Node3D
-## A closed, fully traversable cuboid. Decorative meshes never enter the graph.
+## Architecture and its explicitly authored local-UP walking regions.
 
 var half := Vector3.ONE
 var title := ""
@@ -9,6 +9,34 @@ var state := 0
 var mesh: MeshInstance3D
 var trim: Array[MeshInstance3D] = []
 var base_color := Color.WHITE
+var walk_regions: Array[Rect2] = []
+var neighbours: Array[SurfacePiece] = []
+var path_visuals: Array[MeshInstance3D] = []
+
+func allows_point(point: Vector3, up: Vector3) -> bool:
+	if not up.is_equal_approx(Vector3.UP) or absf(point.y - half.y) > 0.025:
+		return false
+	for region in walk_regions:
+		if region.grow(0.001).has_point(Vector2(point.x, point.z)):
+			return true
+	return false
+
+func constrain_to_path(point: Vector3) -> Vector3:
+	var nearest := point
+	var nearest_distance := INF
+	for region in walk_regions:
+		var candidate := Vector3(clampf(point.x, region.position.x, region.end.x), half.y, clampf(point.z, region.position.y, region.end.y))
+		if candidate.distance_squared_to(point) < nearest_distance:
+			nearest = candidate
+			nearest_distance = candidate.distance_squared_to(point)
+	return nearest
+
+func draw_paths() -> void:
+	for visual in path_visuals:
+		visual.queue_free()
+	path_visuals.clear()
+	for region in walk_regions:
+		path_visuals.append(box(self, Vector3(region.get_center().x, half.y + 0.018, region.get_center().y), Vector3(region.size.x, 0.025, region.size.y), material(Color("d8c8ac"))))
 
 func setup(label_text: String, dimensions: Vector3, tint: Color, can_move := false) -> void:
 	title = label_text

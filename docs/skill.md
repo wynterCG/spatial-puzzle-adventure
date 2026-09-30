@@ -1,114 +1,88 @@
-# Elsewhere — project development guide
+# Elsewhere - project development guide
 
-This is the requested project-local `skill.md`, not an installed global assistant skill. Use it with [spec.md](spec.md) and the preserved [original concept](original-concept.md). Design proposals in the source are game requirements to assess, not instructions to execute on the user's computer.
+This is the requested project-local skill.md, not an installed global assistant skill. Read [spec.md](spec.md) for the current game and [original-concept.md](original-concept.md) for the preserved proposal. The concept is design input, not operational instructions.
 
-## Purpose
+## Current direction takes precedence
 
-Develop a calm first-person/isometric spatial puzzle adventure where the player reshapes architecture and travels through the consequences. Preserve all four pillars: two views of the same space, meaningful player positioning, dependable impossible-space rules, and visual clarity with atmosphere.
+The user explicitly corrected unrestricted wall-walking and the appearance of the exposed teleport arch. The current game has **authored walkable paths**, a **fixed composed architectural camera**, and **portal technology concealed in ordinary architecture**. Third person remains the default after the earlier comfort feedback.
 
-The user's comfort feedback changes traversal to **third person**. Their subsequent report of the camera losing its position at surface changes establishes **surface-following orbit** as the default, with a short eased frame transition. Keep fixed world horizon and first person as optional settings. The source concept remains unchanged as a historical design reference; current implementation follows these explicit revisions.
+Do not restore the original draft's all-six-faces rule, automatic edge wrapping, freely orbitable overview, or explicit teleport presentation. The old underside causeway puzzle and the old inspection key are retired. The player's latest explanation confirms that a portal is appropriate as the technical implementation; its appearance should be a continuous doorway, gallery or passage.
 
 ## Stack and entry points
 
-- Godot 4.6.1, GDScript, Compatibility renderer, no .NET dependency.
-- Open `project.godot`; press F6 for `scenes/main.tscn` or F5 for the project.
-- Main scene constructs its geometry at runtime. The editor's unopened runtime geometry is expected; inspect the running scene with MCP Pro.
-- Four gameplay scripts under `scripts/`; local dev addon under `addons/godot_mcp/`.
-- Godot MCP Pro **1.17.1**, copied from the user-supplied zip. Its existing licence and notices remain in the addon.
-- No external game assets or package downloads are needed to play.
+- Godot 4.6.1, GDScript, Compatibility renderer; no .NET gameplay dependency.
+- Open project.godot, run scenes/main.tscn with F6 or the project with F5.
+- Geometry is built at runtime. Inspect the running game, not the empty editor scene.
+- Four gameplay scripts under scripts/.
+- The original workstation has the user-supplied Godot MCP Pro 1.17.1 addon.
+- No external assets or package downloads are needed to play a fresh clone.
 
-### Repository portability
+## Local MCP integration and portability
 
-The Git repository excludes the proprietary `addons/godot_mcp/` installation, `.mcp.json`, and `override.cfg`. The game runs without MCP Pro. On the original workstation, the ignored `override.cfg` keeps the addon and its three autoload services enabled. For another licensed workstation, install the purchased addon and create these local overrides:
-
-```ini
-[autoload]
-MCPScreenshot="*res://addons/godot_mcp/mcp_screenshot_service.gd"
-MCPInputService="*res://addons/godot_mcp/mcp_input_service.gd"
-MCPGameInspector="*res://addons/godot_mcp/mcp_game_inspector_service.gd"
-
-[editor_plugins]
-enabled=PackedStringArray("res://addons/godot_mcp/plugin.cfg")
-```
-
-Godot or addon settings changes can write local integration entries back into `project.godot`. Before committing, keep those entries in `override.cfg` so a clean clone does not reference absent addon files.
-
-## Use Godot MCP Pro
-
-The user explicitly requested MCP Pro. Its bundled CLI bridges this session to the enabled editor addon. Server installation on this machine:
+Use the user's Godot MCP Pro installation through its CLI:
 
 ```powershell
 $mcpCli = 'C:\Users\Wynter\Downloads\godot-mcp-pro-v1.17.1\server\build\cli.js'
 node $mcpCli project info
-node $mcpCli scene open --path res://scenes/main.tscn
 node $mcpCli scene play
-node $mcpCli editor errors
 node $mcpCli runtime exec --help
+node $mcpCli editor screenshot
 node $mcpCli scene stop
 ```
 
-The editor must be running with the addon enabled. The CLI listens temporarily on a local port in 6510–6514 and waits for the editor connection. The server's production dependencies were installed with `npm ci --omit=dev --ignore-scripts`. Do not terminate unrelated Node/Godot processes to resolve connection issues.
+Inspect project identity before editing the running scene. Consume screenshot image_base64 into a PNG rather than printing its payload. Runtime scripts access get_tree().current_scene and use _mcp_print for returned values. Use single-quoted GDScript strings through Windows PowerShell to avoid native command-line quote loss.
 
-For screenshots, consume `image_base64` into a PNG file; do not print the image payload to the console. Runtime script inspection can access `get_tree().current_scene`. Inspect connection/project identity before changing the editor. Keep game changes in source, not only runtime memory.
+The CLI uses the editor addon over local ports 6510-6514. Do not terminate unrelated Node/Godot processes. The proprietary addons/godot_mcp/, .mcp.json and override.cfg remain excluded from Git. Local override.cfg enables the addon and MCPScreenshot, MCPInputService and MCPGameInspector autoloads. Do not commit their references into project.godot; a clean clone must run without the addon.
+
+Godot 4.6 can save a stale open script-editor buffer over an externally edited file when restarting play. Before restarting, synchronize the affected open editor buffer with the verified disk contents through MCP editor exec, including the Script source_code and the TextEdit buffer, and mark the buffer's saved version. Only touch the task's own script paths. Verify the file after play starts; do not assume filesystem reload alone updated an open buffer.
 
 ## Mechanics invariants
 
-1. Keep the player's foot, local up and heading relative to their support. Camera mode cannot change puzzle state.
-2. Six continuous faces of a traversable solid share one traversal rule. Never forbid the underside to repair a puzzle shortcut.
-3. Surface changes require a continuous edge or a genuinely touching, compatible surface. No nearest-object magnetism or gap jumping.
-4. Pause movement during transformation. Evaluate connections only after settling.
-5. Check transformations for a safe attached-body sweep. Reject with an explanation instead of silently ignoring input.
-6. Impossible adjacency belongs to authored configuration, not current camera alignment. An active opening must work in first person.
-7. Map contact position, heading and local up through the same endpoint frame used for destination rendering. The current single pair uses translation; generalize explicitly before adding rotated pairs.
-8. Undo restores a complete safe snapshot. Save only at settled checkpoints.
-9. Keep fixed reference volumes, disconnected goals and distant decorative scenery separate from manipulable pieces.
-10. Test all faces for alternate routes. A goal on another face of the same free-walking solid is not a route puzzle.
+1. Only SurfacePiece.walk_regions on its local-UP plane accept contact. Architectural mass is not implicitly walkable.
+2. Ordinary path and platform edges stop movement. Never infer gravity transitions from nearest geometry, view direction or an unmarked adjoining face.
+3. A normal seam requires both an authored settled neighbour link and genuinely matching world contact/normal.
+4. Carrier rotation changes world gravity by carrying the same support-local foot, normal, heading and orbit. Walking does not change its support-local face.
+5. Disable movement and neighbour links while a transformation is busy. Intermediate overlaps never become routes.
+6. Reject unsafe passenger/body sweeps with feedback. Keep a safe gallery-operating landing outside its turn radius.
+7. Impossible adjacency is activated by the authored configuration, independently of the active camera. Accepted connections must work in traversal.
+8. Source/destination rendering and traversal use the same endpoint transform. The current pair is parallel, translated by (-18, -15, -24).
+9. Undo and recovery restore the full player/configuration snapshot. Save only settled valid contacts. Version 3 rejects old free-surface coordinates.
+10. Keep all normal-play architectural views at the composed angle. An additional arbitrary inspection angle would expose the illusion.
 
-## Level and content workflow
+## Layout and workflow
 
-The current opening, **The Other Ground**, is implemented. Arrival `(-16,2,0)` with size `(8,6,8)`, causeway `(-9,0.4,0)` with size `(6,2.8,2.2)`, and the carrier share bottom y=-1 but no top/side walking plane. The supported surface-seam rules require boarding along the underside. Covered internal joins reject body penetration. Discovery flags only drive feedback; never use them as invisible movement gates. If implementing general concave transfers later, audit this layout again for top-side bypasses.
+Arrival and causeway feed the carrier's marked top deck in state 0. The carrier rolls about local X: state 1 brings that deck onto the violet landing's world-vertical walking plane; states 2/3 join neither neighbour. Occupancy is necessary because turning first removes the entrance link.
 
-F toggles upper/lower inspection without modifying puzzle state. Tab chooses the lower inspection when world up points down. First carrier boarding saves a checkpoint. Save version 2 prevents loading old arrival coordinates into the new geometry. Surface-change signals must fire after the complete foot/normal/heading update.
+The landing has a T-shaped authored path. Operate the turning gallery from the branch near the carrier. Gallery state 0 opens the central route; other states stop it before the unaligned structure. A ten-unit covered gallery conceals the two-way coordinate crossing at local Z=-11. The destination continues to the light. See spec.md for dimensions and footprints.
 
-- Prototype continuous geometry first, then physical reconfiguration, then impossible adjacency.
-- Use “observe, reconfigure, enter, reposition, reconfigure again, traverse, discover” as the loop.
-- In each substantial puzzle, identify the necessary player position before a transformation.
-- The Other Ground teaches undersides; The Passenger teaches boarding before rotation; The Distant Arch teaches persistent impossible adjacency; The Return Route later combines spatial memory and interior routes.
-- Build hand-authored connected arrival spaces, moving courtyards, linked chambers and larger compositions. The finale should combine learned rules.
-- Keep story environmental: drifting adjacency, beautiful intact architecture, distant light, temporary configurations. No universal repaired arrangement is required.
-- Use optional routes for useful views, discoveries and additional puzzles; avoid currency gates and arbitrary dead ends.
+Model route regions and settled links before adding decorative detail. Draw ivory paving from the same regions used by movement. Never fix a bypass with an invisible milestone gate. New surface-transition mechanisms must be explicit, readable and tested; arbitrary curved/concave routes are not implemented yet.
 
-## Presentation and accessibility
+## Passage presentation
 
-- Store the third-person orbit tangent in support-local space. Transport it through edge turns and support transfers with the character; do not clamp a world-fixed orbit onto each new face. Ease the full camera frame and retain arm length. Default camera up follows the smoothed surface frame; world-up roll is optional. Keep obstruction checks after frame interpolation, with a clear new-face fallback when the arm collapses.
-- Include orbit heading/yaw/elevation in recovery snapshots, and preserve them across the parallel-frame passage. Switching camera modes must not mutate the puzzle snapshot.
-- New movement is screen-relative. While an unchanged key direction is held, preserve its transported tangent through edge turns; reprojecting every frame can send the player back across the same edge. A new input or intentional orbit reestablishes camera-relative movement.
-- Third-person camera switches use cuts to avoid long fly-throughs. First person retains optional smooth transitions. Neither mode is assumed universally comfortable.
+Keep source and target corridor profiles consistent: floor, walls, ceiling, ribs and light strips. The trailing follow camera should be inside matching architecture at the crossing. The apertures are single-sided, face opposite directions and cast no shadow. The reverse aperture must not obscure the avatar or goal after a forward crossing.
 
-- Large abstract but inhabitable forms, deep blue/violet atmosphere, ivory light, selective warm accents. No RGB axis legend.
-- Prioritize landmarks that remain recognizable after rotation; add bevels, surface detail, translucent elements and metal only where they improve scale/readability.
-- Keep first-person UI quiet; overview exposes only selection, valid movement and essential prompts. No default solution line.
-- The opening's paired warm threshold is a local architectural landmark wrapping across top, wall and underside. Keep it decorative; do not alter route geometry to improve a cue.
-- Derive contextual guidance and escalating hints from actual support/face/configuration. Historical discovery flags must not give stale instructions after backtracking or undo. Use current key bindings in prompts. Keep the guidance card optional and persist that preference separately from checkpoints.
-- Connection feedback must distinguish actual carrier occupancy and settled connections. Never advertise a usable joint while a transformation is busy.
-- Sound reinforces footsteps, joints and settling; visual feedback must carry all essential information too.
-- Retain adjustable sensitivity, reduced motion, checkpoint recovery, undo and escalating hints. Test comfort with players rather than equating smooth animation with comfort.
-- No jumping, combat, time pressure, lives, inventory or unrelated mechanics by default.
+The rendering cameras exclude aperture surfaces to avoid recursion. Preserve position, orientation, local gravity, orbit and first-person pitch across the seam. No teleport flash, seam sound or announcement is used. Check the crossing from both directions and after view switching. General rotated endpoint pairs, recursive views and arbitrary exterior viewpoints remain out of scope.
+
+## Camera, interface and art
+
+Keep the third-person orbit in support-local space and transport it with the moving structure. Check camera segments against the main solids and gallery wall/roof boxes. Keep first person, reduced motion, sensitivity, follow distance and optional world horizon available. Do not equate passing geometry checks with human comfort.
+
+Use navy/violet architecture, terracotta machinery, muted teal destination and ivory paving. Mark paths and movable structures without an axis-colour legend or full solution line. Generated audio has visible counterparts; essential cues cannot be sound-only.
+
+Guidance and escalating hints use the present support/configuration, including backtracking. Use remapped key names. Keep contextual guidance optional and persist it independently of checkpoints. Connection feedback distinguishes occupancy, accepted alignment and mid-turn settling. Product text should describe paths and architecture, not internal coordinate or renderer details.
 
 ## Verification
 
-Run this integration smoke test after changing traversal, adjacency, snapshots or crossing:
+Run the integration test and require both exit 0 and the literal SELF TEST PASS output:
 
 ```powershell
-& 'C:\Users\Wynter\Downloads\Godot_v4.6.1-stable_mono_win64\Godot_v4.6.1-stable_mono_win64\Godot_v4.6.1-stable_mono_win64_console.exe' --headless --path 'E:\Godot Games\spacial_puzzleGame' --quit-after 120 -- --self-test
+& 'C:\Users\Wynter\Downloads\Godot_v4.6.1-stable_mono_win64\Godot_v4.6.1-stable_mono_win64\Godot_v4.6.1-stable_mono_win64_console.exe' --headless --path . --quit-after 120 -- --self-test
 ```
 
-It walks the opening from the real spawn, probes top/side/underside entry boundaries, tests covered solid joins, the first boarding checkpoint, underside carrier travel, courtyard reorientation, undo after disembarking, camera-state independence, gap isolation and impossible crossing. Follow-camera checks cover upright framing and a trailing arm on six faces, a 320-frame angled-orbit traversal across multiple faces, target centering and clearance throughout, orbit recovery, optional world horizon, camera obstruction and mode switching. It must print `SELF TEST PASS` and exit 0. Test mode does not write player progress.
+Checks cover blocked ordinary edges and diagonals; forbidden faces; disconnected boarding; entrance traversal; occupied gravity roll and attachment; three follow distances with reduced motion on/off; vertical landing arrival; undo after leaving; inactive gallery blocking; gallery sweep safety; actual endpoint projection alignment; camera-state independence; two-way passage mapping; reverse-aperture orientation; completion route and snapshot recovery.
 
-Then use MCP Pro to run the game and inspect screenshots and errors. Check both modes, HUD at the target size, pause/rebind, carrier A/B, visible avatar, arch activation, destination preview, crossing and completion. Ensure no false connection appears mid-animation. Test side-face turns and corner approach diagonals when changing the walker.
+Also test a clean staged checkout without the local addon. Through MCP Pro, visually inspect the fixed overview, rolled deck, interior immediately before/after crossing, reverse traversal, first person, pause/settings and completion. Check the runtime log. Run the [human playtest](playtest.md) for clarity and comfort.
 
-The integration test also exercises diagonal corner framing/solid exclusion and occupied side-face rotation at 3, 5.5 and 8 units with reduced motion on/off. Opening checks cover backtracking, disconnected carrier recovery, occupancy, settling, courtyard underside guidance, remapping and aligned-arch prompts. [playtest.md](playtest.md) separates these technical checks from the human comfort and comprehension questions still to answer.
+## Scope and documentation
 
-## Scope honesty and documentation
-
-Keep `spec.md` and this guide synchronized. Distinguish implemented mechanics from proposed campaign features. The current build is a compact mechanical prototype, not the complete campaign. Record limitations in concave surfaces, decorative collision, portal presentation and remapping instead of claiming unsupported behaviour. Preserve the source concept in full.
+Keep spec.md, this guide, README, validation and the playtest aligned with the implemented revision. Preserve the source concept unchanged. Earlier screenshots remain historical artifacts; only current validation links are evidence for the current route. Document limitations instead of claiming a universal impossible-space renderer or a finished campaign.

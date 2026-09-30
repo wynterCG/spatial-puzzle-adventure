@@ -1,82 +1,48 @@
-# Prototype validation
+# Revision 3 validation
 
-Verified on 30 September 2026 with Godot 4.6.1, Compatibility/OpenGL, and the user's Godot MCP Pro 1.17.1.
+30 September 2026. Godot 4.6.1, Compatibility/OpenGL, with the user's Godot MCP Pro 1.17.1. This revision replaces the prior automatic edge-wrapping and exposed arch prototype.
 
-## Automated mechanics checks
+## Automated acceptance checks
 
-`--headless --quit-after 120 -- --self-test` exits 0 and prints `SELF TEST PASS`.
+The headless integration run must exit 0 and print SELF TEST PASS. Current checks cover:
 
-- The complete spawn → arrival wall → arrival underside → causeway underside → carrier route is traversable with ordinary walking.
-- Boundary probes at 17 positions on each of four candidate approach faces, at both joins, find no top/side boarding seam (136 probes).
-- Covered shared faces block body penetration rather than allowing travel through the causeway.
-- First carrier boarding records a valid underside checkpoint.
-- Carrier transformation preserves support-local position and normal.
-- A rotated, disconnected carrier cannot attract the player across the gap.
-- Top/side/underside traversal remains continuous.
-- State B carrier connects to the courtyard.
-- Snapshot restoration restores support as well as structure state.
-- An inactive arch cannot transport the player.
-- An active arch maps the player to the destination.
-- Repeated diagonal corner traversal remains within support bounds.
-- Rotating a side-face passenger changes world up while retaining local up.
-- An occupied carrier delivers the player onto the courtyard underside, and ordinary edge traversal returns them to its top.
-- Undo after disembarking restores the pre-rotation passenger position and state.
-- Switching inspection views does not mutate the puzzle snapshot.
-- Default third-person camera settles upright relative to all six support faces, with its arm behind the transported orbit heading.
-- New forward/strafe inputs project to screen-up/right on every face.
-- Holding movement continues from the arrival top, around its wall and onto the underside without reversing at the edge.
-- Camera obstruction stops the follow offset before a padded solid.
-- Switching first/third person preserves puzzle state; first person hides the avatar from its own view.
-- A 320-frame angled-orbit regression crosses at least three faces while retaining target centering and camera clearance, then checks the settled orientation.
-- Recovery restores the orbit heading/yaw/elevation; optional world-horizon mode remains world-upright.
-- A follow-distance matrix (3, 5.5 and 8 units, reduced motion on/off) checks diagonal corner traversal for 240 frames per combination, followed by 60-frame occupied side-face rotations. Checks cover finite transforms, centered targets, exclusion from solids, and unchanged support-local passenger snapshots during rotation.
-- Opening guidance handles a disconnected carrier, actual occupancy, settling, backtracking despite completed milestones, courtyard underside arrival, remapped controls and an aligned arch.
+- Forbidden side/underside contact and blocked ordinary edges, including diagonal approaches.
+- A disconnected deck cannot be boarded across a gap.
+- The real entrance path reaches the deck and creates the boarding checkpoint.
+- An occupied quarter-roll changes world gravity while preserving the full local pose.
+- Settling disables normal neighbour links.
+- Follow camera framing through a full deck revolution at distances 3, 5.5 and 8, reduced motion on/off.
+- The rolled deck joins the authored vertical landing.
+- Undo after disembarking restores the configuration and passenger pose.
+- An unaligned gallery blocks forward passage; an occupied sweep rejects rotation.
+- The safe landing permits alignment.
+- The actual source/destination endpoints overlap in the fixed orthographic projection.
+- Switching architectural/traversal views does not change the puzzle snapshot.
+- Forward and reverse concealed crossings preserve support-relative contact, gravity, heading, orbit and first-person pitch.
+- The return aperture faces away from the trailing arrival camera instead of occluding the avatar/goal.
+- The route continues to the light and recovery preserves an accepted authored contact.
+- First person hides the avatar; camera preferences do not mutate puzzle state.
 
-## Live MCP Pro checks
+The staged portable checkout is also tested without the proprietary addon or machine overrides. Test mode neither loads nor writes player progress.
 
-Connected through the bundled CLI and confirmed project path, engine version and addon services. Opened and ran the main scene through MCP Pro. Exercised the complete route using the actual walker and manipulation functions in the running game:
+## Live MCP Pro walkthrough
 
-1. Walked from the new arrival spawn around an exposed edge, down the wall, onto the underside, across the causeway and onto the carrier in state A.
-2. Rotated the occupied carrier to B; verified its support-local pose and transformed world position.
-3. Walked onto the courtyard underside and wrapped around its side to return to the top.
-4. Selected and aligned the arch; confirmed active passage state.
-5. Returned to first person; visually inspected the destination rendering through the opening.
-6. Walked through the passage to the separate destination and reached the light.
-7. Confirmed `found_underside`, `reached_causeway`, `boarded`, `reached_court`, `crossed` and `won` were true, with `busy` false.
+Walked the entrance path to the carrier through the actual walker, rolled the occupied deck using the animation action, reached the vertical landing, aligned the gallery, and walked through its concealed seam to the destination. Also walked back through the seam, returned to the destination and reached completion. Checked the default third-person view before/after crossing and the character's world-up change after the roll.
 
-Verified Escape opens settings, the menu fits the viewport, and key rebinding accepts I (73) and restores W (87). Checked default camera switching through action events. Reset progress to the arrival afterward. The final fresh runtime log has no script errors.
+The visual pass found that a two-sided return aperture could obscure the character and destination after arrival. The aperture now faces the reverse direction, uses back-face culling, and casts no shadow. Inspected the corrected rendered result and added an orientation regression check.
 
-For the new opening, also verified a rotation can be paused while busy and resumes to a settled state afterward. The expanded settings menu scrolls within the viewport so the additional inspection binding does not push controls outside the window.
+The normal-play overview now has one composed angle. The previous inspect-separation control was removed after the user's clarification about camera-dependent illusions. Runtime screenshots below show the current architectural path and concealed passage; older images in this directory document retired iterations.
 
-For the third-person revision, replayed the opening with camera-relative held movement and observed the visible character on the wall and underside. Continued across the carrier and through the active arch to completion in third person. Inspected the destination preview from the follow camera. Selected first person in settings, reloaded settings to verify the preference persisted, then restored third person. Camera obstruction is limited to traversable solids; comfort remains a human playtest question.
+## Current screenshots
 
-For the surface-change bug, reproduced the reported right-edge approach with yaw -0.21285 and elevation 0.527275 through MCP Pro. The updated camera follows the new face and frames the character upright, instead of retaining the world-fixed orbit. Earlier third-person screenshots below record the previous camera iteration; `camera-edge-fix.png` shows the corrected behaviour.
+- [Authored path layout and fixed overview](authored-paths-overview.png)
+- [Third person after rolling onto the landing's gravity plane](authored-paths-rolled-deck.png)
+- [Aligned galleries in the composed view](joined-galleries-overview.png)
+- [Interior immediately before crossing](gallery-before-crossing.png)
+- [Interior immediately after crossing](gallery-after-crossing.png)
 
-## Visual evidence
+## Remaining evaluation
 
-### Opening clarity pass
+This is an instrumented technical walkthrough, not a first-time human playtest. Use [playtest.md](playtest.md) for route comprehension and comfort. The enclosed, parallel-frame portal pair has deliberate presentation constraints; arbitrary rotated endpoints, recursive rendering, oblique clipping and perfect views from every orbit angle are not claimed. See [spec.md](spec.md) for scope.
 
-Replayed arrival → wall → underside → causeway → carrier → occupied quarter-turn → courtyard underside → courtyard top → aligned arch → destination light in the live game through MCP Pro. Movement used camera-relative held input and deliberate orbit turns; the carrier and arch used their actual animation functions. The contextual states changed at the expected locations. The carrier reported settling during its turn, then the new joined neighbour and actual occupancy afterward. Completion was reached. Checked the persistent guidance preference by changing its checkbox and reloading settings.
-
-The original runtime pose, checkpoint, undo history and persisted files were backed up for the walkthrough and restored afterward. This is an instrumented walkthrough, not a first-time human playtest. Follow [playtest.md](playtest.md) for comfort and discovery feedback.
-
-- [Opening threshold and contextual prompt](opening-threshold.png)
-- [The same landmark after walking onto the wall](opening-wall-guidance.png)
-- [Boarded carrier, connection status and rotation prompt](opening-passenger-guidance.png)
-
-### Earlier milestones
-
-- [Architectural overview](prototype-preview.png)
-- [First-person passage](passage-preview.png)
-- [Completion](completion-preview.png)
-- [Settings](settings-preview.png)
-- [The Other Ground in first person](other-ground-first-person.png)
-- [The Other Ground from below](other-ground-overview.png)
-- [Third-person arrival](third-person-arrival.png)
-- [Third-person wall traversal](third-person-wall.png)
-- [Third-person underside](third-person-underside.png)
-- [Third-person distant passage](third-person-passage.png)
-- [Corrected camera on the reported right-side transition](camera-edge-fix.png)
-- [Corrected camera following the underside](camera-underside-fix.png)
-
-These are runtime screenshots captured through MCP Pro. The gameplay remains a mechanical prototype. This verification does not replace human comfort/playability testing or resolve the production limitations listed in [spec.md](spec.md).
+The prior local free-surface save was backed up before migration. Old save version 2 is not loaded into the new authored-path layout. Camera and control preferences remain compatible.

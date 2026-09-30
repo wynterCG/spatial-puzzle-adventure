@@ -5,7 +5,6 @@ var root: Control
 var mode: Label
 var task: Label
 var chapter_title: Label
-var inspection_button: Button
 var selection: Label
 var connection: Label
 var guide: PanelContainer
@@ -54,7 +53,7 @@ func _ready() -> void:
 	chapter.offset_right = -44
 	chapter.offset_bottom = 140
 	chapter.custom_minimum_size.x = 295
-	chapter_title = label("01   /   THE OTHER GROUND", 13, muted)
+	chapter_title = label("01   /   THE PASSENGER", 13, muted)
 	chapter.add_child(chapter_title)
 	task = label("", 19)
 	task.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -82,7 +81,7 @@ func _ready() -> void:
 	sidebar.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT)
 	sidebar.offset_left = 44
 	sidebar.offset_right = 350
-	sidebar.offset_top = -420
+	sidebar.offset_top = -365
 	sidebar.offset_bottom = -96
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation", 12)
@@ -97,14 +96,12 @@ func _ready() -> void:
 	selector.add_theme_constant_override("separation", 8)
 	column.add_child(selector)
 	selector.add_child(button("1  Carrier", func(): game.select_piece(0)))
-	selector.add_child(button("2  Arch", func(): game.select_piece(1)))
+	selector.add_child(button("2  Gallery", func(): game.select_piece(1)))
 	var rotations := HBoxContainer.new()
 	rotations.add_theme_constant_override("separation", 8)
 	column.add_child(rotations)
 	rotations.add_child(button("↶  Turn left", func(): game.rotate_selected(-1)))
 	rotations.add_child(button("Turn right  ↷", func(): game.rotate_selected(1)))
-	inspection_button = button("F  Inspect underside", func(): game.toggle_inspection())
-	column.add_child(inspection_button)
 	var bottom := PanelContainer.new()
 	root.add_child(bottom)
 	bottom.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
@@ -234,7 +231,7 @@ func build_menu() -> void:
 		key_button.custom_minimum_size.x = 70
 		grid.add_child(key_button)
 		key_buttons[action] = key_button
-	column.add_child(label("Click a key to remap it. Escape cancels.\nWalk around edges to discover every face.\nIn architectural view, click a piece or use 1 / 2.", 14, muted))
+	column.add_child(label("Click a key to remap it. Escape cancels.\nWalk on ivory paths; ordinary edges stop you.\nIn architectural view, click a piece or use 1 / 2.", 14, muted))
 	column.add_child(button("Continue journey", func(): game.set_pause(false)))
 	column.add_child(button("Return to checkpoint", func(): game.restart_checkpoint(); game.set_pause(false)))
 	column.add_child(button("Start a new journey", func(): game.new_journey()))
@@ -253,7 +250,7 @@ func build_completion() -> void:
 	completion.add_child(column)
 	column.add_child(label("THE FIRST CONNECTION", 13, Color("e2bd87")))
 	column.add_child(label("You found another way.", 34))
-	column.add_child(label("A wall became ground. A path became a passenger.\nA distant place became the next step.\n\nThe courtyard is complete. The wider world awaits.", 18, muted))
+	column.add_child(label("A deck carried your ground. Two galleries aligned.\nA distant place became the next step.\n\nThe courtyard is complete. The wider world awaits.", 18, muted))
 	column.add_child(button("Explore again", func(): completion.hide(); game.new_journey()))
 	completion.visible = false
 
@@ -262,24 +259,23 @@ func refresh() -> void:
 	sidebar.visible = game.architectural and not game.paused and not game.won
 	controls.get_parent().visible = not game.paused and not game.won
 	crosshair.visible = not game.architectural and not game.walker.third_person and not game.paused and not game.won
-	selection.text = ("The Passenger  ·  " + ("A" if game.carrier.state % 2 == 0 else "B")) if game.selected == 0 else ("The Distant Arch  ·  " + ("CONNECTED" if game.arch_state == 0 else "UNALIGNED"))
-	connection.text = game.carrier_connection_text() if game.selected == 0 else ("Connections settle after the turn." if game.busy else ("The distant opening is joined." if game.arch_state == 0 else "The distant opening is apart."))
+	selection.text = ("The Passenger  ·  " + ["ENTRANCE", "LANDING", "UNJOINED", "UNJOINED"][game.carrier.state]) if game.selected == 0 else ("Turning Gallery  ·  " + ("ALIGNED" if game.arch_state == 0 else "UNALIGNED"))
+	connection.text = game.carrier_connection_text() if game.selected == 0 else ("Connections settle after the turn." if game.busy else ("The two corridors are aligned." if game.arch_state == 0 else "The corridors are unaligned."))
 	var current_guide: Dictionary = game.guidance()
 	guide_title.text = current_guide.title
 	guide_body.text = current_guide.text
 	guide.visible = contextual_guidance and not game.paused and not game.won
-	chapter_title.text = "03   /   THE DISTANT ARCH" if game.reached_court else ("02   /   THE PASSENGER" if game.boarded else "01   /   THE OTHER GROUND")
+	chapter_title.text = "03   /   THE JOINED GALLERIES" if game.reached_court else ("02   /   THE FOLDED LANDING" if game.boarded else "01   /   THE PASSENGER")
 	if game.walker.support == game.destination:
 		task.text = "Reach the light"
 	elif game.walker.support == game.courtyard:
-		task.text = "Connect the distant arch" if game.walker.normal == Vector3.UP else "Find the arch above"
+		task.text = "Cross the joined galleries" if game.arch_state == 0 else "Align the galleries"
 	elif game.walker.support == game.carrier:
-		task.text = "Reach the violet courtyard" if game.carrier.state % 2 == 1 else "Travel with the carrier"
+		task.text = "Reach the violet landing" if game.carrier.state == 1 else "Travel with the deck"
 	else:
-		task.text = "Return to the carrier" if game.boarded else ("Board from the lower causeway" if game.found_underside else "Discover the other ground")
-	var face: String = "underside" if game.walker.normal.y < -0.5 else ("top" if game.walker.normal.y > 0.5 else "side")
+		task.text = "Return to the deck" if game.boarded else "Board the carrier"
+	var face: String = "walkway"
 	status.text = "GROUND  /  " + game.walker.support.title + " · " + face + ("  ·  transforming" if game.busy else "")
-	inspection_button.text = game.key_name("inspect") + ("  Inspect upper faces" if game.inspect_below else "  Inspect underside")
 	toast.text = game.message if game.message_time > 0 else ""
 	toast.offset_left = -220 if game.architectural else -420
 	toast.offset_right = 600 if game.architectural else 420
