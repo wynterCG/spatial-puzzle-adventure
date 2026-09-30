@@ -2,9 +2,11 @@
 
 A playable Godot prototype of the supplied spatial puzzle adventure concept.
 
-Open **project.godot** in Godot 4.6 and press **F5**. Starts in architectural view. Press **Tab** to enter the world; walk with **WASD**, look with the mouse. In overview, select the carrier or arch with **1 / 2** or a click, and rotate with **Q / E**. **Z** undoes a transformation, **R** restores the checkpoint, **H** gives a hint, and **Escape** opens settings.
+Open **project.godot** in Godot 4.6 and press **F5**. Starts in architectural view. Press **Tab** to enter the world; walk with **WASD**, look with the mouse. In overview, **F** inspects the upper/lower faces. Select the carrier or arch with **1 / 2** or a click, and rotate with **Q / E**. **Z** undoes a transformation, **R** restores the checkpoint, **H** gives a hint, and **Escape** opens settings.
 
-Board the carrier before turning it. Reach the violet courtyard, align the arch, and walk through to the distant light. Every face of the main blocks is walkable.
+Begin with **The Other Ground**: walk around an exposed arrival edge and discover the underside causeway. Board the carrier from below before turning it. Reach the violet courtyard, wrap back onto its top, align the arch, and walk through to the distant light. Every exposed face of the main blocks is walkable; solid internal joins cannot be walked through.
+
+![The Other Ground, inspected from below](docs/other-ground-overview.png)
 
 - [Game specification and full feature status](docs/spec.md)
 - [Project development guide / skill.md](docs/skill.md)

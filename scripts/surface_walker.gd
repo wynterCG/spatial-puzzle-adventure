@@ -104,6 +104,8 @@ func advance(world_direction: Vector3, distance: float) -> Vector3:
 			if axis != face and absf(local[axis]) > other.half[axis] + 0.001:
 				inside = false
 		if inside:
+			if not pose_is_clear(other, local, up.round()):
+				return world_direction
 			forward = other.global_basis.inverse() * (support.global_basis * forward)
 			support = other
 			foot = local
@@ -112,6 +114,9 @@ func advance(world_direction: Vector3, distance: float) -> Vector3:
 			return world_direction
 	# Fold excess distance around the first crossed edge. Tie-break uses XYZ order.
 	var face_axis := normal.abs().max_axis_index()
+	var next_normal := normal
+	var next_forward := forward
+	var folded := false
 	for axis in range(3):
 		if axis == face_axis or absf(next[axis]) <= support.half[axis]:
 			continue
@@ -120,16 +125,35 @@ func advance(world_direction: Vector3, distance: float) -> Vector3:
 		var new_normal := Vector3.ZERO
 		new_normal[axis] = sign_axis
 		var rotation_axis := normal.cross(new_normal).normalized()
-		forward = forward.rotated(rotation_axis, PI * 0.5).normalized()
+		next_forward = forward.rotated(rotation_axis, PI * 0.5).normalized()
 		direction = direction.rotated(rotation_axis, PI * 0.5).normalized()
 		next[axis] = sign_axis * support.half[axis]
 		next[face_axis] -= normal[face_axis] * excess
-		normal = new_normal
-		edge_count += 1
-		changed_surface.emit()
+		next_normal = new_normal
+		folded = true
 		break
+	# Shared internal faces are solid, not a route through the adjoining volume.
+	if not pose_is_clear(support, next, next_normal):
+		return world_direction
 	foot = next
+	normal = next_normal
+	forward = next_forward
+	if folded:
+		edge_count += 1
+		# Observers and checkpoints must see the committed contact and frame.
+		changed_surface.emit()
 	return support.global_basis * direction
+
+func pose_is_clear(piece: SurfacePiece, point: Vector3, up: Vector3) -> bool:
+	for height in [0.18, 0.8, 1.55]:
+		var centre: Vector3 = piece.to_global(point + up * height)
+		for other in pieces:
+			if other == piece:
+				continue
+			var local := other.to_local(centre)
+			if absf(local.x) < other.half.x + 0.10 and absf(local.y) < other.half.y + 0.10 and absf(local.z) < other.half.z + 0.10:
+				return false
+	return true
 
 func sync_pose(delta: float) -> void:
 	if support == null:

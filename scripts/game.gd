@@ -4,8 +4,11 @@ extends Node3D
 const Piece = preload("res://scripts/surface_piece.gd")
 const Walker = preload("res://scripts/surface_walker.gd")
 const HUD = preload("res://scripts/hud.gd")
+const SAVE_VERSION := 2
+const START_FOOT := Vector3(-1, 3, 1)
 var pieces: Array[SurfacePiece] = []
 var arrival: SurfacePiece
+var causeway: SurfacePiece
 var carrier: SurfacePiece
 var courtyard: SurfacePiece
 var destination: SurfacePiece
@@ -23,12 +26,15 @@ var busy := false
 var paused := false
 var won := false
 var boarded := false
+var found_underside := false
+var reached_causeway := false
+var inspect_below := false
 var reached_court := false
 var crossed := false
 var history: Array[Dictionary] = []
 var checkpoint: Dictionary
 var hint_level := 0
-var message := "A world with more than one ground."
+var message := "The way across begins on another face."
 var message_time := 8.0
 var rotation_tween: Tween
 var camera_tween: Tween
@@ -36,7 +42,7 @@ var audio: AudioStreamPlayer
 var portal_previous := 0.0
 var time := 0.0
 var transition_camera: Camera3D
-var input_bindings := {"forward": KEY_W, "back": KEY_S, "left": KEY_A, "right": KEY_D, "view": KEY_TAB, "rotate_left": KEY_Q, "rotate_right": KEY_E, "undo": KEY_Z, "reset": KEY_R, "hint": KEY_H}
+var input_bindings := {"forward": KEY_W, "back": KEY_S, "left": KEY_A, "right": KEY_D, "view": KEY_TAB, "inspect": KEY_F, "rotate_left": KEY_Q, "rotate_right": KEY_E, "undo": KEY_Z, "reset": KEY_R, "hint": KEY_H}
 
 func _ready() -> void:
 	configure_input()
@@ -45,15 +51,14 @@ func _ready() -> void:
 	walker.name = "Walker"
 	add_child(walker)
 	walker.pieces = pieces
-	walker.place(arrival, Vector3(-1, 1, 0), Vector3.UP, Vector3.RIGHT)
+	walker.place(arrival, START_FOOT, Vector3.UP, Vector3.BACK)
 	walker.stepped.connect(func(): play_tone(130.0, 0.035, 0.05))
 	walker.changed_surface.connect(surface_changed)
 	overview = Camera3D.new()
 	add_child(overview)
 	overview.projection = Camera3D.PROJECTION_ORTHOGONAL
-	overview.size = 46.0
-	overview.position = Vector3(34, 35, 35)
-	overview.look_at(Vector3(2, 0, -7))
+	overview.size = 52.0
+	update_inspection_camera()
 	overview.current = true
 	transition_camera = Camera3D.new()
 	transition_camera.fov = 76
@@ -116,23 +121,28 @@ func build_world() -> void:
 	fill.light_color = Color("899adb")
 	fill.light_energy = 0.25
 	add_child(fill)
-	arrival = make_piece("Arrival", Vector3(-10, 0, 0), Vector3(8, 2, 7), Color("647790"))
+	arrival = make_piece("Arrival", Vector3(-16, 2, 0), Vector3(8, 6, 8), Color("647790"))
+	causeway = make_piece("Causeway", Vector3(-9, 0.4, 0), Vector3(6, 2.8, 2.2), Color("8b8798"))
 	carrier = make_piece("Carrier", Vector3.ZERO, Vector3(12, 2, 3), Color("a97166"), true)
 	courtyard = make_piece("Courtyard", Vector3(0, 0, -10), Vector3(7, 2, 8), Color("777299"))
 	destination = make_piece("Destination", Vector3(19, 0, -22), Vector3(8, 2, 10), Color("719899"))
-	# An engraved underside discovery rewards trying the first spatial rule.
+	# Unequal heights and widths leave only the underside walking planes aligned.
+	# The exposed bottom is continuous at y=-1 all the way to the carrier.
+	build_other_ground()
+	# An inscription confirms the discovery without drawing the solution.
 	var inscription := Label3D.new()
 	inscription.text = "THERE IS NO OTHER SIDE"
 	inscription.font_size = 40
+	inscription.outline_size = 0
 	inscription.pixel_size = 0.008
 	inscription.modulate = Color("ffe2ac")
 	arrival.add_child(inscription)
-	inscription.position = Vector3(0, -1.02, 0)
+	inscription.position = Vector3(-0.5, -3.025, 0.5)
 	inscription.rotation_degrees.x = 90
 	# Surface inlays: directional architecture, never an axis legend.
 	for p in [arrival, carrier, courtyard, destination]:
 		for i in range(-2, 3):
-			Piece.box(p, Vector3(i * 0.8, 1.012, 0), Vector3(0.035, 0.018, minf(p.half.z * 1.5, 3.0)), Piece.material(Color("decda9"), 0.15))
+			Piece.box(p, Vector3(i * 0.8, p.half.y + 0.012, 0), Vector3(0.035, 0.018, minf(p.half.z * 1.5, 3.0)), Piece.material(Color("decda9"), 0.15))
 	build_arch()
 	# Goal is its own volume, unreachable across the visible gap.
 	var shrine := Node3D.new()
@@ -167,8 +177,55 @@ func build_world() -> void:
 	for i in range(100):
 		var at := Vector3(rng.randf_range(-90, 90), rng.randf_range(15, 65), rng.randf_range(-95, -40))
 		Piece.box(self, at, Vector3.ONE * rng.randf_range(0.035, 0.12), Piece.material(Color("afbdd9"), 0.8))
-	# Pivot spindle stays below the walkable carrier.
-	Piece.box(self, Vector3(0, -2, 0), Vector3(1.2, 2, 1.2), Piece.material(Color("b7a181")))
+	# Recessed pivot marks both faces without occupying the underside route.
+	for side in [-1.0, 1.0]:
+		var ring := MeshInstance3D.new()
+		var torus := TorusMesh.new()
+		torus.inner_radius = 0.55
+		torus.outer_radius = 0.63
+		ring.mesh = torus
+		ring.material_override = Piece.material(Color("c3aa86"), 0.3)
+		carrier.add_child(ring)
+		ring.position.y = side * 1.01
+
+func build_other_ground() -> void:
+	var warm := Piece.material(Color("e2b778"), 0.45)
+	var stone := Piece.material(Color("9aa7b8"))
+	# Small wall recesses hint that a vertical face is inhabitable.
+	for x in [-2.0, 1.0]:
+		Piece.box(arrival, Vector3(x, 0.0, 4.018), Vector3(0.65, 1.3, 0.025), stone)
+		Piece.box(arrival, Vector3(x, 0.0, 4.036), Vector3(0.38, 0.9, 0.012), warm)
+	# Architectural ribs and two narrow inset lights reveal the lower causeway.
+	for x in [-2.1, 0.0, 2.1]:
+		Piece.box(causeway, Vector3(x, -1.415, 0), Vector3(0.14, 0.025, 1.65), stone)
+	for z in [-0.8, 0.8]:
+		Piece.box(causeway, Vector3(0, -1.43, z), Vector3(5.7, 0.025, 0.035), warm)
+	var lantern := OmniLight3D.new()
+	lantern.position = Vector3(-9, -3.8, 0)
+	lantern.light_color = Color("ffce98")
+	lantern.light_energy = 0.5
+	lantern.omni_range = 10
+	add_child(lantern)
+	var signpost := Label3D.new()
+	signpost.text = "THE OTHER GROUND"
+	signpost.font_size = 42
+	signpost.outline_size = 0
+	signpost.pixel_size = 0.009
+	signpost.modulate = Color("e2d1af")
+	arrival.add_child(signpost)
+	signpost.position = Vector3(0, 3.02, -2.1)
+	signpost.rotation_degrees.x = -90
+
+func update_inspection_camera() -> void:
+	overview.position = Vector3(28, -32, 38) if inspect_below else Vector3(34, 37, 39)
+	overview.look_at(Vector3(-2, 0, -6))
+
+func toggle_inspection() -> void:
+	if not architectural or busy or paused:
+		return
+	inspect_below = not inspect_below
+	update_inspection_camera()
+	notify("Inspecting the lower faces." if inspect_below else "Inspecting the upper faces.")
 
 func make_piece(label_text: String, at: Vector3, size: Vector3, color: Color, movable := false) -> SurfacePiece:
 	var piece := Piece.new()
@@ -247,6 +304,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if event.is_action_pressed("view") and not busy:
 		toggle_view()
+	elif event.is_action_pressed("inspect"):
+		toggle_inspection()
 	elif event.is_action_pressed("undo"):
 		undo()
 	elif event.is_action_pressed("reset"):
@@ -273,6 +332,8 @@ func toggle_view() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE if architectural else Input.MOUSE_MODE_CAPTURED
 	walker.avatar.visible = architectural
 	if architectural:
+		inspect_below = (walker.support.global_basis * walker.normal).y < -0.5
+		update_inspection_camera()
 		overview.current = true
 	else:
 		walker.sync_pose(1.0)
@@ -349,7 +410,7 @@ func safe_carrier_turn(direction: int) -> bool:
 					return false
 				continue
 			var point: Vector3 = carrier.global_position + basis_at * (walker.foot + walker.normal * height)
-			for other in [arrival, courtyard, destination]:
+			for other in [arrival, causeway, courtyard, destination]:
 				var local: Vector3 = other.to_local(point)
 				if absf(local.x) < other.half.x + 0.16 and absf(local.y) < other.half.y + 0.16 and absf(local.z) < other.half.z + 0.16:
 					return false
@@ -371,23 +432,36 @@ func check_passage() -> void:
 	portal_previous = current
 
 func surface_changed() -> void:
+	if walker.normal.y < -0.9 and walker.support == arrival and not found_underside:
+		found_underside = true
+		hint_level = 0
+		notify("The underside is ground, too. The lower causeway meets this face.")
+		play_tone(520, 0.25, 0.12)
+	if walker.support == causeway and not reached_causeway:
+		reached_causeway = true
+		hint_level = 0
+		notify("A path beneath the gap. Keep going to the terracotta carrier.")
 	if walker.support == carrier and not boarded:
 		boarded = true
-		notify("You are the passenger. Change the world from here.")
+		hint_level = 0
+		checkpoint = snapshot()
+		save_progress()
+		notify("The Other Ground complete. Checkpoint saved. You are now the passenger.")
 	if walker.support == courtyard and not reached_court:
 		reached_court = true
+		hint_level = 0
 		checkpoint = snapshot()
 		save_progress()
 		notify("A distant opening. A familiar shape. Try the architectural view.")
-	if walker.normal.y < -0.9 and walker.support == arrival:
-		notify("The underside is ground, too.")
 
 func snapshot() -> Dictionary:
-	return {"carrier": carrier.state, "arch": arch_state, "player": walker.snapshot(), "boarded": boarded, "court": reached_court, "crossed": crossed}
+	return {"version": SAVE_VERSION, "carrier": carrier.state, "arch": arch_state, "player": walker.snapshot(), "boarded": boarded, "court": reached_court, "crossed": crossed, "underside": found_underside, "causeway": reached_causeway}
 
 func restore(data: Dictionary) -> void:
 	if rotation_tween and rotation_tween.is_running():
 		rotation_tween.kill()
+	if camera_tween and camera_tween.is_valid():
+		camera_tween.kill()
 	busy = false
 	carrier.state = data.carrier
 	carrier.rotation.y = carrier.state * PI * 0.5
@@ -398,7 +472,16 @@ func restore(data: Dictionary) -> void:
 	boarded = data.boarded
 	reached_court = data.court
 	crossed = data.crossed
+	found_underside = data.get("underside", false)
+	reached_causeway = data.get("causeway", false)
+	hint_level = 0
 	won = false
+	if architectural:
+		inspect_below = (walker.support.global_basis * walker.normal).y < -0.5
+		update_inspection_camera()
+		overview.current = true
+	else:
+		walker.camera.current = true
 	portal_previous = walker.support.to_global(walker.foot).z + 11.6
 
 func undo() -> void:
@@ -418,6 +501,8 @@ func restart_checkpoint() -> void:
 func new_journey() -> void:
 	if rotation_tween:
 		rotation_tween.kill()
+	if camera_tween and camera_tween.is_valid():
+		camera_tween.kill()
 	busy = false
 	carrier.state = 0
 	carrier.rotation.y = 0
@@ -425,18 +510,26 @@ func new_journey() -> void:
 	arch.rotation.y = PI / 2
 	portal.visible = false
 	boarded = false
+	found_underside = false
+	reached_causeway = false
+	inspect_below = false
+	update_inspection_camera()
 	reached_court = false
 	crossed = false
 	won = false
 	hud.completion.hide()
 	hint_level = 0
 	history.clear()
-	walker.place(arrival, Vector3(-1, 1, 0), Vector3.UP, Vector3.RIGHT)
+	walker.place(arrival, START_FOOT, Vector3.UP, Vector3.BACK)
 	checkpoint = snapshot()
 	save_progress()
 	set_pause(false)
 	if not architectural:
 		toggle_view()
+	else:
+		overview.current = true
+		walker.avatar.visible = true
+	notify("The way across begins on another face.")
 
 func save_progress() -> void:
 	if busy or "--self-test" in OS.get_cmdline_user_args():
@@ -451,20 +544,23 @@ func load_progress() -> void:
 	if FileAccess.file_exists("user://journey.save"):
 		var file := FileAccess.open("user://journey.save", FileAccess.READ)
 		var data = file.get_var()
+		if data is Dictionary and data.get("version", 0) != SAVE_VERSION:
+			notify("A new arrival awaits. Your previous checkpoint belongs to the earlier layout.")
+			return
 		if data is Dictionary and data.has_all(["player", "carrier", "arch", "boarded", "court", "crossed"]):
-			if data.player is Dictionary and str(data.player.get("piece", "")) in ["Arrival", "Carrier", "Courtyard", "Destination"]:
+			if data.player is Dictionary and str(data.player.get("piece", "")) in ["Arrival", "Causeway", "Carrier", "Courtyard", "Destination"]:
 				checkpoint = data
 				restore(data)
 
 func set_pause(value: bool) -> void:
 	paused = value
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE if paused or architectural or won else Input.MOUSE_MODE_CAPTURED
-	if rotation_tween and rotation_tween.is_running():
+	if rotation_tween and rotation_tween.is_valid():
 		if paused:
 			rotation_tween.pause()
 		else:
 			rotation_tween.play()
-	if camera_tween:
+	if camera_tween and camera_tween.is_valid():
 		if paused:
 			camera_tween.pause()
 		else:
@@ -478,7 +574,10 @@ func notify(text: String) -> void:
 func show_hint() -> void:
 	var hints: Array[String]
 	if not boarded:
-		hints = ["The long terracotta structure can carry more than a path.", "Its two orientations connect different islands.", "Walk onto the carrier before rotating it. The sides and underside are also walkable."]
+		if not found_underside:
+			hints = ["The causeway has a surface in common with your island. It is not the top.", "In architectural view, press " + key_name("inspect") + " to inspect the lower faces. Walking continues around exposed edges.", "Walk around the near or far edge of the arrival block, down its wall, then onto the underside. Turn toward the narrow causeway."]
+		else:
+			hints = ["The lower faces share one continuous plane.", "The terracotta carrier must point toward the causeway before you can board.", "On the underside, walk along the narrow causeway toward the carrier in state A. Board before rotating."]
 	elif not reached_court:
 		hints = ["Your position is part of the arrangement.", "Stand on the carrier, then give it a quarter-turn.", "After rotating, walk toward the violet courtyard. On a side face, round an edge to reach the top."]
 	else:
@@ -520,36 +619,82 @@ func capture_preview() -> void:
 func run_self_test() -> void:
 	await get_tree().process_frame
 	var failures: Array[String] = []
-	# Follow actual surface movement across the start/carrier seam.
-	walker.place(arrival, Vector3(3.9, 1, 0), Vector3.UP, Vector3.RIGHT)
-	walker.advance(Vector3.RIGHT, 0.2)
+	# Probe the shared boundary on every approach plane. Only the underside joins.
+	for source in [arrival, causeway]:
+		var target: SurfacePiece = causeway if source == arrival else carrier
+		for up in [Vector3.UP, Vector3.DOWN, Vector3.FORWARD, Vector3.BACK]:
+			for sample in range(-8, 9):
+				var point: Vector3 = Vector3(source.half.x - 0.02, 0, 0)
+				var normal_axis: int = up.abs().max_axis_index()
+				point[normal_axis] = up[normal_axis] * source.half[normal_axis]
+				var free_axis: int = 2 if normal_axis == 1 else 1
+				point[free_axis] = float(sample) / 8.0 * source.half[free_axis] * 0.95
+				walker.place(source, point, up, Vector3.RIGHT)
+				walker.advance(Vector3.RIGHT, 0.04)
+				if walker.support == target and up != Vector3.DOWN:
+					failures.append("Opening bypass on " + source.title)
+	# Solve the actual opening continuously: over the near edge, down and under.
+	new_journey()
+	for i in range(223):
+		walker.walk(Vector2(0, -1), 1.0 / 60.0)
+	if walker.support != arrival or walker.normal != Vector3.DOWN or not found_underside:
+		failures.append("Arrival edge-to-underside route")
+	walker.forward = Vector3.RIGHT
+	for i in range(292):
+		walker.walk(Vector2(0, -1), 1.0 / 60.0)
 	if walker.support != carrier:
-		failures.append("Arrival to carrier seam")
+		failures.append("Underside causeway to carrier")
+	if not reached_causeway or not boarded or walker.normal != Vector3.DOWN:
+		failures.append("Opening progression requires underside boarding")
+	if str(checkpoint.player.piece) != "Carrier" or checkpoint.player.normal != Vector3.DOWN:
+		failures.append("First boarding checkpoint")
 	var local_before := walker.foot
 	var up_before := walker.normal
+	var boarding_snapshot := snapshot()
 	carrier.rotation.y = PI / 2
 	carrier.state = 1
 	walker.sync_pose(1)
 	if not walker.foot.is_equal_approx(local_before) or walker.normal != up_before:
 		failures.append("Carrier local attachment")
-	# Separate start cannot connect to rotated carrier.
-	walker.place(arrival, Vector3(3.9, 1, 0), Vector3.UP, Vector3.RIGHT)
+	# Continue upside down, then wrap the courtyard back to its top.
+	for i in range(140):
+		walker.walk(Vector2(0, -1), 1.0 / 60.0)
+	if walker.support != courtyard or walker.normal != Vector3.DOWN:
+		failures.append("Occupied carrier to courtyard underside")
+	walker.forward = Vector3.RIGHT
+	for i in range(154):
+		walker.walk(Vector2(0, -1), 1.0 / 60.0)
+	if walker.support != courtyard or walker.normal != Vector3.UP:
+		failures.append("Courtyard return to top")
+	history.append(boarding_snapshot)
+	undo()
+	if walker.support != carrier or walker.normal != Vector3.DOWN or carrier.state != 0 or not walker.foot.is_equal_approx(local_before):
+		failures.append("Undo after disembarking must restore passenger snapshot")
+	var before_inspection := snapshot()
+	toggle_inspection()
+	toggle_inspection()
+	if snapshot() != before_inspection:
+		failures.append("Inspection camera cannot mutate puzzle state")
+	carrier.rotation.y = PI / 2
+	carrier.state = 1
+	# Separate causeway cannot connect to rotated carrier.
+	walker.place(causeway, Vector3(2.95, -1.4, 0), Vector3.DOWN, Vector3.RIGHT)
 	walker.advance(Vector3.RIGHT, 0.2)
-	if walker.support != arrival or walker.normal != Vector3.RIGHT:
+	if walker.support != causeway or walker.normal != Vector3.RIGHT:
 		failures.append("Gap must fold, never magnetize")
-	# Top -> side -> underside.
-	walker.place(arrival, Vector3(4, 0.9, 0), Vector3.RIGHT, Vector3.DOWN)
-	for i in range(22):
-		walker.advance(Vector3.DOWN if walker.normal == Vector3.RIGHT else Vector3.LEFT, 0.1)
-	if walker.normal != Vector3.DOWN:
-		failures.append("Continuous underside traversal")
+	# Shared hidden faces cannot admit the body inside the causeway.
+	walker.place(arrival, Vector3(4, 1, 0), Vector3.RIGHT, Vector3.DOWN)
+	for i in range(50):
+		walker.advance(Vector3.DOWN, 0.05)
+	if walker.foot.y < -0.10:
+		failures.append("Shared solid join must block penetration")
 	# Carrier's positive local X ends at courtyard in state B.
 	walker.place(carrier, Vector3(5.95, 1, 0), Vector3.UP, Vector3.RIGHT)
 	walker.advance(Vector3.FORWARD, 0.1)
 	if walker.support != courtyard:
 		failures.append("Carrier to courtyard seam")
 	var saved := snapshot()
-	walker.place(arrival, Vector3(0, 1, 0))
+	walker.place(arrival, START_FOOT)
 	restore(saved)
 	if walker.support != courtyard:
 		failures.append("Atomic restore")
@@ -569,7 +714,7 @@ func run_self_test() -> void:
 	if walker.support != destination or not crossed:
 		failures.append("Persistent impossible passage")
 	# Repeated diagonal corner folds must stay on the bounded solid.
-	walker.place(arrival, Vector3(3.95, 1, 3.45), Vector3.UP, Vector3(1, 0, 1).normalized())
+	walker.place(arrival, Vector3(3.95, 3, 3.95), Vector3.UP, Vector3(1, 0, 1).normalized())
 	for i in range(240):
 		walker.walk(Vector2(0.65, -1).normalized(), 1.0 / 60.0)
 		var p := walker.foot.abs()
@@ -584,7 +729,7 @@ func run_self_test() -> void:
 	if walker.normal != Vector3.BACK or world_up_before.is_equal_approx(carrier.global_basis * walker.normal):
 		failures.append("Side-face attachment must carry gravity")
 	if failures.is_empty():
-		print("SELF TEST PASS: seams, attachment, gaps, underside, restore, passage")
+		print("SELF TEST PASS: mandatory underside, boundary probes, solid joins, boarding checkpoint, attachment, gaps, restore, passage, corners")
 	else:
 		for failure in failures:
 			push_error("SELF TEST FAIL: " + failure)

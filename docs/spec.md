@@ -39,7 +39,7 @@ Walk, look, explore and position the character. There is no required jumping, pr
 
 Walking pauses. An orthographic camera frames the assembly; select the carrier or arch, then use quarter-turns. The character stays visible at its actual support contact, with a small luminous contact ring. Consult this view on demand with no resource, station or cooldown.
 
-Ordinary puzzles may later offer additional inspection views. Perspective-dependent connections must remain authored state rules; freely orbiting a camera must never generate arbitrary connections. The current build has one composed overview.
+The current build offers upper and lower inspection views, toggled with F or a visible button. Entering architectural mode automatically chooses the lower view when the player's world up points down. Inspection cannot change piece states or create a connection. Perspective-dependent connections remain authored state rules; camera movement never generates arbitrary connections.
 
 ### Transitions and comfort
 
@@ -57,6 +57,8 @@ The prototype interpolates a temporary perspective camera between inhabitant and
 - Colour communicates atmosphere and object identity, never X/Y/Z axes.
 
 **Implementation:** deterministic analytical surface constraint in `SurfaceWalker`, with small movement substeps. Store support, local contact point, normal and heading. Godot physics is used for click selection, not gravity simulation.
+
+Body probes prevent entry into adjacent solid volumes at the stepped joins. Shared internal faces are not exposed walking surfaces. Edge events fire after both the contact position and orientation are committed, so a checkpoint cannot capture a partially updated pose.
 
 **Future:** concave interior corners need intentional forward transition tests; arbitrary meshes and curved surfaces are not implemented. The prototype has convex cuboids and aligned seams only. Decorative arch trim and distant structures are not support surfaces. Solid collision for decorative arch posts is still a production limitation.
 
@@ -92,16 +94,20 @@ A transformation may close the previous route while opening the next. Seeing the
 
 Full concept: a useful underside passage on a connected arm leads across to a separate arrival platform. Teach that walls and ceilings are ground without impossible connectivity.
 
-Current prototype: freely walk around the arrival slab and discover an underside inscription. This lesson is optional in the compact courtyard; a mandatory underside route remains a later blockout task.
+**Implemented opening:** the tall arrival slab is separated from the carrier by a narrow fixed causeway. Their top heights and side widths differ; the only matching walking plane at both joins is the underside at world y=-1. Walk around an exposed near/far edge of the arrival, down its wall and underneath it. Turn toward the causeway, cross below it, and board the carrier in state A. Ribs, inset lights and wall recesses make the architecture readable without an automatic solution line.
+
+Progress flags report discovery and update hints; they do not unlock movement. Boarding is constrained by the surface geometry and matching-plane seam rule. Collision probes prevent walking through the solid shared joins. General concave corner climbing is still outside this walker; the level must be reevaluated for alternate routes when that capability is added.
+
+The first carrier boarding saves a checkpoint and advances the chapter from The Other Ground to The Passenger. Rotating the carrier before boarding disconnects its underside from the causeway. The lower inspection view makes the contact and character visible.
 
 ### The Passenger
 
 | Carrier orientation | Connection |
 |---|---|
-| A: 0° / 180° | Arrival ↔ carrier |
+| A: 0° / 180° | Arrival underside ↔ causeway underside ↔ carrier underside |
 | B: 90° / 270° | Carrier ↔ courtyard |
 
-Rotating to B from the start removes access to the carrier. Board in A, rotate while aboard, then walk off in B. All side and underside routes obey the same real contact rules. A later version should require repositioning onto a particular side-face exit.
+Rotating to B from the start removes access to the carrier. Board in A, rotate while aboard, then walk off in B. The new opening naturally delivers the player to the courtyard underside; wrap around an exposed courtyard edge to reach the arch on top. A later version should require repositioning onto a particular side-face exit before rotation.
 
 ### The Distant Arch
 
@@ -115,12 +121,13 @@ Future combination: an apparently nearby goal occupies a separate disconnected v
 
 | Piece | Centre | Dimensions |
 |---|---|---|
-| Arrival | (-10, 0, 0) | (8, 2, 7) |
+| Arrival | (-16, 2, 0) | (8, 6, 8) |
+| Causeway | (-9, 0.4, 0) | (6, 2.8, 2.2) |
 | Carrier | (0, 0, 0) | (12, 2, 3) |
 | Courtyard | (0, 0, -10) | (7, 2, 8) |
 | Destination | (19, 0, -22) | (8, 2, 10) |
 
-Ground height is initially y=1. Source aperture is at (0, 1, -11.6); the crossing maps to the destination by (19, 0, -10), with a small forward crossing margin. The destination goal is near z=-25.5. Test every face when changing these values.
+Arrival top is y=5; causeway top is y=1.8; carrier and courtyard tops are y=1. All undersides share y=-1. The player starts at arrival-local (-1, 3, 1), facing its exposed +Z edge. Source aperture is at (0, 1, -11.6); the crossing maps to the destination by (19, 0, -10), with a small forward crossing margin. The destination goal is near z=-25.5. Test every face when changing these values.
 
 ## 10. Campaign progression
 
@@ -152,6 +159,7 @@ The interface shows mode, current support, objective, selected structure and ess
 |---|---|
 | Walk / look | WASD / mouse |
 | Change perspective | Tab |
+| Inspect upper / lower faces | F in architectural view |
 | Select movable structure | Left click in overview |
 | Select carrier / arch | 1 / 2 |
 | Quarter-turn left / right | Q / E, or visible buttons |
@@ -160,12 +168,12 @@ The interface shows mode, current support, objective, selected structure and ess
 | Escalating hint | H |
 | Pause / settings | Escape |
 
-Movement, perspective, rotation, undo, recovery and hint keys can be remapped in settings. Conflicting bindings swap rather than silently disable another action. Mouse look/click, Escape and the 1/2 shortcuts are fixed in this first build. Settings persist locally.
+Movement, perspective, inspection, rotation, undo, recovery and hint keys can be remapped in settings. Conflicting bindings swap rather than silently disable another action. Mouse look/click, Escape and the 1/2 shortcuts are fixed in this first build. Settings persist locally.
 
 ## 13. Experimentation, recovery and comfort
 
 - Undo restores the pre-transformation configuration **and** player pose, not just reverse rotation under a relocated player.
-- Checkpoints at entry, courtyard and destination restore stable states. Never save mid-rotation or mid-crossing.
+- Checkpoints at entry, first carrier boarding, courtyard and destination restore stable states. Never save mid-rotation or mid-crossing. Save schema version 2 rejects earlier-layout checkpoints without loading them into invalid geometry; settings are preserved.
 - `user://journey.save` stores checkpoint progress. `user://settings.cfg` stores key bindings, sensitivity and reduced motion.
 - No lives, time penalty or punitive loss of campaign progress.
 - Adjustable sensitivity, reduced-motion transitions and no default head bob.
@@ -179,6 +187,7 @@ Movement, perspective, rotation, undo, recovery and hint keys can be remapped in
 - Runnable Godot 4.6 project and single continuous courtyard.
 - First-person and orthographic architectural views.
 - Six-face cuboid traversal, edge reorientation and physical seams.
+- Mandatory underside causeway opening, solid-join body checks and upper/lower inspection views.
 - Quarter-turn carrier, local attachment and state-dependent adjacency.
 - Selectable arch with one persistent impossible passage and destination preview.
 - Undo, checkpoints, progress persistence, completion and restart.
@@ -195,7 +204,7 @@ Can a player predict the result of a rotation? Can they identify their location 
 
 ### Remaining production work
 
-Mandatory underside puzzle; concave and multi-piece inner corners; solid arch collision; bidirectional, arbitrarily oriented paired passages; polished portal clipping and forced-perspective composition; expanded safe-sweep checks for future assemblies; fully remappable mouse and system controls; controller support; multiple checkpoints/chapters; richer environmental narrative, materials and audio; accessibility/playtest iteration.
+Concave and multi-piece inner corners (with a fresh route audit); solid arch collision; bidirectional, arbitrarily oriented paired passages; polished portal clipping and forced-perspective composition; expanded safe-sweep checks for future assemblies; fully remappable mouse and system controls; controller support; additional regions; richer environmental narrative, materials and audio; accessibility/playtest iteration.
 
 The success criterion is a player making a spatial prediction, testing it with a transformation and walking through the result—not camera-induced confusion.
 

@@ -64,6 +64,10 @@ For screenshots, consume `image_base64` into a PNG file; do not print the image 
 
 ## Level and content workflow
 
+The current opening, **The Other Ground**, is implemented. Arrival `(-16,2,0)` with size `(8,6,8)`, causeway `(-9,0.4,0)` with size `(6,2.8,2.2)`, and the carrier share bottom y=-1 but no top/side walking plane. The supported surface-seam rules require boarding along the underside. Covered internal joins reject body penetration. Discovery flags only drive feedback; never use them as invisible movement gates. If implementing general concave transfers later, audit this layout again for top-side bypasses.
+
+F toggles upper/lower inspection without modifying puzzle state. Tab chooses the lower inspection when world up points down. First carrier boarding saves a checkpoint. Save version 2 prevents loading old arrival coordinates into the new geometry. Surface-change signals must fire after the complete foot/normal/heading update.
+
 - Prototype continuous geometry first, then physical reconfiguration, then impossible adjacency.
 - Use “observe, reconfigure, enter, reposition, reconfigure again, traverse, discover” as the loop.
 - In each substantial puzzle, identify the necessary player position before a transformation.
@@ -89,7 +93,7 @@ Run this integration smoke test after changing traversal, adjacency, snapshots o
 & 'C:\Users\Wynter\Downloads\Godot_v4.6.1-stable_mono_win64\Godot_v4.6.1-stable_mono_win64\Godot_v4.6.1-stable_mono_win64_console.exe' --headless --path 'E:\Godot Games\spacial_puzzleGame' --quit-after 120 -- --self-test
 ```
 
-It exercises real movement across seams, local attachment, failure to cross disconnected gaps, underside folding, safe restoration and impossible crossing. It must print `SELF TEST PASS` and exit 0. Test mode does not write player progress.
+It walks the opening from the real spawn, probes top/side/underside entry boundaries, tests covered solid joins, the first boarding checkpoint, underside carrier travel, courtyard reorientation, undo after disembarking, camera-state independence, gap isolation and impossible crossing. It must print `SELF TEST PASS` and exit 0. Test mode does not write player progress.
 
 Then use MCP Pro to run the game and inspect screenshots and errors. Check both modes, HUD at the target size, pause/rebind, carrier A/B, visible avatar, arch activation, destination preview, crossing and completion. Ensure no false connection appears mid-animation. Test side-face turns and corner approach diagonals when changing the walker.
 
