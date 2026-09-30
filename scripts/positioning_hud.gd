@@ -14,6 +14,7 @@ var finish: PanelContainer
 var explanation: Label
 var reflection: Label
 var camera_choice: OptionButton
+var overview_choice: OptionButton
 var world_camera: CheckButton
 var reduced: CheckButton
 var distance: HSlider
@@ -87,6 +88,14 @@ func _ready() -> void:
 	column.add_child(label("Choose a study", 15))
 	for index in range(3):
 		column.add_child(button(str(index + 1) + "  " + game.TITLES[index], func(): game.load_trial(index); game.save_progress()))
+	column.add_child(label("Isometric camera comparison", 15))
+	overview_choice = OptionButton.new()
+	overview_choice.add_item("A - Follow the whole structure")
+	overview_choice.add_item("B - Follow the ground direction")
+	overview_choice.item_selected.connect(func(index): game.set_overview_mode(index == 1); game.save_preferences())
+	column.add_child(overview_choice)
+	column.add_child(label("Right-drag: orbit  /  Wheel: zoom  /  Home: reset view", 14))
+	column.add_child(button("Reset isometric view", func(): game.reset_overview()))
 	column.add_child(label("Traversal camera", 15))
 	camera_choice = OptionButton.new()
 	camera_choice.add_item("Third person")
@@ -94,7 +103,8 @@ func _ready() -> void:
 	camera_choice.item_selected.connect(func(index): game.walker.set_third_person(index == 0); game.save_preferences())
 	column.add_child(camera_choice)
 	world_camera = CheckButton.new()
-	world_camera.text = "World-aligned camera (character can turn upside down)"
+	world_camera.text = "Third person: world-aligned camera"
+	world_camera.tooltip_text = "Keep the screen upright while the character follows walls and ceilings."
 	world_camera.toggled.connect(func(value): game.walker.keep_world_horizon = value; game.walker.camera_initialized = false; game.walker.sync_pose(1); game.save_preferences())
 	column.add_child(world_camera)
 	reduced = CheckButton.new()
@@ -168,6 +178,7 @@ func button(text: String, action: Callable) -> Button:
 	return node
 
 func sync_preferences() -> void:
+	overview_choice.select(1 if game.follow_ground_normal else 0)
 	camera_choice.select(0 if game.walker.third_person else 1)
 	world_camera.set_pressed_no_signal(game.walker.keep_world_horizon)
 	reduced.set_pressed_no_signal(game.walker.reduced_motion)
@@ -179,6 +190,8 @@ func refresh() -> void:
 		return
 	title.text = "%02d  /  %s" % [game.trial + 1, game.TITLES[game.trial]]
 	mode.text = "ARCHITECT  /  arrange the space" if game.architectural else ("INHABITANT  /  third person" if game.walker.third_person else "INHABITANT  /  first person")
+	if game.architectural:
+		mode.text += "  /  B: ground direction" if game.follow_ground_normal else "  /  A: whole structure"
 	question.text = game.QUESTIONS[game.trial]
 	status.text = game.connection_text()
 	selected_label.text = game.rigs[game.selected].label
@@ -187,6 +200,7 @@ func refresh() -> void:
 		if i < game.rigs.size():
 			selectors[i].text = str(i + 1) + "  " + game.rigs[i].label
 	sidebar.visible = game.architectural and not game.paused and not game.won
+	overview_choice.disabled = game.busy
 	menu.visible = game.paused
 	if game.won and not finish.visible:
 		explanation.visible = false
@@ -195,4 +209,9 @@ func refresh() -> void:
 	explanation.text = game.REASONS[game.trial]
 	feedback.text = game.message
 	feedback.visible = not game.paused and not game.won
-	controls.text = game.key_name("view") + "  Change view     /     " + game.key_name("forward") + game.key_name("left") + game.key_name("back") + game.key_name("right") + "  Walk     /     Mouse  Look     /     " + game.key_name("rotate_left") + " · " + game.key_name("rotate_right") + "  Turn     /     " + game.key_name("undo") + "  Undo     /     " + game.key_name("reset") + "  Restart     /     " + game.key_name("hint") + "  Hint     /     Esc  Studies & settings"
+	controls.text = game.key_name("view") + "  Change view  /  "
+	if game.architectural:
+		controls.text += "Right-drag  Orbit  /  Wheel  Zoom  /  " + game.key_name("reset_view") + "  Reset view  /  " + game.key_name("rotate_left") + " · " + game.key_name("rotate_right") + "  Turn  /  "
+	else:
+		controls.text += game.key_name("forward") + game.key_name("left") + game.key_name("back") + game.key_name("right") + "  Walk  /  Mouse  Look  /  "
+	controls.text += game.key_name("undo") + "  Undo  /  " + game.key_name("reset") + "  Restart  /  " + game.key_name("hint") + "  Hint  /  Esc  Settings"

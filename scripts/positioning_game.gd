@@ -29,12 +29,18 @@ var history: Array[Dictionary] = []
 var initial: Dictionary
 var camera_bias := Basis.IDENTITY
 var camera_frame := Basis.IDENTITY
+var follow_ground_normal := true
+const DEFAULT_ELEVATION := 0.7559694104 # atan2(40, sqrt(30*30 + 30*30))
+var overview_yaw := 0.0
+var overview_elevation := DEFAULT_ELEVATION
+var overview_zoom := 1.0
+var overview_dragging := false
 var focus := Vector3.ZERO
 var overview_size := 32.0
 var message := ""
 var hint_level := 0
 var completed: Array = [false, false, false]
-var input_bindings := {"forward": KEY_W, "back": KEY_S, "left": KEY_A, "right": KEY_D, "view": KEY_TAB, "rotate_left": KEY_Q, "rotate_right": KEY_E, "undo": KEY_Z, "reset": KEY_R, "hint": KEY_H}
+var input_bindings := {"forward": KEY_W, "back": KEY_S, "left": KEY_A, "right": KEY_D, "view": KEY_TAB, "rotate_left": KEY_Q, "rotate_right": KEY_E, "undo": KEY_Z, "reset": KEY_R, "hint": KEY_H, "reset_view": KEY_HOME}
 
 func _ready() -> void:
 	configure_input()
@@ -118,6 +124,11 @@ func load_trial(index: int) -> void:
 	walker.world_orbit_initialized = false
 	walker.place(start, Vector3(0, start.half.y, 0), Vector3.UP, Vector3.RIGHT)
 	camera_bias = Basis.IDENTITY
+	camera_frame = walker.support.global_basis * walker.support.surface_frame(walker.foot)
+	overview_yaw = 0.0
+	overview_elevation = DEFAULT_ELEVATION
+	overview_zoom = 1.0
+	overview_dragging = false
 	architectural = true
 	update_links()
 	update_camera()
@@ -306,14 +317,66 @@ func crossed_seam() -> void:
 	# Preserve world azimuth across a matching seam even if the two pieces use
 	# different local axes. Walking direction never chooses a camera side.
 	var ground := walker.support.global_basis * walker.support.surface_frame(walker.foot)
-	camera_bias = ground.inverse() * Basis(Quaternion(camera_frame.y, ground.y)) * camera_frame
+	camera_frame = transport_ground(camera_frame, ground.y)
+	camera_bias = ground.inverse() * camera_frame
+
+func transport_ground(frame: Basis, next_up: Vector3) -> Basis:
+	var up := next_up.normalized()
+	var old_up := frame.y.normalized()
+	var axis := old_up.cross(up)
+	var cosine := clampf(old_up.dot(up), -1.0, 1.0)
+	if axis.length_squared() < 0.0000000001:
+		# A stationary normal carries no heading rotation. An instantaneous
+		# antipodal change has no unique shortest axis; use the previous right.
+		return frame if cosine > 0 else (Basis(frame.x.normalized(), PI) * frame).orthonormalized()
+	return (Basis(axis.normalized(), atan2(axis.length(), cosine)) * frame).orthonormalized()
+
+func set_overview_mode(ground_only: bool) -> void:
+	if busy:
+		return
+	update_camera()
+	follow_ground_normal = ground_only
+	var ground := walker.support.global_basis * walker.support.surface_frame(walker.foot)
+	camera_bias = ground.inverse() * camera_frame
+	hud.sync_preferences()
+	hud.refresh()
 
 func update_camera() -> void:
 	var ground := walker.support.global_basis * walker.support.surface_frame(walker.foot)
-	camera_frame = ground * camera_bias
-	overview.size = overview_size
-	overview.position = focus + camera_frame * Vector3(30, 40, -30)
+	if follow_ground_normal:
+		camera_frame = transport_ground(camera_frame, ground.y)
+		camera_bias = ground.inverse() * camera_frame
+	else:
+		camera_frame = ground * camera_bias
+	overview.size = overview_size * overview_zoom
+	var azimuth := 3.0 * PI / 4.0 + overview_yaw
+	var offset := Vector3(sin(azimuth) * cos(overview_elevation), sin(overview_elevation), cos(azimuth) * cos(overview_elevation)) * sqrt(3400.0)
+	overview.position = focus + camera_frame * offset
 	overview.look_at(focus, ground.y)
+
+func orbit_overview(relative: Vector2) -> void:
+	if not architectural or paused or busy or won:
+		return
+	overview_yaw = wrapf(overview_yaw - relative.x * .006, -PI, PI)
+	overview_elevation = clampf(overview_elevation + relative.y * .006, deg_to_rad(25), deg_to_rad(70))
+	update_camera()
+
+func zoom_overview(steps: float) -> void:
+	if not architectural or paused or busy or won:
+		return
+	overview_zoom = clampf(overview_zoom * exp(-steps * .12), .65, 1.4)
+	update_camera()
+
+func reset_overview() -> void:
+	overview_yaw = 0.0
+	overview_elevation = DEFAULT_ELEVATION
+	overview_zoom = 1.0
+	update_camera()
+
+func _input(event: InputEvent) -> void:
+	# Release even over UI; _unhandled_input alone can miss that event.
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_RIGHT and not event.pressed:
+		overview_dragging = false
 
 func _process(delta: float) -> void:
 	if walker.support == null:
@@ -349,7 +412,18 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event.is_action_pressed("hint"):
 		show_hint()
 	elif architectural and not busy:
-		if event.is_action_pressed("rotate_left"):
+		if event is InputEventMouseButton:
+			if event.button_index == MOUSE_BUTTON_RIGHT:
+				overview_dragging = event.pressed
+			elif event.pressed and event.button_index == MOUSE_BUTTON_WHEEL_UP:
+				zoom_overview(1)
+			elif event.pressed and event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+				zoom_overview(-1)
+		elif event is InputEventMouseMotion and overview_dragging and event.button_mask & MOUSE_BUTTON_MASK_RIGHT:
+			orbit_overview(event.relative)
+		elif event.is_action_pressed("reset_view"):
+			reset_overview()
+		elif event.is_action_pressed("rotate_left"):
 			rotate_selected(-1)
 		elif event.is_action_pressed("rotate_right"):
 			rotate_selected(1)
@@ -359,10 +433,13 @@ func _unhandled_input(event: InputEvent) -> void:
 		walker.look(event.relative)
 
 func _notification(what: int) -> void:
+	if what == NOTIFICATION_APPLICATION_FOCUS_OUT:
+		overview_dragging = false
 	if what == NOTIFICATION_WM_CLOSE_REQUEST and walker != null and walker.support != null:
 		save_progress()
 
 func toggle_view() -> void:
+	overview_dragging = false
 	architectural = not architectural
 	walker.moving = false
 	walker.sync_pose(1)
@@ -456,18 +533,24 @@ func snapshot() -> Dictionary:
 	var states: Array[int] = []
 	for entry in rigs:
 		states.append(entry.state)
-	return {"trial": trial, "states": states, "player": player, "camera_bias": camera_bias, "selected": selected}
+	return {"trial": trial, "states": states, "player": player, "camera_bias": camera_bias, "camera_frame": camera_frame, "overview_yaw": overview_yaw, "overview_elevation": overview_elevation, "overview_zoom": overview_zoom, "selected": selected}
 
 func restore(data: Dictionary) -> void:
 	if tween and tween.is_valid():
 		tween.kill()
 	busy = false
 	won = false
+	overview_dragging = false
 	for i in range(rigs.size()):
 		rigs[i].state = data.states[i]
 		rigs[i].node.basis = Basis(rigs[i].axis, data.states[i] * PI / 2)
 	walker.restore(data.player, world)
 	camera_bias = data.camera_bias
+	var ground := walker.support.global_basis * walker.support.surface_frame(walker.foot)
+	camera_frame = data.get("camera_frame", ground * camera_bias)
+	overview_yaw = data.get("overview_yaw", 0.0)
+	overview_elevation = clampf(data.get("overview_elevation", DEFAULT_ELEVATION), deg_to_rad(25), deg_to_rad(70))
+	overview_zoom = clampf(data.get("overview_zoom", 1.0), .65, 1.4)
 	select_rig(data.selected)
 	update_links()
 	update_camera()
@@ -495,6 +578,7 @@ func restart() -> void:
 
 func set_pause(value: bool) -> void:
 	paused = value
+	overview_dragging = false
 	if paused and not busy:
 		save_progress()
 	if tween and tween.is_valid():
@@ -526,6 +610,7 @@ func load_preferences() -> void:
 	walker.keep_world_horizon = settings.get_value("comfort", "world_aligned_camera", true)
 	walker.camera_distance = clampf(settings.get_value("comfort", "camera_distance", 5.5), 3, 8)
 	walker.sensitivity = settings.get_value("comfort", "sensitivity", 0.0022)
+	follow_ground_normal = settings.get_value("overview", "follow_ground_normal", true)
 	walker.camera_initialized = false
 	walker.sync_pose(1)
 	hud.sync_preferences()
@@ -536,6 +621,7 @@ func save_preferences() -> void:
 	for key in ["third_person", "reduced_motion", "keep_world_horizon", "camera_distance", "sensitivity"]:
 		settings.set_value("comfort", key, walker.get(key))
 	settings.set_value("comfort", "world_aligned_camera", walker.keep_world_horizon)
+	settings.set_value("overview", "follow_ground_normal", follow_ground_normal)
 	settings.save("user://settings.cfg")
 
 func save_progress() -> void:
@@ -562,6 +648,7 @@ func open_gallery() -> void:
 func run_tests() -> void:
 	await get_tree().process_frame
 	var failures: Array[String] = preload("res://scripts/positioning_tests.gd").run(self)
+	failures.append_array(preload("res://scripts/overview_tests.gd").run(self))
 	if failures.is_empty():
 		print("POSITIONING SELF TEST PASS: physical links, positioning dependencies, sweep clearance, solutions, undo, cameras, no portals")
 	else:

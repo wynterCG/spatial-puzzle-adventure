@@ -4,6 +4,8 @@ Validated 2026-09-30 with Godot 4.6.1 Mono / Compatibility. The three studies ar
 
 Latest camera decision: first person is now the default in the walker and both settings loaders. The running game's first-person preference was saved without moving the player or changing its paused state. Both headless suites pass. The third-person reports below are retained as experimental history, not the current primary design direction.
 
+The isometric experiment branch adds a separate [A/B comparison and manual-orbit validation](isometric-camera-experiment.md). Its initial A/B check preceded manual-orbit implementation: an occupied 90-degree turntable produces 90 degrees of camera rotation in A and 0 in B; a 90-degree tilt produces 90 degrees in both. The passenger still follows the full support transform. The expanded `OVERVIEW SELF TEST PASS` covers sampled turns, curved traversal, seams, manual input, bounds, look/Tab independence, reset, undo and save migration. Human readability remains an open playtest question.
+
 ## Automated mechanical checks
 
 Both headless suites pass with exit 0 and their literal PASS markers:
