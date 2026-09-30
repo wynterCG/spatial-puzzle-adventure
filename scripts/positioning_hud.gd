@@ -227,8 +227,8 @@ func refresh() -> void:
 		var viewport_size: Vector2 = root.get_viewport_rect().size
 		var player_world: Vector3 = game.walker.support.to_global(game.walker.foot + game.walker.normal * .85)
 		var player_screen: Vector2 = game.overview.unproject_position(player_world)
-		for offset in [Vector2(44, -80), Vector2(-274, -80), Vector2(44, 30), Vector2(-274, 30)]:
-			clearance_marker.position = (contact + offset).clamp(Vector2(24, 140), viewport_size - clearance_marker.size - Vector2(24, 100))
+		for placement_offset in [Vector2(44, -80), Vector2(-274, -80), Vector2(44, 30), Vector2(-274, 30)]:
+			clearance_marker.position = (contact + placement_offset).clamp(Vector2(24, 140), viewport_size - clearance_marker.size - Vector2(24, 100))
 			var box := Rect2(clearance_marker.position, clearance_marker.size)
 			if not box.grow(32).has_point(player_screen) and not box.intersects(sidebar.get_global_rect()): break
 		var edge_x := 0.0 if clearance_marker.position.x > contact.x else clearance_marker.size.x
