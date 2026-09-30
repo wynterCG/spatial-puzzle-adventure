@@ -23,8 +23,10 @@ static func gallery(g: Node3D, label: String, x: float, y: float, upside: bool, 
 	# clears the deck; rolling the ring about X meets the docking cheeks.
 	var inward := 1.0 if x < 0 else -1.0
 	for side in [-1.0, 1.0]:
-		solid(g, pivot, Vector3(inward * 1.95, 0, side * 1.35), Vector3(1.4, .3, .24), "ba9767", index)
-		solid(g, pivot, Vector3(inward * 1.3, 0, side * .97), Vector3(.2, .3, .65), "ba9767", index)
+		var cheek := solid(g, pivot, Vector3(inward * 1.95, 0, side * 1.35), Vector3(1.4, .3, .24), "ba9767", index)
+		cheek.set_meta("clearance_label", label)
+		var shoulder := solid(g, pivot, Vector3(inward * 1.3, 0, side * .97), Vector3(.2, .3, .65), "ba9767", index)
+		shoulder.set_meta("clearance_label", label)
 		solid(g, walkway, Vector3(0, .25, side * .76), Vector3(4, .08, .08), tint, index)
 	solid(g, pivot, Vector3(0, 0, 0), Vector3(.45, .55, 2.3), "ba9767", index)
 

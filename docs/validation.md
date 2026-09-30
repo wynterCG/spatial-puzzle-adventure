@@ -8,6 +8,8 @@ The user selected ground-direction transport (B), reporting "it reads way better
 
 ## Turning-courtyard revision
 
+The user completed the courtyard but reported that needing to invert the gallery to free the ring was unclear. The new clearance preview addresses that specific relationship: orange marks the actual blocking bracket and a faint ghost marks the attempted ring pose. It appears on turn-button hover as well as rejection. Tests verify preview immutability and that both vertical and inverted withdrawal permit the solution. Human understanding of the revised feedback remains unvalidated.
+
 The previous sequential chapter is replaced by a compact courtyard. `CHAPTER SELF TEST PASS` covers both solving ring directions, physical obstruction at both galleries, remote pre-rotation, remaining aboard the access gallery, premature far-gallery deployment and recovery, all 64 contact configurations, full reverse traversal, rejected-turn immutability, serialized saves and undo, completion/reopened reflection, full terrace contact and stable overview composition. A reflection-after-return test exposed a finished-tween resume error; pause now resumes only an active turn.
 
 Godot MCP Pro inspection checks the actual rendered arrival, the whole courtyard in overview, named obstruction feedback, the first-person underside path, completion and settings. Screenshots: [overview](chapter-courtyard.png), [arrival](chapter-arrival.png), [blocked access](chapter-clearance.png), [inhabited underside gallery](chapter-interior.png). The three assemblies use consistent terracotta/violet/teal colours and matching selector labels. Fixed structure is blue-grey. Windowed end piers and a far colonnade leave more of the mechanism visible as the B camera changes ground.

@@ -47,6 +47,9 @@ var chapter_size_from := 32.0
 var chapter_focus_time := 1.0
 var chapter_save_pending := false
 var chapter_completed := false
+var turn_contact: Dictionary = {}
+var clearance_preview: Node3D
+var clearance_preview_time := 0.0
 var input_bindings := {"forward": KEY_W, "back": KEY_S, "left": KEY_A, "right": KEY_D, "view": KEY_TAB, "rotate_left": KEY_Q, "rotate_right": KEY_E, "undo": KEY_Z, "reset": KEY_R, "hint": KEY_H, "reset_view": KEY_HOME}
 
 func _ready() -> void:
@@ -100,6 +103,7 @@ func key_name(action: String) -> String:
 	return OS.get_keycode_string(input_bindings[action])
 
 func load_trial(index: int) -> void:
+	clear_turn_preview()
 	if tween and tween.is_valid():
 		tween.kill()
 	if world:
@@ -406,6 +410,10 @@ func _input(event: InputEvent) -> void:
 		overview_dragging = false
 
 func _process(delta: float) -> void:
+	if is_instance_valid(clearance_preview):
+		clearance_preview.visible = architectural and not paused
+		if not paused: clearance_preview_time -= delta
+		if clearance_preview_time <= 0: clear_turn_preview()
 	if walker.support == null:
 		return
 	if not architectural and not paused and not busy and not blocks_play():
@@ -471,6 +479,7 @@ func _notification(what: int) -> void:
 		save_progress()
 
 func toggle_view() -> void:
+	clear_turn_preview()
 	overview_dragging = false
 	architectural = not architectural
 	walker.moving = false
@@ -483,9 +492,65 @@ func toggle_view() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE if architectural else Input.MOUSE_MODE_CAPTURED
 
 func select_rig(index: int) -> void:
+	clear_turn_preview()
 	selected = clampi(index, 0, rigs.size() - 1)
 	for part in pieces:
 		part.highlight(rigs[selected].node.is_ancestor_of(part))
+
+func clear_turn_preview() -> void:
+	if is_instance_valid(clearance_preview):
+		clearance_preview.hide()
+		clearance_preview.queue_free()
+	clearance_preview = null
+	clearance_preview_time = 0.0
+
+func preview_selected_turn(direction: int) -> void:
+	# Hover offers the same evidence before committing to a turn. It neither
+	# changes configuration nor adds a separate permission rule.
+	if trial != 4 or not architectural or busy or paused or blocks_play(): return
+	clear_turn_preview()
+	var obstruction := turn_obstruction(selected, direction)
+	if not turn_contact.is_empty():
+		message = obstruction
+		show_turn_preview()
+
+func preview_outline(size: Vector3, frame: Transform3D, tint: Color, thickness: float) -> void:
+	var outline := Node3D.new()
+	clearance_preview.add_child(outline)
+	outline.global_transform = frame
+	var mat := Piece.material(tint, .5)
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	for axis in range(3):
+		var a := (axis + 1) % 3
+		var b := (axis + 2) % 3
+		for sa in [-1.0, 1.0]:
+			for sb in [-1.0, 1.0]:
+				var point := Vector3.ZERO
+				point[a] = size[a] * .5 * sa
+				point[b] = size[b] * .5 * sb
+				var edge_size := Vector3.ONE * thickness
+				edge_size[axis] = size[axis]
+				var edge := Piece.box(outline, point, edge_size, mat)
+				edge.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+
+func show_turn_preview() -> void:
+	if turn_contact.is_empty(): return
+	clearance_preview = Node3D.new()
+	clearance_preview.name = "Clearance_preview"
+	add_child(clearance_preview)
+	clearance_preview_time = 6.0
+	var ghost := MeshInstance3D.new()
+	ghost.mesh = turn_contact.mesh
+	var mat := Piece.material(Color("ffc99a"))
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.albedo_color.a = .16
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	ghost.material_override = mat
+	ghost.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	clearance_preview.add_child(ghost)
+	ghost.global_transform = turn_contact.frame
+	preview_outline(turn_contact.mesh.size, turn_contact.frame, Color("cba987"), .025)
+	preview_outline(turn_contact.blocker_size + Vector3.ONE * .06, turn_contact.blocker_frame, Color("ff934f"), .075)
 
 func boxes_overlap(a: MeshInstance3D, b: MeshInstance3D) -> bool:
 	# Oriented-box SAT, with a small construction clearance at docking edges.
@@ -511,6 +576,7 @@ func boxes_overlap(a: MeshInstance3D, b: MeshInstance3D) -> bool:
 	return true
 
 func turn_obstruction(index: int, direction: int) -> String:
+	turn_contact.clear()
 	var entry := rigs[index]
 	var original: Basis = entry.node.basis
 	var fixed: Array[MeshInstance3D] = []
@@ -541,6 +607,9 @@ func turn_obstruction(index: int, direction: int) -> String:
 			for stationary in candidates:
 				if boxes_overlap(moving, stationary):
 					result = "The turn is blocked by " + str(stationary.get_parent().name).replace("_", " ") + "."
+					if trial == 4 and index == 1 and stationary.has_meta("clearance_label"):
+						result = str(stationary.get_meta("clearance_label")) + "'s brass brackets occupy the ring's turning path."
+						turn_contact = {"mesh": moving.mesh, "frame": moving.global_transform, "blocker_size": stationary.mesh.size, "blocker_frame": stationary.global_transform}
 					break
 			if not result.is_empty():
 				break
@@ -554,9 +623,11 @@ func turn_obstruction(index: int, direction: int) -> String:
 func rotate_selected(direction: int) -> void:
 	if busy or paused or blocks_play() or not architectural:
 		return
+	clear_turn_preview()
 	var obstruction := turn_obstruction(selected, direction)
 	if not obstruction.is_empty():
 		message = obstruction
+		show_turn_preview()
 		return
 	history.append(snapshot())
 	var entry := rigs[selected]
@@ -587,6 +658,7 @@ func snapshot() -> Dictionary:
 	return data
 
 func restore(data: Dictionary) -> void:
+	clear_turn_preview()
 	if tween and tween.is_valid():
 		tween.kill()
 	busy = false

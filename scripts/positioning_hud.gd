@@ -6,6 +6,7 @@ var mode: Label
 var question: Label
 var status: Label
 var selected_label: Label
+var clearance_label: Label
 var controls: Label
 var feedback: Label
 var sidebar: PanelContainer
@@ -65,8 +66,12 @@ func _ready() -> void:
 		row.add_child(choice)
 	row = HBoxContainer.new()
 	column.add_child(row)
-	row.add_child(button("Turn left", func(): game.rotate_selected(-1)))
-	row.add_child(button("Turn right", func(): game.rotate_selected(1)))
+	for direction in [-1, 1]:
+		var turn_button := button("Turn left" if direction < 0 else "Turn right", func(): game.rotate_selected(direction))
+		turn_button.mouse_entered.connect(func(): game.preview_selected_turn(direction))
+		row.add_child(turn_button)
+	clearance_label = label("Orange: blocking bracket\nFaint outline: attempted turn", 14)
+	column.add_child(clearance_label)
 	feedback = label("", 17)
 	root.add_child(feedback)
 	feedback.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
@@ -198,6 +203,7 @@ func refresh() -> void:
 	question.text = game.chapter_zones[game.chapter_zone].question if game.trial == 4 else game.QUESTIONS[game.trial]
 	status.text = game.connection_text()
 	selected_label.text = game.rigs[game.selected].label
+	clearance_label.visible = is_instance_valid(game.clearance_preview) and game.architectural
 	selected_label.add_theme_color_override("font_color", game.rigs[game.selected].get("tint", Color("e4dfd6")))
 	for i in range(selectors.size()):
 		selectors[i].visible = i < game.rigs.size()

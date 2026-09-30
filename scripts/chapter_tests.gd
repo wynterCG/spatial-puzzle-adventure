@@ -45,9 +45,23 @@ static func run(g: Node3D) -> Array[String]:
 	if g.walker.support.name != "Inner_gallery": failures.append("Deployed access must let the player enter the ring")
 	blocked(g, 1, 1, "Access gallery", failures)
 	blocked(g, 1, -1, "Access gallery", failures)
+	var before_preview: Dictionary = g.snapshot()
+	var before_history: Array = g.history.duplicate(true)
+	var obstacle_count: int = g.obstacles.size()
+	g.preview_selected_turn(-1)
+	if not is_instance_valid(g.clearance_preview) or g.turn_contact.is_empty(): failures.append("Blocked ring hover must show its actual bracket contact")
+	if g.snapshot() != before_preview or g.history != before_history or g.obstacles.size() != obstacle_count:
+		failures.append("Clearance preview must not mutate the puzzle, undo or collision geometry")
 	h.turn(g, 0, 1, failures)
+	if is_instance_valid(g.clearance_preview): failures.append("Changing the gallery must clear stale collision feedback")
 	var clear: Dictionary = g.snapshot()
 	var saved: Dictionary = bytes_to_var(var_to_bytes(g.progress_data()))
+	# Inverting is another valid withdrawal, not a mandatory magic state.
+	h.turn(g, 0, 1, failures)
+	h.turn(g, 1, 1, failures)
+	h.turn(g, 1, 1, failures)
+	if g.rigs[1].state != 2: failures.append("An inverted access gallery must also leave the ring sweep clear")
+	g.restore(clear)
 	# Save/reload retains the exact occupied path and undo across structures.
 	g.load_trial(0)
 	var prototype: Dictionary = g.snapshot()
