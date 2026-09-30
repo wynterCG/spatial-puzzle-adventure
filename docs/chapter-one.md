@@ -1,46 +1,51 @@
-# Chapter 1 The far light
+# Chapter 1 / The far light ? turning courtyard
 
-Playable blockout, 30 September 2026. This is the connected chapter described in [the chapter plan](first-chapter-plan.md), using simple geometry. It is ready for human playtesting, not vertical-slice production. The three studies, Lantern Fold and gallery remain independently selectable.
+Revised playable blockout, 30 September 2026. A compact courtyard replaces the former chain of three assemblies. First person and isometric B remain the chosen pairing. The three studies, Lantern Fold and optional gallery remain selectable and unchanged in layout.
 
-![First-person arrival looking toward the far light](chapter-arrival.png)
+![The turning courtyard in overview](chapter-courtyard.png)
 
-## The continuous route
+## Intended discovery
 
-| Section | Physical route | Intended discovery |
+**The gallery that let me enter is now preventing the transformation I need to leave.**
+
+The access gallery and ring are interdependent. Moving the gallery remotely is always permitted when its sweep is clear; the player must get off it and onto the ring before withdrawing it. Riding each mechanism and rotating until a route appears is insufficient.
+
+## Continuous route
+
+| Section | Physical relationship | Reasoning |
 |---|---|---|
-| Overlook and bridge | A fixed curve reaches the lower approach; a small occupied bridge rolls twice to a bent fixed passage | Authored curves change ground, and a structure carries the path being occupied |
-| Twin paths | The passage reaches the short path's arrival; a second fixed curve reaches the long underside path; two rolls connect it onward | Correct structure configuration is insufficient when the player is on the wrong path |
-| Relay | The first moving path reaches a fixed landing; stepping off lets another turn bring a different path to its curve | Preparation can mean leaving a moving structure and waiting on fixed ground |
-| Quiet passage and light | The relay's inner landing leads along a fixed underside passage to the original landmark | The destination is familiar, but the route has changed the direction of approach |
+| Arrival terrace and outer gallery | Fully walkable terrace connects to a curved exterior gallery and underside landing | Explore the same building above and below; identify the remote light |
+| Access gallery | A folded gallery can be lowered between the underside landing and ring | Opening a connection permits entry, but occupies the ring sweep |
+| Courtyard ring | Stand on its inner gallery; withdraw the access; roll twice | Leaving the access gallery before folding it is necessary, even with remote manipulation |
+| Far gallery | Unfold the receiving gallery after the ring arrives | Apply the clearance relationship from the departure side; opening it early blocks the final roll |
+| Light terrace | The original landmark is reached across the same framed void | Look back and recognize how the route fits together |
 
-There are no scene transitions, teleports, progress locks or new levers along this route. Endpoints and world normals create the connections. Earlier assemblies remain present and retain their configurations. The carrier relationships reuse Studies 1 and 2 under a common world; their standalone layouts are preserved.
+The ring rolls about X; both galleries fold about Z. These axes are implementation coordinates, not colour meanings. The ring has one walking path and open architectural ribs, not automatic traversal around arbitrary surfaces. Authored endpoint position and normal determine every connection. No progress flag, lever, teleport or camera restriction gates the route.
 
-The second bridge landing is narrow at the relay's centre to clear its rotating paths. Its visible cross-shaped paving must be approached near the path centre. This is a readability point to observe in playtesting, not an additional intended puzzle.
+Two brass cheeks on each gallery extend beside the walking channel. They let the gallery fold clear, but physically obstruct the ring's roll. Both roll directions are blocked while docked; either clear half-roll solves the route. Trying to rotate reports the named obstructing gallery and preserves the player, arrangement, camera and undo history.
 
-## Camera and interaction
+## Architectural direction and colour
 
-First person and isometric B remain the chosen pairing. The chapter starts in first person looking toward the far light. Tab changes view; 1, 2 and 3 select Bridge, Twin paths and Relay. Q/E turn structures. Right-drag, wheel and Home retain the overview inspection controls.
+The provisional setting is a turning cloister: paired open arch ribs, folding galleries, a colonnade and shared foundation frame a central courtyard. The curved approach belongs to the arrival terrace, and the landmark frame belongs to the opposite terrace. This is an architectural blockout, not a confirmed toy planetarium or final production theme. See [art direction](art-direction.md).
 
-Overview framing has three fixed assembly centres. Crossing a fixed connecting surface changes the active centre and recommended size over 0.85 seconds, without resetting ground transport, manual angle or zoom. Moving-support traversal does not choose a new centre, and turns and pauses suspend the transition. The bent passage supports framing changes in both directions for backtracking. The active mechanism is selected when the framing zone changes; the player can still select any mechanism.
+Movable assembly identities remain stable through every orientation: **terracotta access gallery, violet ring, teal far gallery**. Selector labels use matching colours. Fixed structure and the fixed curve are blue-grey; ivory paving identifies walking surfaces, and brass identifies mechanical joints. Colour does not encode gravity or XYZ. Distinct silhouettes and named controls supplement colour.
 
-Chapter reconfiguration controls sit beneath the title to avoid covering the onward landings. Adjacent assemblies remain visible where they enter the view. The existing material palette, joined-contact inlays, bridge silhouettes and two-sided destination frame are a small visual-language sample rather than finished art.
+The terrace is walkable across its visible surface. There are no broad paving slabs restricted to unexplained invisible stripes. The ring and galleries have narrow visible edges. The courtyard foundation is an open frame, not a false walkable floor. Windowed end piers and the far colonnade leave the recommended overview open; the raised light remains visible above the folded receiving gallery.
 
-H offers three escalating hints for the active section. The final section asks whether the occupied path reaches the light without immediately telling the player to step off. Completion offers an optional explanation and **Look back / keep exploring**; the chapter reflection can be reopened from Escape.
+![First person beneath the courtyard](chapter-interior.png)
 
-![The final relay assembly and two-sided destination](chapter-relay.png)
+## Camera, recovery and persistence
 
-## Saves and recovery
+Tab changes view; 1/2/3 select Access gallery, Courtyard ring and Far gallery; Q/E turn them. Right-drag, wheel and Home retain manual inspection. The compact chapter uses **one shared overview centre**, preserving the whole courtyard and landmark as B transports the camera with the player's ground. Zone metadata changes questions and initial selection on fixed ground, never connections. H gives escalating optional hints.
 
-`user://chapter-one.save` is separate from both `positioning.save` and the gallery's `journey.save`. It stores all three configurations, passenger contact, transported camera frame, manual view, active framing transition, undo history, view mode and completion state. Selecting the chapter resumes that file if present. Selecting a prototype resumes its saved state when its layout matches the prototype save.
+`user://chapter-courtyard.save` stores all configurations, contact, both camera layers, zone, undo history, view mode and completion. The former `chapter-one.save`, prototype `positioning.save` and gallery `journey.save` are preserved. Old chapter data is rejected by layout identity rather than applied to incompatible node paths.
 
-Settled turns, settled framing-zone crossings, pausing, undo, restart, completion, menu changes and normal close requests save progress. Tests invoked with `--self-test` do not write save files. Restart restores the chapter's initial route and position. Undo can return to an earlier assembly after a save/reload. Ordinary return turns and walking also provide recovery; undo is not the only way back.
+Undo and restart remain available. Wrong ordering also recovers through ordinary movement and withdrawal. Completion offers **Look back / keep exploring**. The entire return route works: board the ring from the light terrace, withdraw the far gallery, return the ring, unfold the access gallery, cross and follow the outer curve back to arrival. Reflection can be reopened from the menu.
 
-## Verification
+## Verification and remaining questions
 
-`chapter_tests.gd` joins the normal positioning suite and prints `CHAPTER SELF TEST PASS`. It walks the complete route using actual support transitions and rotation commands, checks both wrong-position examples, walks back to the initial overlook, serializes and rebuilds a saved chapter, verifies undo across assemblies, checks prototype-save isolation, resumes completion, tests post-completion exploration, and checks camera-focus continuity without losing B orientation or manual orbit.
+`chapter_tests.gd` checks the complete route in both ring directions; remote pre-rotation losing access; staying aboard the access gallery; both blocked ring directions; premature far-gallery deployment and recovery; all 64 quarter-turn contact combinations; reverse traversal; rejected-turn immutability; isolated save/reload and undo; old-layout rejection; completion and reflection; full terrace contact; stable composition and manual orbit.
 
-The original positioning, Lantern Fold, overview and gallery checks remain required. Live Godot MCP Pro inspection covers the opening sightline, all three overview framings, first-person underside arrival, completion and chapter selection. Mechanical tests establish those cases, not universal camera comfort, difficulty or a successful learning progression.
+The positioning, Lantern Fold, overview and original gallery regressions remain required, including a clean checkout without local addons. Live Godot MCP Pro inspection checks the rendered arrival, overview, underside gallery, obstruction feedback and destination.
 
-## Next decision
-
-Use the observation protocol in [first-chapter-plan.md](first-chapter-plan.md) with players unfamiliar with the studies. Record predictions, hints, wrong-order recovery and explanations. In particular, check whether stepping off at the relay feels like a new application of positioning, whether the central landing reads clearly, and whether the final landmark is recognized from below. Revise the route before adding mechanics or finishing the whole chapter's visuals.
+Mechanical and selected visual checks do not establish unaided understanding, difficulty, colour accessibility or comfort. A blind playtest must establish whether the obstruction is legible before an error, whether the final gallery feels like a changed application, and whether the courtyard feels inhabitable. Keep the geometry easy to revise before producing final art.

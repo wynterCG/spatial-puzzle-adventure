@@ -6,11 +6,17 @@ Latest camera decision: first person is now the default in the walker and both s
 
 The user selected ground-direction transport (B), reporting "it reads way better". It is now the sole overview behavior for the positioning studies; the A/B selector and full-support alternative are removed. Older A preferences are ignored and cleared when preferences are saved. The retained `OVERVIEW SELF TEST PASS` checks that an occupied horizontal turn produces no camera yaw while a tilt carries the camera 90 degrees, with full passenger attachment throughout. It also covers curved traversal, seams, manual input, bounds, look/Tab independence, reset, undo and save migration. [Historical A/B evidence and current behavior](isometric-camera-experiment.md) distinguish this user preference from broader readability testing.
 
-## Connected chapter blockout
+## Turning-courtyard revision
 
-`CHAPTER SELF TEST PASS` covers the full physical route through three assemblies, wrong-path and stay-aboard counterexamples, backtracking to the overlook, serialized save/reload, undo across assembly boundaries, separate save paths, completion and continued exploration. It samples framing transitions while checking that the ground frame and manual angle remain unchanged. All previous suites still pass.
+The previous sequential chapter is replaced by a compact courtyard. `CHAPTER SELF TEST PASS` covers both solving ring directions, physical obstruction at both galleries, remote pre-rotation, remaining aboard the access gallery, premature far-gallery deployment and recovery, all 64 contact configurations, full reverse traversal, rejected-turn immutability, serialized saves and undo, completion/reopened reflection, full terrace contact and stable overview composition. A reflection-after-return test exposed a finished-tween resume error; pause now resumes only an active turn.
 
-Godot MCP Pro inspection covers the opening sightline to the final landmark, all three overview regions, the first-person underside approach and the chapter UI. The chapter's controls are placed beneath the title to leave onward connections visible. The landmark extends to both sides of the final ground plane. These are implementation and selected visual checks; a blind learning-progression playtest is still required.
+Godot MCP Pro inspection checks the actual rendered arrival, the whole courtyard in overview, named obstruction feedback, the first-person underside path, completion and settings. Screenshots: [overview](chapter-courtyard.png), [arrival](chapter-arrival.png), [blocked access](chapter-clearance.png), [inhabited underside gallery](chapter-interior.png). The three assemblies use consistent terracotta/violet/teal colours and matching selector labels. Fixed structure is blue-grey. Windowed end piers and a far colonnade leave more of the mechanism visible as the B camera changes ground.
+
+The earlier `chapter-relay.png` is retained as historical evidence of the superseded layout. Progress for that layout remains in `chapter-one.save`; the revision writes only `chapter-courtyard.save`. Existing studies and gallery saves retain their own paths.
+
+Both headless suites pass with exit 0 and no script errors, in the working project and a clean staged checkout imported without local addons. A live clear ring sweep measured 2,097 ms before conservative distance culling and 179 ms afterward on this machine; nearby geometry still receives all 60 SAT samples and body clearance is unchanged. This is a selected measurement, not a frame-rate benchmark.
+
+These checks establish specific mechanical cases and selected rendered views, not human comprehension, atmosphere, colour accessibility or motion comfort. The blind playtest protocol is in [first-chapter-plan.md](first-chapter-plan.md).
 
 ## Complete puzzle - The Lantern Fold
 

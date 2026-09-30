@@ -1,6 +1,6 @@
 # Elsewhere game vision
 
-Working direction, 30 September 2026. This document guides the next chapter experiment; [spec.md](spec.md) describes what the prototype currently implements. The first [connected chapter blockout](chapter-one.md) is now playable. Its learning progression and broader camera comfort still need human playtesting.
+Working direction, 30 September 2026. This document guides the next chapter experiment; [spec.md](spec.md) describes what the prototype currently implements. The revised [turning-courtyard chapter](chapter-one.md) is now playable. [Art and level-design direction](art-direction.md) requires recognizable architecture and interdependent pieces; the previous sequential chapter layout is superseded. Its learning progression and broader camera comfort still need human playtesting.
 
 ## The experience
 

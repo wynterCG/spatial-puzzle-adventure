@@ -7,7 +7,7 @@ const CurvedPath = preload("res://scripts/curved_track.gd")
 const TrialHUD = preload("res://scripts/positioning_hud.gd")
 const TITLES := ["Choose your deck", "The quiet landing", "Prepare the receiver", "The Lantern Fold", "Chapter 1 / The far light"]
 const QUESTIONS := ["Which path needs to carry you?", "Where can you stand while the carrier changes?", "What needs to move before the dock closes?", "Which path must carry you, and what must be ready when it arrives?", "What changed when you chose where to stand?"]
-const REASONS := ["The short deck never reaches the exit. The curved path gets you onto the long deck before the roll.", "The carrier's two paths have different ground. The fixed landing and its curve let you change paths while the empty carrier turns.", "The docking arms obstruct the receiver's turn. Arrange the receiver before docking the carrier.", "The upper path cannot reach the receiver. Use the curve to reach the longer underside path. Prepare the receiver while the turnover is withdrawn, then ride the long path through two turns. Its brass arms hold the connection until you walk to the lantern.", "You crossed onto new ground, chose a path before rolling, then waited on fixed ground while another path came to you. The light is the same one you saw at arrival; your route changed how you approached it."]
+const REASONS := ["The short deck never reaches the exit. The curved path gets you onto the long deck before the roll.", "The carrier's two paths have different ground. The fixed landing and its curve let you change paths while the empty carrier turns.", "The docking arms obstruct the receiver's turn. Arrange the receiver before docking the carrier.", "The upper path cannot reach the receiver. Use the curve to reach the longer underside path. Prepare the receiver while the turnover is withdrawn, then ride the long path through two turns. Its brass arms hold the connection until you walk to the lantern.", "The access gallery served two roles: first a way onto the ring, then an obstruction in its sweep. You had to leave it before withdrawing it. The far gallery follows the same rule: a connection can be opened after the ring arrives, but must be withdrawn before the ring can leave."]
 var world: Node3D
 var pieces: Array[SurfacePiece] = []
 var rigs: Array[Dictionary] = []
@@ -353,8 +353,6 @@ func update_chapter_focus(delta: float) -> void:
 	if trial != 4 or chapter_zones.is_empty() or busy or paused:
 		return
 	var next_zone: int = walker.support.get_meta("chapter_zone", chapter_zone)
-	if walker.support.name == "Bent_passage":
-		next_zone = 0 if walker.support.to_global(walker.foot).x < -14.0 else 1
 	var fixed := true
 	for entry in rigs:
 		if entry.node.is_ancestor_of(walker.support): fixed = false
@@ -366,7 +364,7 @@ func update_chapter_focus(delta: float) -> void:
 		chapter_save_pending = true
 		hint_level = 0
 		message = chapter_zones[chapter_zone].prompt
-		select_rig(chapter_zone)
+		select_rig(chapter_zones[chapter_zone].get("rig", chapter_zone))
 	chapter_focus_time = minf(1.0, chapter_focus_time + delta / .85)
 	var weight := smoothstep(0.0, 1.0, chapter_focus_time)
 	focus = chapter_focus_from.lerp(chapter_zones[chapter_zone].focus, weight)
@@ -493,11 +491,13 @@ func boxes_overlap(a: MeshInstance3D, b: MeshInstance3D) -> bool:
 	# Oriented-box SAT, with a small construction clearance at docking edges.
 	var ha: Vector3 = ((a.mesh as BoxMesh).size * 0.5 - Vector3.ONE * 0.04).max(Vector3.ONE * 0.01)
 	var hb: Vector3 = ((b.mesh as BoxMesh).size * 0.5 - Vector3.ONE * 0.04).max(Vector3.ONE * 0.01)
+	var separation := b.global_position - a.global_position
+	if separation.length_squared() > pow(ha.length() + hb.length(), 2):
+		return false
 	var axes: Array[Vector3] = [a.global_basis.x, a.global_basis.y, a.global_basis.z, b.global_basis.x, b.global_basis.y, b.global_basis.z]
 	for i in range(3):
 		for j in range(3):
 			axes.append(a.global_basis[i].cross(b.global_basis[j]))
-	var separation := b.global_position - a.global_position
 	for axis in axes:
 		if axis.length_squared() < 0.00001:
 			continue
@@ -520,11 +520,25 @@ func turn_obstruction(index: int, direction: int) -> String:
 	for obstacle in obstacles:
 		if not entry.node.is_ancestor_of(obstacle):
 			fixed.append(obstacle)
+	# A sphere about the pivot encloses every rigid quarter-turn. Discard
+	# architecture outside that envelope before the expensive sampled SAT.
+	# This is conservative: nearby boxes still receive all 60 exact samples,
+	# and passenger clearance continues to consider the whole environment.
+	var pivot: Vector3 = entry.node.global_position
+	var sweep_radius := 0.0
+	for moving in entry.solids:
+		var radius: float = (moving.mesh as BoxMesh).size.length() * .5
+		sweep_radius = maxf(sweep_radius, moving.global_position.distance_to(pivot) + radius)
+	var candidates: Array[MeshInstance3D] = []
+	for stationary in fixed:
+		var radius: float = (stationary.mesh as BoxMesh).size.length() * .5
+		if stationary.global_position.distance_squared_to(pivot) <= pow(sweep_radius + radius, 2):
+			candidates.append(stationary)
 	var result := ""
 	for step in range(1, 61):
 		entry.node.basis = Basis(entry.axis, (float(entry.state) + direction * float(step) / 60.0) * PI / 2)
 		for moving in entry.solids:
-			for stationary in fixed:
+			for stationary in candidates:
 				if boxes_overlap(moving, stationary):
 					result = "The turn is blocked by " + str(stationary.get_parent().name).replace("_", " ") + "."
 					break
@@ -626,7 +640,7 @@ func set_pause(value: bool) -> void:
 	overview_dragging = false
 	if paused and not busy:
 		save_progress()
-	if tween and tween.is_valid():
+	if busy and tween and tween.is_valid():
 		if paused: tween.pause()
 		else: tween.play()
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE if paused or architectural or blocks_play() else Input.MOUSE_MODE_CAPTURED
@@ -691,11 +705,11 @@ func save_preferences() -> void:
 	settings.save("user://settings.cfg")
 
 func progress_path() -> String:
-	return "user://chapter-one.save" if trial == 4 else "user://positioning.save"
+	return "user://chapter-courtyard.save" if trial == 4 else "user://positioning.save"
 
 func progress_data() -> Dictionary:
 	if trial == 4:
-		return {"version": 1, "scene": snapshot(), "chapter_completed": chapter_completed, "won": won, "finish_open": finish_open, "history": history, "architectural": architectural}
+		return {"version": 1, "layout": "courtyard", "scene": snapshot(), "chapter_completed": chapter_completed, "won": won, "finish_open": finish_open, "history": history, "architectural": architectural}
 	return {"version": 1, "scene": snapshot(), "completed": completed}
 
 func save_progress() -> void:
@@ -711,6 +725,8 @@ func apply_progress(data: Dictionary) -> void:
 		restore_completed(data.completed)
 	if int(data.scene.trial) != trial:
 		return
+	if trial == 4 and data.get("layout", "") != "courtyard":
+		return # Earlier chapter saves refer to a different physical layout.
 	restore(data.scene)
 	if trial == 4:
 		chapter_completed = data.get("chapter_completed", false)

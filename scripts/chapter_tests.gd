@@ -1,111 +1,128 @@
 extends RefCounted
 
+static func blocked(g: Node3D, index: int, direction: int, name: String, failures: Array[String]) -> void:
+	g.architectural = true
+	g.select_rig(index)
+	var before: Dictionary = g.snapshot()
+	var history: Array = g.history.duplicate(true)
+	g.rotate_selected(direction)
+	if g.busy or g.snapshot() != before or g.history != history or name not in g.message:
+		failures.append("Rejected turn must name %s and preserve contact, configuration, camera and history: %s" % [name, g.message])
+		if g.busy: g.tween.custom_step(1)
+
 static func run(g: Node3D) -> Array[String]:
 	var failures: Array[String] = []
 	var h = preload("res://scripts/positioning_tests.gd")
 	g.load_trial(4)
 	g.walker.set_third_person(false)
-	if g.progress_path() != "user://chapter-one.save": failures.append("Chapter needs isolated progress storage")
-	h.walk(g, Vector3.FORWARD, 17)
-	if g.walker.support.name != "Lower_approach": failures.append("Chapter entrance curve must reach lower approach")
-	h.walk(g, Vector3.RIGHT, 6)
-	if g.walker.support.name != "Bridge_path": failures.append("Chapter approach must board bridge")
+	if g.progress_path() != "user://chapter-courtyard.save": failures.append("Rebuilt chapter must preserve older chapter/prototype saves")
+	# Full terrace is navigable; its outer route has a physically matching end.
+	for corner in [Vector3(-1.8, .2, 1.8), Vector3(1.8, .2, -1.8)]:
+		if not g.start.allows_point(corner, Vector3.UP): failures.append("No invisible stripe on the arrival terrace")
+	var original: Dictionary = g.snapshot()
+	g.apply_progress({"version": 1, "scene": original})
+	if g.snapshot() != original: failures.append("Old chapter data must not apply to the rebuilt courtyard")
+	h.walk(g, Vector3.FORWARD, 13.4)
+	if g.walker.support.name != "Underside_gallery": failures.append("Outer gallery must lead beneath the arrival terrace")
+	if g.chapter_zone != 1: failures.append("Fixed underside landing must select courtyard question")
+	var approach: Dictionary = g.snapshot()
+	# Remote turning is legal, but a ring moved before entry removes access.
+	h.turn(g, 1, 1, failures)
+	h.turn(g, 1, 1, failures)
+	h.turn(g, 0, -1, failures)
+	h.walk(g, Vector3.RIGHT, 16)
+	if g.walker.support.name != "Access_gallery_path": failures.append("Remote pre-rotation must remove the ring boarding connection")
+	g.restore(approach)
+	h.turn(g, 0, -1, failures)
+	h.walk(g, Vector3.RIGHT, 4)
+	if g.walker.support.name != "Access_gallery_path": failures.append("Entry gallery must be reachable")
 	h.turn(g, 0, 1, failures)
+	h.walk(g, Vector3.RIGHT, 12)
+	if g.walker.support.name != "Access_gallery_path": failures.append("Board-rotate-continue must not bypass leaving the access gallery")
+	g.restore(approach)
+	h.turn(g, 0, -1, failures)
+	h.walk(g, Vector3.RIGHT, 10)
+	if g.walker.support.name != "Inner_gallery": failures.append("Deployed access must let the player enter the ring")
+	blocked(g, 1, 1, "Access gallery", failures)
+	blocked(g, 1, -1, "Access gallery", failures)
 	h.turn(g, 0, 1, failures)
-	h.walk(g, Vector3.RIGHT, 5)
-	if g.walker.support.name != "Bent_passage": failures.append("Chapter bridge must reach bent passage")
-	h.walk(g, Vector3.FORWARD, 4)
-	h.walk(g, Vector3.RIGHT, 5)
-	if g.walker.support != g.world.get_node("Choice/Arrival"): failures.append("Chapter must walk continuously into choice assembly")
-	for i in range(60): g.update_camera(1.0 / 60)
-	if g.chapter_zone != 1: failures.append("Fixed threshold must select choice framing")
-	var choice: Dictionary = g.snapshot()
+	var clear: Dictionary = g.snapshot()
 	var saved: Dictionary = bytes_to_var(var_to_bytes(g.progress_data()))
-	# Walk back across the same fixed threshold and return the occupied bridge.
-	h.walk(g, Vector3.LEFT, 5)
-	h.walk(g, Vector3.BACK, 4)
-	h.walk(g, Vector3.LEFT, 5)
-	if g.walker.support.name != "Bridge_path" or g.chapter_zone != 0:
-		failures.append("Chapter backtracking must return to the bridge with entrance framing")
-	h.turn(g, 0, -1, failures)
-	h.turn(g, 0, -1, failures)
-	h.walk(g, Vector3.LEFT, 6)
-	h.walk(g, Vector3.BACK, 17)
-	if g.walker.support != g.start: failures.append("Chapter entrance must be reversible without restart")
-	# A real serialized save restores all assemblies and undo across a rebuild.
+	# Save/reload retains the exact occupied path and undo across structures.
 	g.load_trial(0)
 	var prototype: Dictionary = g.snapshot()
 	g.apply_progress(saved)
-	if g.progress_path() != "user://positioning.save" or g.snapshot() != prototype:
-		failures.append("Chapter save must not overwrite a prototype layout")
+	if g.progress_path() != "user://positioning.save" or g.snapshot() != prototype: failures.append("Courtyard progress must not alter prototype progress")
 	g.load_trial(4)
 	g.apply_progress(saved)
-	if g.snapshot() != choice or g.history != saved.history:
-		failures.append("Chapter save must restore all structures, focus, player and history")
+	if g.snapshot() != clear or g.history != saved.history: failures.append("Courtyard save must retain pose, all rigs, both camera layers and history")
 	g.undo()
-	if g.rigs[0].state != 1 or g.walker.support.name != "Bridge_path":
-		failures.append("Chapter undo after reload must restore the earlier assembly and passenger")
+	if g.rigs[0].state != 0 or g.walker.support.name != "Inner_gallery": failures.append("Reloaded undo must restore the access gallery with player still on ring")
 	g.apply_progress(saved)
-	h.walk(g, Vector3.RIGHT, 9)
+	# Prematurely connecting the other gallery consumes the departure sweep.
+	h.turn(g, 2, -1, failures)
 	h.turn(g, 1, 1, failures)
-	h.turn(g, 1, 1, failures)
-	h.walk(g, Vector3.RIGHT, 20)
-	if g.walker.support.name != "Short_deck": failures.append("Chapter short path must remain a wrong-position attempt")
-	g.restore(choice)
-	h.walk(g, Vector3.FORWARD, 17)
-	h.walk(g, Vector3.RIGHT, 9)
-	if g.walker.support.name != "Long_deck": failures.append("Chapter choice curve must board long deck")
-	h.turn(g, 1, 1, failures)
-	h.turn(g, 1, 1, failures)
-	h.walk(g, Vector3.RIGHT, 15)
-	if g.walker.support != g.world.get_node("Transfer/Arrival"): failures.append("Chapter choice must connect physically to relay approach: " + str(g.walker.support.get_path()))
-	h.walk(g, Vector3.LEFT, 6)
-	if g.walker.support.name != "First_path": failures.append("Chapter relay must initially board first path")
+	blocked(g, 1, 1, "Far gallery", failures)
 	h.turn(g, 2, 1, failures)
-	var first_path: Dictionary = g.snapshot()
-	h.turn(g, 2, 1, failures)
-	h.walk(g, Vector3.RIGHT, 8)
-	if g.walker.support.name != "First_path": failures.append("Remaining aboard must miss the fixed transfer")
-	g.restore(first_path)
-	h.walk(g, Vector3.RIGHT, 3)
-	if g.walker.support.name != "Fixed_landing": failures.append("Chapter relay must reach fixed landing")
-	h.turn(g, 2, 1, failures)
-	h.walk(g, Vector3.FORWARD, 15.5)
-	if g.walker.support.name != "Second_path": failures.append("Chapter fixed curve must reach other carrier path")
-	# Align with the visible narrow central landing before crossing inward.
-	h.walk(g, Vector3.RIGHT, -g.walker.foot.x)
-	h.walk(g, Vector3.BACK, 5.9)
-	if g.walker.support.name != "Exit": failures.append("Chapter relay must reach quiet passage entrance")
-	h.walk(g, Vector3.LEFT, 11)
-	if g.walker.support != g.goal or not g.won: failures.append("Chapter continuous route must reach the far light: " + str(g.walker.support.get_path()) + str(g.walker.foot))
+	h.turn(g, 1, 1, failures)
+	if g.rigs[1].state != 2: failures.append("Withdrawing far gallery must recover without undo or restart")
+	g.restore(clear)
+	# Either ring roll direction solves the same physical dependency.
+	for direction in [-1, 1]:
+		g.restore(clear)
+		h.turn(g, 1, direction, failures)
+		h.turn(g, 1, direction, failures)
+		h.turn(g, 2, -1, failures)
+		blocked(g, 1, 1, "Far gallery", failures)
+		blocked(g, 1, -1, "Far gallery", failures)
+		h.walk(g, Vector3.RIGHT, 10)
+		if g.walker.support != g.goal or not g.won: failures.append("Courtyard must complete through either clear half-roll")
 	var ending: Dictionary = bytes_to_var(var_to_bytes(g.progress_data()))
 	g.load_trial(4)
 	g.apply_progress(ending)
-	if not g.won or not g.chapter_completed or g.walker.support != g.goal:
-		failures.append("Completed chapter must resume at the destination")
+	if not g.won or not g.chapter_completed or g.walker.support != g.goal: failures.append("Completion must survive reload")
 	g.continue_exploring()
 	g.architectural = false
 	g._process(0)
-	if not g.won or g.blocks_play() or g.finish_open:
-		failures.append("Chapter arrival must allow looking back without retriggering completion")
+	if g.blocks_play() or not g.won: failures.append("Completion must allow revisiting without retriggering the panel")
+	# Changed application: get back onto the ring before withdrawing the far
+	# gallery, return the ring, restore the access, then revisit the overlook.
+	h.walk(g, Vector3.LEFT, 9)
+	if g.walker.support.name != "Inner_gallery": failures.append("Return must enter ring from the far terrace")
+	h.turn(g, 2, 1, failures)
+	h.turn(g, 1, -1, failures)
+	h.turn(g, 1, -1, failures)
+	h.turn(g, 0, -1, failures)
+	h.walk(g, Vector3.LEFT, 10)
+	if g.walker.support.name != "Underside_gallery": failures.append("Return must reach underside gallery")
+	h.walk(g, Vector3.BACK, 13.4)
+	if g.walker.support != g.start: failures.append("Whole courtyard must be reversible without undo")
 	g.show_reflection()
-	if not g.blocks_play(): failures.append("Chapter reflection must suspend exploration")
+	if not g.blocks_play(): failures.append("Reflection must suspend play")
 	g.restart()
-	if g.won or g.walker.support != g.start or not g.history.is_empty():
-		failures.append("Chapter restart must reset the whole route")
-	# Framing transitions preserve ground orientation and manual inspection.
+	if g.won or g.walker.support != g.start or not g.history.is_empty(): failures.append("Restart must restore arrival and configurations")
+	# Exhaustive contact audit, including arrangements that may be blocked.
+	var initial: Dictionary = g.snapshot()
+	var access: SurfacePiece = g.world.get_node("Access_gallery/Access_gallery_path")
+	var inner: SurfacePiece = g.world.get_node("Courtyard_ring/Inner_gallery")
+	var far: SurfacePiece = g.world.get_node("Far_gallery/Far_gallery_path")
+	for a in range(4):
+		for r in range(4):
+			for f in range(4):
+				var state: Dictionary = initial.duplicate(true)
+				state.states.assign([a, r, f])
+				g.restore(state)
+				if access.neighbours.has(inner) != (a == 0 and r == 0): failures.append("Unexpected entry connection in %s" % [state.states])
+				if inner.neighbours.has(far) != (r == 2 and f == 0): failures.append("Unexpected departure connection in %s" % [state.states])
+	g.restore(initial)
+	# One composition stays fixed as the ground frame and manual orbit move.
 	g.architectural = true
 	g.orbit_overview(Vector2(45, -12))
 	var yaw: float = g.overview_yaw
 	var elevation: float = g.overview_elevation
-	var frame: Basis = g.camera_frame
-	g.walker.place(g.world.get_node("Entrance/Bent_passage"), Vector3(1, .2, -2), Vector3.UP, Vector3.RIGHT)
-	var previous: Vector3 = g.overview.position
-	for i in range(60):
-		g.update_camera(1.0 / 60)
-		if g.overview.position.distance_to(previous) > .8: failures.append("Chapter focus transition must not jump")
-		previous = g.overview.position
-	if g.chapter_zone != 1 or g.overview_yaw != yaw or g.overview_elevation != elevation or not g.camera_frame.is_equal_approx(frame):
-		failures.append("Chapter framing must preserve the B ground frame and manual orbit")
-	if failures.is_empty(): print("CHAPTER SELF TEST PASS: connected route, three assemblies, position and transfer dependencies, backtracking, focus continuity, isolated save, reload, undo, completion, restart")
+	var focus: Vector3 = g.focus
+	h.walk(g, Vector3.FORWARD, 13.4)
+	if g.focus != focus or g.overview_yaw != yaw or g.overview_elevation != elevation: failures.append("Courtyard must retain its composition and manual orbit across the curve")
+	if g.rigs[0].tint == g.rigs[1].tint or g.rigs[1].tint == g.rigs[2].tint: failures.append("Movable assemblies must retain distinct colours")
+	if failures.is_empty(): print("CHAPTER SELF TEST PASS: courtyard route, both rolls, access/clearance dependency, remote-order counterexamples, 64 contact configurations, reversible return, save/reload/undo, preserved prototypes, completion, camera, colours")
 	return failures

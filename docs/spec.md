@@ -1,8 +1,8 @@
 # Elsewhere ? positioning prototype specification
 
-Revision 7, 30 September 2026.
+Revision 8, 30 September 2026.
 
-This specification records implemented content. [Chapter 1 / The far light](chapter-one.md) is now a connected blockout with separate persistence and assembly framing. The [game vision](game-vision.md) and [first chapter plan](first-chapter-plan.md) define the remaining human playtest and vertical-slice criteria.
+This specification records implemented content. [Chapter 1 / The far light](chapter-one.md) is now a connected blockout with three interdependent, distinctly coloured assemblies around one courtyard and separate persistence. The [game vision](game-vision.md) and [first chapter plan](first-chapter-plan.md) define the remaining human playtest and vertical-slice criteria.
 
 ## Core direction
 
@@ -11,6 +11,14 @@ The central question is **Where do I need to be before I transform the space?** 
 Impossible geometry is optional. The prototype contains a connected first chapter, The Lantern Fold and the three preserved studies using marked paths, surface-relative gravity, curved transitions and rotating structures. No portal, new lever, inventory item or milestone lock is required to complete them. The earlier impossible gallery remains available as a separate experiment, not the foundation of the new route.
 
 These studies test whether players can explain a dependency, not just reproduce a successful sequence. Their logical dependencies are implemented and mechanically checked; whether people find them engaging and understandable still needs blind playtesting.
+
+## Revised chapter and art direction
+
+The earlier sequential bridge/choice/relay chapter is replaced by a compact turning courtyard. The access gallery must be crossed before its brass cheeks are withdrawn from the ring sweep. The receiving gallery applies the same physical rule on the far side. Premature deployment is recoverable. See [the current chapter](chapter-one.md) for the route, geometry and tests.
+
+Terracotta identifies the access gallery, violet the ring and teal the far gallery. Fixed architecture is blue-grey; walking surfaces are ivory and joints brass. Colours identify assemblies, not axes. The shared foundation, open ribs and colonnade frame a meaningful void, with fully walkable terraces and a recurring light. [Art direction](art-direction.md) records the user requirements and unconfirmed setting.
+
+The revised layout uses `chapter-courtyard.save` with a layout identity guard. The former `chapter-one.save` and both prototype save files are preserved.
 
 ## Shared traversal and manipulation
 
@@ -87,7 +95,7 @@ The user's latest decision is to keep first person as the primary traversal view
 
 No camera orientation activates puzzle connections. The shared avatar silhouette remains an overview-only fallback for occlusion.
 
-Scene snapshots store the world reference frame and manual orbit fields; old camera_bias-only saves migrate to their original view. The retired A/B preference is ignored and removed on the next preference save. An exactly opposite instantaneous normal uses the previous camera-reference right axis as a deterministic fallback. Normal animated quarter-turns and curved walking transport incrementally. The optional gallery retains its calibrated original overview; these changes apply to the chapter, the three positioning studies and The Lantern Fold. Chapter focus eases between fixed assembly centres on connecting ground; both camera orientation layers remain intact. See [the camera decision and comparison history](isometric-camera-experiment.md).
+Scene snapshots store the world reference frame and manual orbit fields; old camera_bias-only saves migrate to their original view. The retired A/B preference is ignored and removed on the next preference save. An exactly opposite instantaneous normal uses the previous camera-reference right axis as a deterministic fallback. Normal animated quarter-turns and curved walking transport incrementally. The optional gallery retains its calibrated original overview; these changes apply to the chapter, the three positioning studies and The Lantern Fold. The compact courtyard keeps one overview centre across its fixed-ground question zones; both camera orientation layers remain intact. See [the camera decision and comparison history](isometric-camera-experiment.md).
 
 On ordinary platforms a fresh walking gesture uses the visible camera: W follows projected screen-up and D follows projected screen-right, including upside-down ground. Mouse look does not turn a stationary avatar; a new mouse yaw is applied before mapping walking input. A held key stays one gesture even when it meets a boundary. On the authored curve, the control frame travels with the path and survives key releases, camera orbit, pitch and view switches; S reverses along it. This lock ends with the next fresh gesture on ordinary ground. Returning from first person preserves the curve heading, but does not pin an obsolete heading on a platform.
 
@@ -118,7 +126,7 @@ The gallery is not needed for the complete puzzle or any study. See [gallery-stu
 
 This is one connected chapter blockout, one complete prototype puzzle and three preserved independent studies. It is not a finished campaign. Geometry and sound in the retained experiment are procedural; the new studies prioritize readable paths and mechanisms. No new external assets or paid addon dependency is required to play a clone. A campaign, narrative, environmental dressing and production art remain future work.
 
-- `scripts/chapter_layout.gd`, `chapter_tests.gd`: connected chapter, framing regions, separate progress, full route and recovery checks.
+- `scripts/chapter_layout.gd`, `chapter_tests.gd`: turning courtyard, physical access/clearance dependencies, separate progress, 64 contact configurations, full route and recovery checks.
 - `scripts/positioning_game.gd`: layouts, physical docking contacts, swept turns, cameras, undo and study saves.
 - `scripts/positioning_hud.gd`: study selection, questions, optional explanations and settings.
 - `scripts/complete_puzzle.gd`, `complete_puzzle_tests.gd`: The Lantern Fold layout, physical dependencies, full routes and recovery checks.

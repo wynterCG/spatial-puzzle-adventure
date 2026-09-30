@@ -4,7 +4,7 @@ Allow 15?25 minutes. Use a fresh study from Escape. Do not explain the solution 
 
 ## Connected chapter first
 
-For the next milestone, use **Chapter 1 / The far light** before exposing players to the isolated studies. Follow the [chapter observation protocol](first-chapter-plan.md#playtest-and-decision-record). Record whether the final step-off discovery transfers from the earlier positional choice, whether framing changes help orientation, whether the narrow central landing reads as a path, and whether the destination is recognized from below. The blockout is playable; these outcomes are not yet validated.
+Use **Chapter 1 / The far light** before the isolated studies. Follow the [courtyard observation protocol](first-chapter-plan.md#playtest-and-decision-record). Check the three assembly colours, architecture in both views, visible clearance obstruction, position before withdrawal, far-gallery ordering, recovery and landmark recognition. Ask for causal explanations before revealing the solution. These human outcomes are not yet validated.
 
 ## Complete puzzle - The Lantern Fold
 

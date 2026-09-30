@@ -1,99 +1,116 @@
 extends RefCounted
-## Connected blockout. Zone metadata controls framing and hints, never links.
+## A turning cloister: access, clearance and departure share one courtyard.
 const HINTS := [
-	["The marked curve is a path onto different ground.", "The small bridge carries its walking surface with you.", "Follow the curve, board the bridge underneath, then turn it twice. Cross the fixed bent passage."],
-	["Compare the two paths with the next landing.", "The upper path ends early even when the carrier is aligned.", "Use the fixed curve to reach the long underside path. Ride it through two turns, then cross to the next carrier."],
-	["Can the path you are riding reach the final passage?", "The fixed landing stays in place while the carrier changes.", "Ride the first path one turn. Step onto the fixed landing, turn the empty carrier once more, then follow the curve onto its other path. Walk inward and follow the quiet passage to the light."]
+	["The outer gallery continues beneath the arrival terrace.", "The folded access gallery can meet the underside landing.", "Follow the curve underneath. Lower the access gallery, then walk all the way onto the ring."],
+	["What changed about the gallery after you crossed it?", "The brass cheeks at its end occupy the ring's turning space.", "Stand on the ring, fold the access gallery away, then turn the ring twice. The far gallery can then complete your departure."],
+	["The far gallery has the same kind of joint as the first.", "An open connection also occupies the ring's turning clearance.", "Unfold the far gallery while standing on the ring, and cross to the light. To return, get back on the ring before withdrawing that gallery."]
 ]
 
-static func group(root: Node3D, label: String) -> Node3D:
-	var node := Node3D.new()
-	node.name = label
-	root.add_child(node)
-	return node
+static func solid(g: Node3D, parent: Node3D, at: Vector3, size: Vector3, tint: String, moving := -1) -> MeshInstance3D:
+	var part := SurfacePiece.box(parent, at, size, SurfacePiece.material(Color(tint)))
+	g.obstacles.append(part)
+	if moving >= 0: g.rigs[moving].solids.append(part)
+	return part
 
-static func mark_zone(g: Node3D, first: int, zone: int) -> void:
-	for i in range(first, g.pieces.size()): g.pieces[i].set_meta("chapter_zone", zone)
+static func gallery(g: Node3D, label: String, x: float, y: float, upside: bool, state: int, tint: String) -> void:
+	var index: int = g.rigs.size()
+	var pivot: Node3D = g.rig(label, Vector3(x, y, 0), Vector3.BACK, state)
+	g.rigs[index]["tint"] = Color(tint)
+	var frame := Basis(Vector3.RIGHT, PI) if upside else Basis.IDENTITY
+	var walkway: SurfacePiece = g.slab(label.replace(" ", "_") + "_path", pivot, Vector3.ZERO, Vector3(4, .4, 1.6), Color(tint), frame)
+	g.x_ports(walkway)
+	# Real sweep obstructions outside the walking channel. Folding about Z
+	# clears the deck; rolling the ring about X meets the docking cheeks.
+	var inward := 1.0 if x < 0 else -1.0
+	for side in [-1.0, 1.0]:
+		solid(g, pivot, Vector3(inward * 1.95, 0, side * 1.35), Vector3(1.4, .3, .24), "ba9767", index)
+		solid(g, pivot, Vector3(inward * 1.3, 0, side * .97), Vector3(.2, .3, .65), "ba9767", index)
+		solid(g, walkway, Vector3(0, .25, side * .76), Vector3(4, .08, .08), tint, index)
+	solid(g, pivot, Vector3(0, 0, 0), Vector3(.45, .55, 2.3), "ba9767", index)
 
 static func build(g: Node3D) -> void:
 	var root: Node3D = g.world
-	g.world = group(root, "Entrance")
-	entrance(g)
-	var arrival: SurfacePiece = g.start
-	mark_zone(g, 0, 0)
-	# A fixed walking connection, not a scene switch or teleport.
-	var threshold: SurfacePiece = g.slab("Bent_passage", g.world, Vector3(-14, .8, 0), Vector3(4, .4, 5.6), Color("647790"))
-	threshold.walk_regions = [Rect2(-2, 1.2, 2.8, 1.6), Rect2(-.8, -2.8, 1.6, 5.6), Rect2(-.8, -2.8, 2.8, 1.6)]
-	var bounds: Array[AABB] = []
-	for region in threshold.walk_regions:
-		bounds.append(AABB(Vector3(region.position.x, -.2, region.position.y), Vector3(region.size.x, .4, region.size.y)))
-	threshold.set_solid_boxes(bounds)
-	threshold.draw_paths()
-	g.port(threshold, Vector3(-2, .2, 2))
-	g.port(threshold, Vector3(2, .2, -2))
-	threshold.set_meta("chapter_zone", 1)
-	var first: int = g.pieces.size()
-	g.world = group(root, "Choice")
-	g.build_decks(false)
-	g.rigs[1].label = "Twin paths"
-	g.goal.title = "Onward landing"
-	mark_zone(g, first, 1)
-	first = g.pieces.size()
-	g.world = group(root, "Transfer")
-	g.world.transform = Transform3D(Basis(Vector3.UP, PI), Vector3(24, -2, 2))
-	g.build_landing(false)
-	g.rigs[2].label = "Relay"
-	g.goal.title = "Quiet passage entrance"
-	mark_zone(g, first, 2)
-	# Exit through the side of the central landing onto a fixed underside path.
-	g.world = root
-	var passage: SurfacePiece = g.slab("Quiet_passage", root, Vector3(28.5, -4.8, 2), Vector3(7, .4, 1.6), Color("647790"), Basis(Vector3.RIGHT, PI))
-	g.x_ports(passage)
-	passage.set_meta("chapter_zone", 2)
-	g.goal = g.slab("Far_light", root, Vector3(35, -4.8, 2), Vector3(6, .4, 3), Color("719899"), Basis(Vector3.RIGHT, PI))
-	g.x_ports(g.goal)
-	g.goal.set_meta("chapter_zone", 2)
-	g.start = arrival
-	g.finish_layout()
-	# The same landmark can be seen above the route at arrival and from below
-	# at the finish. Its mass stays outside all authored travel and turn sweeps.
-	for z in [0.3, 3.7]:
-		var column := SurfacePiece.box(root, Vector3(35, -2.5, z), Vector3(.7, 16.6, .5), SurfacePiece.material(Color("719899")))
-		g.obstacles.append(column)
-	var crown := SurfacePiece.box(root, Vector3(35, 6, 2), Vector3(1.2, .45, 4.4), SurfacePiece.material(Color("eac991"), .5))
-	g.obstacles.append(crown)
-	var lantern := SurfacePiece.box(root, Vector3(35, 5.1, 2), Vector3(.65, 1.2, .65), SurfacePiece.material(Color("ffdfa2"), 1.0))
-	g.obstacles.append(lantern)
-	var lower_crown := SurfacePiece.box(root, Vector3(35, -11, 2), Vector3(1.2, .45, 4.4), SurfacePiece.material(Color("eac991"), .5))
-	g.obstacles.append(lower_crown)
-	g.chapter_zones.assign([
-		{"focus": Vector3(-20, -1, -1), "size": 28.0, "question": "Find the far light. Which ground leads onward?", "prompt": "WASD / Mouse: explore. Tab: observe and reshape the space. H: optional hint."},
-		{"focus": Vector3(-2, -2, -1), "size": 35.0, "question": "Which path needs to carry you?", "prompt": "The next landing is visible. Compare the paths that can reach it."},
-		{"focus": Vector3(26, -1, 5), "size": 38.0, "question": "Can the path you are riding reach the light?", "prompt": "The light is closer. Find your way across the last assembly."}
-	])
-	g.focus = g.chapter_zones[0].focus
-	g.overview_size = g.chapter_zones[0].size
-	g.message = g.chapter_zones[0].prompt
-
-static func entrance(g: Node3D) -> void:
-	g.start = g.slab("Overlook", g.world, Vector3(-25, .8, -2), Vector3(6, .4, 6), Color("647790"))
-	g.start.walk_regions.assign([Rect2(-.8, -3, 1.6, 3.8)])
-	g.start.draw_paths()
-	g.port(g.start, Vector3(0, .2, -3))
-	var lower: SurfacePiece = g.slab("Lower_approach", g.world, Vector3(-25, -4.8, -2), Vector3(6, .4, 1.6), Color("647790"), Basis(Vector3.RIGHT, PI))
+	g.start = g.slab("Arrival_terrace", root, Vector3(-10, 2.8, 0), Vector3(4, .4, 4), Color("647790"))
+	g.port(g.start, Vector3(0, .2, -2))
+	g.start.set_meta("chapter_zone", 0)
+	var lower: SurfacePiece = g.slab("Underside_gallery", root, Vector3(-10, -2.8, 0), Vector3(4, .4, 1.6), Color("647790"), Basis(Vector3.RIGHT, PI))
 	g.x_ports(lower)
 	g.port(lower, Vector3(0, .2, .8))
+	lower.set_meta("chapter_zone", 1)
 	var curve = g.CurvedPath.new()
-	curve.name = "First_curve"
-	g.world.add_child(curve)
-	curve.position = Vector3(-25, 1, -5)
-	curve.tail_length = 2.2
+	curve.name = "Outer_gallery"
+	root.add_child(curve)
+	curve.position = Vector3(-10, 3, -2)
+	curve.tail_length = 1.2
 	curve.build()
+	var stone := SurfacePiece.material(Color("647790"))
+	var faded: StandardMaterial3D = stone.duplicate()
+	faded.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	faded.albedo_color.a = .12
+	curve.cutaway_materials[stone] = faded
+	for section in curve.solid_meshes:
+		section.material_override = stone
+		section.set_meta("opaque_material", stone)
 	curve.deployed = true
 	curve.set_deployment(1)
 	g.pieces.append(curve)
 	g.port(curve, curve.point_at(0), Vector3.UP)
 	g.port(curve, curve.point_at(curve.length()), Vector3.DOWN)
-	var bridge: Node3D = g.rig("Bridge", Vector3(-19, -2, 0), Vector3.RIGHT, 0)
-	var path: SurfacePiece = g.slab("Bridge_path", bridge, Vector3(0, -2.8, -2), Vector3(6, .4, 1.6), Color("b98270"), Basis(Vector3.RIGHT, PI))
+	curve.set_meta("chapter_zone", 0)
+	gallery(g, "Access gallery", -6, -2.8, true, 1, "bc755e")
+	var ring: Node3D = g.rig("Courtyard ring", Vector3.ZERO, Vector3.RIGHT, 0)
+	g.rigs[1]["tint"] = Color("9580b8")
+	var path: SurfacePiece = g.slab("Inner_gallery", ring, Vector3(0, -2.8, 0), Vector3(8, .4, 1.6), Color("9580b8"), Basis(Vector3.RIGHT, PI))
 	g.x_ports(path)
+	for side in [-1.0, 1.0]:
+		solid(g, path, Vector3(0, .25, side * .76), Vector3(8, .08, .08), "9580b8", 1)
+	# Arch openings coincide with the passenger passage and head clearance.
+	for x in [-2.8, 2.8]:
+		for arc in [0, 1]:
+			for segment in range(12):
+				var angle := deg_to_rad(35.0 + (segment + .5) * 110.0 / 12.0 + arc * 180.0)
+				var rib := solid(g, ring, Vector3(x, 3.6 * cos(angle), 3.6 * sin(angle)), Vector3(.3, .3, .61), "9580b8", 1)
+				rib.rotation.x = angle
+	for z in [-3.6, 3.6]:
+		solid(g, ring, Vector3(0, 0, z), Vector3(5.9, .3, .3), "9580b8", 1)
+	for x in [-2.8, 2.8]:
+		for side in [-1.0, 1.0]:
+			solid(g, ring, Vector3(x, -2.85, side * 1.5), Vector3(.3, .22, 1.5), "ba9767", 1)
+	gallery(g, "Far gallery", 6, 2.8, false, 1, "4b9e9c")
+	g.goal = g.slab("Light_terrace", root, Vector3(10, 2.8, 0), Vector3(4, .4, 3), Color("647790"))
+	g.x_ports(g.goal)
+	g.goal.set_meta("chapter_zone", 2)
+	# One open foundation frames the void. Its piers sit outside the sweeps.
+	var architecture := Node3D.new()
+	architecture.name = "Courtyard_foundation"
+	root.add_child(architecture)
+	for x in [-12.6, 12.6]:
+		# Deep end piers frame a window instead of hiding the terraces when
+		# B transports the overview beneath the building.
+		for z in [-4.9, 4.9]:
+			solid(g, architecture, Vector3(x, -1, z), Vector3(.7, 9, 2.2), "414d64")
+		for y in [-5.5, 3.5]:
+			solid(g, architecture, Vector3(x, y, 0), Vector3(.7, .55, 12), "414d64")
+	for z in [-6.2, 6.2]:
+		solid(g, architecture, Vector3(0, -5.8, z), Vector3(25.9, .65, .7), "414d64")
+		for x in [-10.5, 10.5]:
+			solid(g, architecture, Vector3(x, -1, z), Vector3(.5, 9.5, .5), "647790")
+		if z > 0:
+			solid(g, architecture, Vector3(0, 4, z), Vector3(21.5, .45, .55), "647790")
+			for x in [-4.8, 4.8]:
+				solid(g, architecture, Vector3(x, -1, z), Vector3(.45, 9.5, .45), "647790")
+	for z in [-1.9, 1.9]:
+		solid(g, root, Vector3(10.8, 1, z), Vector3(.35, 10, .35), "647790")
+	for y in [-4, 6]:
+		solid(g, root, Vector3(10.8, y, 0), Vector3(.5, .35, 4.1), "ba9767")
+	var light := SurfacePiece.box(root, Vector3(10.8, 5.45, 0), Vector3(.4, .65, .4), SurfacePiece.material(Color("ffdfa2"), 1.0))
+	g.obstacles.append(light)
+	g.finish_layout()
+	g.chapter_zones.assign([
+		{"focus": Vector3(0, -.5, 0), "size": 35.0, "rig": 0, "question": "The light is across the courtyard. How do you enter?", "prompt": "WASD / Mouse: explore. Tab: observe and reshape the space. H: optional hint."},
+		{"focus": Vector3(0, -.5, 0), "size": 35.0, "rig": 0, "question": "When does a connection become an obstruction?", "prompt": "Explore the gallery beneath the terrace. The ring and both galleries can be moved from here."},
+		{"focus": Vector3(0, -.5, 0), "size": 35.0, "rig": 2, "question": "What would you need to change to make the return journey?", "prompt": "The same light, across the same courtyard. Look back at the gallery you crossed."}
+	])
+	g.focus = g.chapter_zones[0].focus
+	g.overview_size = g.chapter_zones[0].size
+	g.message = g.chapter_zones[0].prompt

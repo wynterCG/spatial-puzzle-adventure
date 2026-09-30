@@ -198,10 +198,14 @@ func refresh() -> void:
 	question.text = game.chapter_zones[game.chapter_zone].question if game.trial == 4 else game.QUESTIONS[game.trial]
 	status.text = game.connection_text()
 	selected_label.text = game.rigs[game.selected].label
+	selected_label.add_theme_color_override("font_color", game.rigs[game.selected].get("tint", Color("e4dfd6")))
 	for i in range(selectors.size()):
 		selectors[i].visible = i < game.rigs.size()
 		if i < game.rigs.size():
 			selectors[i].text = str(i + 1) + "  " + game.rigs[i].label
+			var tint: Color = game.rigs[i].get("tint", Color("e4dfd6"))
+			selectors[i].add_theme_color_override("font_color", tint.lightened(.2))
+			selectors[i].add_theme_color_override("font_hover_color", tint.lightened(.4))
 	sidebar.anchor_top = 0.0 if game.trial == 4 else 1.0
 	sidebar.anchor_bottom = sidebar.anchor_top
 	sidebar.offset_top = 160 if game.trial == 4 else -306

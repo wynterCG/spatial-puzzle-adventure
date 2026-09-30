@@ -2,7 +2,7 @@
 
 **Where do I need to be before I transform the space?**
 
-**Chapter 1 / The far light** is now a playable blockout: one continuous journey through an introductory bridge, a positional choice and an independent transfer puzzle, ending at the light seen from the start. It uses first person and isometric camera B. [Chapter details](docs/chapter-one.md).
+**Chapter 1 / The far light** is now a playable blockout: a compact turning courtyard where the gallery used to enter becomes the obstruction that must be withdrawn. Three distinctly coloured assemblies share one architectural space, ending at the light seen from the start. It uses first person and isometric camera B. [Chapter details](docs/chapter-one.md).
 
 The next step is human playtesting before vertical-slice production. The [game vision](docs/game-vision.md) and [chapter plan](docs/first-chapter-plan.md) define what to observe.
 
@@ -33,10 +33,11 @@ First person is the default traversal view, with movement and look following the
 
 Isometric view follows changes in the ground direction, the behavior selected after the A/B playtest. A horizontal turntable carries the character without orbiting the camera; tilts and curved ground carry the camera with them. Manual orbit is separate, with bounded elevation and zoom; Tab preserves the chosen view. [Camera decision and comparison history](docs/isometric-camera-experiment.md).
 
-![Chapter 1 relay and final destination](docs/chapter-relay.png)
+![Chapter 1 turning courtyard](docs/chapter-courtyard.png)
 
 - [Complete puzzle layout and solution](docs/lantern-fold.md)
 
+- [Art and level-design direction](docs/art-direction.md)
 - [Current specification](docs/spec.md)
 - [Development guide](docs/skill.md)
 - [Verification and visual evidence](docs/validation.md)
