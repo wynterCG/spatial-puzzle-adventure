@@ -7,6 +7,11 @@ var task: Label
 var chapter_title: Label
 var inspection_button: Button
 var selection: Label
+var connection: Label
+var guide: PanelContainer
+var guide_title: Label
+var guide_body: Label
+var contextual_guidance := true
 var status: Label
 var toast: Label
 var controls: Label
@@ -52,14 +57,32 @@ func _ready() -> void:
 	chapter_title = label("01   /   THE OTHER GROUND", 13, muted)
 	chapter.add_child(chapter_title)
 	task = label("", 19)
+	task.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	chapter.add_child(task)
 	status = label("", 13, muted)
 	chapter.add_child(status)
+	guide = panel(Vector2.ZERO, Vector2(294, 0))
+	guide.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
+	guide.offset_left = -338
+	guide.offset_right = -44
+	guide.offset_top = 156
+	guide.offset_bottom = 285
+	guide.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var guide_column := VBoxContainer.new()
+	guide_column.add_theme_constant_override("separation", 9)
+	guide_column.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	guide.add_child(guide_column)
+	guide_title = label("", 16, Color("e2bd87"))
+	guide_title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	guide_column.add_child(guide_title)
+	guide_body = label("", 15, cream)
+	guide_body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	guide_column.add_child(guide_body)
 	sidebar = panel(Vector2(44, 590), Vector2(306, 190))
 	sidebar.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT)
 	sidebar.offset_left = 44
 	sidebar.offset_right = 350
-	sidebar.offset_top = -330
+	sidebar.offset_top = -420
 	sidebar.offset_bottom = -96
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation", 12)
@@ -67,6 +90,9 @@ func _ready() -> void:
 	column.add_child(label("RECONFIGURE", 12, muted))
 	selection = label("", 20)
 	column.add_child(selection)
+	connection = label("", 13, muted)
+	connection.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	column.add_child(connection)
 	var selector := HBoxContainer.new()
 	selector.add_theme_constant_override("separation", 8)
 	column.add_child(selector)
@@ -169,6 +195,12 @@ func build_menu() -> void:
 	horizon.text = "Keep world horizon level (optional)"
 	horizon.toggled.connect(func(value): game.walker.keep_world_horizon = value; game.walker.sync_pose(1.0); save_settings())
 	column.add_child(horizon)
+	var guidance_toggle := CheckButton.new()
+	guidance_toggle.name = "ContextualGuidance"
+	guidance_toggle.text = "Show contextual guidance"
+	guidance_toggle.button_pressed = contextual_guidance
+	guidance_toggle.toggled.connect(func(value): contextual_guidance = value; save_settings())
+	column.add_child(guidance_toggle)
 	column.add_child(label("Third-person camera distance", 15, muted))
 	var distance := HSlider.new()
 	distance.name = "CameraDistance"
@@ -231,8 +263,20 @@ func refresh() -> void:
 	controls.get_parent().visible = not game.paused and not game.won
 	crosshair.visible = not game.architectural and not game.walker.third_person and not game.paused and not game.won
 	selection.text = ("The Passenger  ·  " + ("A" if game.carrier.state % 2 == 0 else "B")) if game.selected == 0 else ("The Distant Arch  ·  " + ("CONNECTED" if game.arch_state == 0 else "UNALIGNED"))
+	connection.text = game.carrier_connection_text() if game.selected == 0 else ("Connections settle after the turn." if game.busy else ("The distant opening is joined." if game.arch_state == 0 else "The distant opening is apart."))
+	var current_guide: Dictionary = game.guidance()
+	guide_title.text = current_guide.title
+	guide_body.text = current_guide.text
+	guide.visible = contextual_guidance and not game.paused and not game.won
 	chapter_title.text = "03   /   THE DISTANT ARCH" if game.reached_court else ("02   /   THE PASSENGER" if game.boarded else "01   /   THE OTHER GROUND")
-	task.text = "Reach the light" if game.crossed else ("Connect the distant arch" if game.reached_court else ("Travel with the carrier" if game.boarded else ("Board from the lower causeway" if game.found_underside else "Discover the other ground")))
+	if game.walker.support == game.destination:
+		task.text = "Reach the light"
+	elif game.walker.support == game.courtyard:
+		task.text = "Connect the distant arch" if game.walker.normal == Vector3.UP else "Find the arch above"
+	elif game.walker.support == game.carrier:
+		task.text = "Reach the violet courtyard" if game.carrier.state % 2 == 1 else "Travel with the carrier"
+	else:
+		task.text = "Return to the carrier" if game.boarded else ("Board from the lower causeway" if game.found_underside else "Discover the other ground")
 	var face: String = "underside" if game.walker.normal.y < -0.5 else ("top" if game.walker.normal.y > 0.5 else "side")
 	status.text = "GROUND  /  " + game.walker.support.title + " · " + face + ("  ·  transforming" if game.busy else "")
 	inspection_button.text = game.key_name("inspect") + ("  Inspect upper faces" if game.inspect_below else "  Inspect underside")
@@ -285,6 +329,7 @@ func save_settings() -> void:
 	settings.set_value("comfort", "third_person", game.walker.third_person)
 	settings.set_value("comfort", "camera_distance", game.walker.camera_distance)
 	settings.set_value("comfort", "keep_world_horizon", game.walker.keep_world_horizon)
+	settings.set_value("interface", "contextual_guidance", contextual_guidance)
 	for action in game.input_bindings:
 		settings.set_value("keys", action, game.input_bindings[action])
 	settings.save("user://settings.cfg")
@@ -298,6 +343,8 @@ func load_settings() -> void:
 	game.walker.third_person = settings.get_value("comfort", "third_person", true)
 	game.walker.camera_distance = clampf(settings.get_value("comfort", "camera_distance", 5.5), 3.0, 8.0)
 	game.walker.keep_world_horizon = settings.get_value("comfort", "keep_world_horizon", false)
+	contextual_guidance = settings.get_value("interface", "contextual_guidance", true)
+	menu.find_child("ContextualGuidance", true, false).set_pressed_no_signal(contextual_guidance)
 	menu.find_child("WorldHorizon", true, false).set_pressed_no_signal(game.walker.keep_world_horizon)
 	menu.find_child("CameraMode", true, false).select(0 if game.walker.third_person else 1)
 	menu.find_child("CameraDistance", true, false).set_value_no_signal(game.walker.camera_distance)

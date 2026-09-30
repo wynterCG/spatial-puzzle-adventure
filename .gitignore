@@ -1,4 +1,6 @@
 .godot/
+# Documentation captures are not game textures.
+/docs/*.import
 build/
 *.log
 

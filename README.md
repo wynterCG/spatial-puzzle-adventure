@@ -8,10 +8,13 @@ Open **project.godot** in Godot 4.6 and press **F5**. Starts in architectural vi
 
 Begin with **The Other Ground**: walk around an exposed arrival edge and discover the underside causeway. Board the carrier from below before turning it. Reach the violet courtyard, wrap back onto its top, align the arch, and walk through to the distant light. Every exposed face of the main blocks is walkable; solid internal joins cannot be walked through.
 
+Paired warm inlays wrap around the first exposed edge. A contextual card explains the current interaction, while the carrier panel reports its connection and whether you are aboard. Escape → **Show contextual guidance** hides the card if you prefer to explore independently. Hints and prompts follow your current position, including when you backtrack.
+
 ![The Other Ground, inspected from below](docs/other-ground-overview.png)
 
 - [Game specification and full feature status](docs/spec.md)
 - [Project development guide / skill.md](docs/skill.md)
+- [Ten-minute comfort and clarity playtest](docs/playtest.md)
 - [Unabridged source concept](docs/original-concept.md)
 
 Gameplay uses procedural geometry and sound; no external assets or addons are required to run a fresh clone. This is one compact courtyard prototype, not the full proposed campaign.

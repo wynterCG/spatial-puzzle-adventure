@@ -34,6 +34,7 @@ var crossed := false
 var history: Array[Dictionary] = []
 var checkpoint: Dictionary
 var hint_level := 0
+var hint_context := ""
 var message := "The way across begins on another face."
 var message_time := 8.0
 var rotation_tween: Tween
@@ -191,6 +192,15 @@ func build_world() -> void:
 func build_other_ground() -> void:
 	var warm := Piece.material(Color("e2b778"), 0.45)
 	var stone := Piece.material(Color("9aa7b8"))
+	# One recognizable threshold wraps over the exposed edge. It teaches
+	# continuity locally, without drawing the whole route through the puzzle.
+	for x in [-1.65, -0.35]:
+		Piece.box(arrival, Vector3(x, 3.025, 3.0), Vector3(0.09, 0.025, 2.0), warm)
+		Piece.box(arrival, Vector3(x, 0, 4.025), Vector3(0.09, 6.0, 0.025), warm)
+		Piece.box(arrival, Vector3(x, -3.025, 3.0), Vector3(0.09, 0.025, 2.0), warm)
+	# Crossbars identify the same threshold from either side of gravity.
+	for y in [-3.025, 3.025]:
+		Piece.box(arrival, Vector3(-1, y, 2.0), Vector3(1.39, 0.025, 0.09), warm)
 	# Small wall recesses hint that a vertical face is inhabitable.
 	for x in [-2.0, 1.0]:
 		Piece.box(arrival, Vector3(x, 0.0, 4.018), Vector3(0.65, 1.3, 0.025), stone)
@@ -577,17 +587,68 @@ func notify(text: String) -> void:
 	message = text
 	message_time = 7.0
 
+func carrier_connection_text() -> String:
+	if busy:
+		return "Connections settle after the turn."
+	var connection := "Causeway joined · courtyard apart" if carrier.state % 2 == 0 else "Courtyard joined · causeway apart"
+	return connection + ("\nYou are aboard." if walker.support == carrier else "\nYou are off the carrier.")
+
+func guidance() -> Dictionary:
+	# Derive prompts from the current pose/configuration, not sticky milestones:
+	# backtracking, undo and recovery must give relevant advice immediately.
+	var view := key_name("view")
+	var turn := key_name("rotate_left") + " / " + key_name("rotate_right")
+	if busy:
+		return {"id": "settling", "title": "Let it settle", "text": "Your feet stay attached while the structure moves."}
+	if walker.support == destination:
+		return {"id": "light", "title": "The last few steps", "text": "Approach the warm light on the upper face."}
+	if walker.support == courtyard:
+		if walker.normal != Vector3.UP:
+			return {"id": "courtyard_edge", "title": "The arch is above", "text": "Keep walking around an exposed courtyard edge to reach its upper face."}
+		if arch_state == 0:
+			return {"id": "passage", "title": "An opening, not a picture", "text": (view + "  Enter the world.\n" if architectural else "") + "Walk through the connected arch toward the distant light."}
+		if walker.foot.distance_to(Vector3(0, 1, -1.6)) < 2.5:
+			return {"id": "arch_clear", "title": "Give the arch room", "text": (view + "  Enter the world.\n" if architectural else "") + "Step away from the arch before turning it."}
+		return {"id": "arch", "title": "Two places, one opening", "text": "2  Select the arch.\n" + turn + "  Try an alignment." if architectural else view + "  Inspect the arch from outside."}
+	if walker.support == carrier:
+		if carrier.state % 2 == 1:
+			return {"id": "disembark", "title": "A new neighbour", "text": (view + "  Enter the world.\n" if architectural else "") + "The violet courtyard now meets the carrier. Walk onto its adjoining face."}
+		return {"id": "passenger", "title": "Take your ground with you", "text": "1  Select the carrier.\n" + turn + "  Turn while aboard." if architectural else view + "  Open architectural view while standing here."}
+	if carrier.state % 2 == 1:
+		return {"id": "recall", "title": "The carrier is turned away", "text": "1  Select the carrier.\n" + turn + "  Rejoin the causeway." if architectural else view + "  Inspect the gap and turn the carrier back toward the causeway."}
+	if walker.support == causeway or walker.normal == Vector3.DOWN:
+		return {"id": "causeway", "title": "Look for the warm inlays", "text": (view + "  Enter the world.\n" if architectural else "") + "The narrow lower causeway leads to the terracotta carrier."}
+	if walker.normal != Vector3.UP:
+		return {"id": "wall", "title": "This wall is ground", "text": "Keep walking around the next exposed edge. Your feet and camera follow the surface."}
+	return {"id": "threshold", "title": "Look beyond the edge", "text": view + "  Enter the world.\nThe paired warm inlays continue over the edge." if architectural else "Walk between the paired warm inlays and keep going over the edge. No jump is needed."}
+
 func show_hint() -> void:
 	var hints: Array[String]
-	if not boarded:
-		if not found_underside:
+	if busy:
+		notify("Let the structure settle before planning the next step.")
+		return
+	var context: String = guidance().id
+	if context != hint_context:
+		hint_level = 0
+		hint_context = context
+	if walker.support == destination:
+		hints = ["The light is on this island.", "Every exposed face is still ground. Round an edge if you are underneath.", "On the upper face, approach the warm light at the far end."]
+	elif walker.support == arrival or walker.support == causeway:
+		if carrier.state % 2 == 1:
+			hints = ["The carrier no longer meets the causeway.", "Architectural view can bring it back, even while you are elsewhere.", "Press " + key_name("view") + " for architectural view if needed. Select 1, then give the carrier one quarter-turn to state A."]
+		elif walker.support == arrival and walker.normal != Vector3.DOWN:
 			hints = ["The causeway has a surface in common with your island. It is not the top.", "In architectural view, press " + key_name("inspect") + " to inspect the lower faces. Walking continues around exposed edges.", "Walk around the near or far edge of the arrival block, down its wall, then onto the underside. Turn toward the narrow causeway."]
 		else:
 			hints = ["The lower faces share one continuous plane.", "The terracotta carrier must point toward the causeway before you can board.", "On the underside, walk along the narrow causeway toward the carrier in state A. Board before rotating."]
-	elif not reached_court:
-		hints = ["Your position is part of the arrangement.", "Stand on the carrier, then give it a quarter-turn.", "After rotating, walk toward the violet courtyard. On a side face, round an edge to reach the top."]
+	elif walker.support == carrier:
+		if carrier.state % 2 == 0:
+			hints = ["Your position is part of the arrangement.", "Stand on the carrier, then give it a quarter-turn.", "Open architectural view with " + key_name("view") + ", select 1, then turn once with " + key_name("rotate_right") + ". Your ground travels with you."]
+		else:
+			hints = ["Your new neighbour is the violet courtyard.", "The carrier meets a matching face of the courtyard at one end.", "Enter the world and walk along the carrier toward the courtyard. If you arrive underneath, continue around an exposed courtyard edge to its top."]
+	elif walker.normal != Vector3.UP:
+		hints = ["The arch is on another face of this courtyard.", "The same edge-walking rule still applies here.", "Walk toward either exposed side of the violet courtyard. Continue over its edge, along the wall and around onto the upper face."]
 	else:
-		hints = ["The small arch and the distant tower share an opening.", "Select the arch in architectural view. An accepted alignment will stay connected.", "Press 2 to select the arch, then Q until it reads CONNECTED. Return inside and walk through it toward the light."]
+		hints = ["The small arch and the distant tower share an opening.", "Select the arch in architectural view. An accepted alignment will stay connected.", "Press 2 to select the arch, then " + key_name("rotate_left") + " until it reads CONNECTED. Return inside and walk through it toward the light."]
 	notify(hints[mini(hint_level, 2)])
 	hint_level += 1
 
@@ -807,9 +868,92 @@ func run_self_test() -> void:
 	walker.set_third_person(true)
 	if snapshot() != before_camera_mode:
 		failures.append("Camera preference must not change puzzle state")
+	run_opening_checks(failures)
 	if failures.is_empty():
-		print("SELF TEST PASS: puzzle route, recovery, passage, corners, transported camera, edge framing, controls, obstruction, camera modes")
+		print("SELF TEST PASS: puzzle route, recovery, passage, corners, transported camera, edge framing, controls, obstruction, camera modes, opening guidance, camera distance/rotation matrix")
 	else:
 		for failure in failures:
 			push_error("SELF TEST FAIL: " + failure)
 	get_tree().quit(0 if failures.is_empty() else 1)
+
+func run_opening_checks(failures: Array[String]) -> void:
+	new_journey()
+	if guidance().id != "threshold":
+		failures.append("Opening should introduce the wrapped threshold")
+	var initial := snapshot()
+	carrier.state = 1
+	carrier.rotation.y = PI / 2
+	if guidance().id != "recall":
+		failures.append("A disconnected carrier needs a return prompt")
+	walker.place(carrier, Vector3(0, -1, 0), Vector3.DOWN, Vector3.RIGHT)
+	if guidance().id != "disembark" or not carrier_connection_text().contains("aboard"):
+		failures.append("Connection feedback must use actual occupancy")
+	busy = true
+	if guidance().id != "settling" or carrier_connection_text().contains("joined"):
+		failures.append("Guidance must not advertise a mid-turn connection")
+	busy = false
+	restore(initial)
+	# Sticky discovery flags must not override the player's current situation.
+	boarded = true
+	reached_court = true
+	if guidance().id != "threshold":
+		failures.append("Backtracking guidance must follow current pose")
+	show_hint()
+	if not message.contains("causeway"):
+		failures.append("Backtracking hints must describe the current route")
+	walker.place(courtyard, Vector3(0, -1, 0), Vector3.DOWN, Vector3.FORWARD)
+	if guidance().id != "courtyard_edge":
+		failures.append("Courtyard underside must lead back to the arch")
+	show_hint()
+	if hint_level != 1 or not message.contains("another face"):
+		failures.append("A new hint context must restart gentle escalation")
+	walker.place(courtyard, Vector3(0, 1, 3), Vector3.UP, Vector3.FORWARD)
+	var old_turn_key: int = input_bindings.rotate_left
+	bind_key("rotate_left", KEY_J)
+	if not str(guidance().text).contains("J"):
+		failures.append("Guidance must use remapped controls")
+	bind_key("rotate_left", old_turn_key)
+	arch_state = 0
+	if guidance().id != "passage":
+		failures.append("An aligned arch must invite traversal")
+	restore(initial)
+	# Exercise the full follow-distance range at diagonal corners and while the
+	# occupied carrier rotates. Assert target framing and exclusion from solids.
+	for distance in [3.0, 5.5, 8.0]:
+		for instant in [false, true]:
+			walker.camera_distance = distance
+			walker.reduced_motion = instant
+			walker.keep_world_horizon = false
+			walker.place(destination, Vector3(3.95, 1, 4.95), Vector3.UP, Vector3.BACK)
+			walker.orbit_yaw = -0.31
+			walker.sync_pose(1)
+			for frame in range(240):
+				walker.align_movement_to_camera(Vector2(0.65, -1).normalized())
+				walker.walk(Vector2(0.65, -1).normalized(), 1.0 / 60.0)
+				walker.sync_pose(1.0 / 60.0)
+				if not follow_view_is_clear():
+					failures.append("Diagonal camera framing/clearance at distance %s, reduced motion %s, frame %s" % [distance, instant, frame])
+					break
+			carrier.rotation.y = 0
+			walker.place(carrier, Vector3(0, 0, 1.5), Vector3.BACK, Vector3.RIGHT)
+			var passenger := walker.snapshot()
+			for frame in range(1, 61):
+				carrier.rotation.y = PI * 0.5 * float(frame) / 60.0
+				walker.sync_pose(1.0 / 60.0)
+				if not follow_view_is_clear() or walker.snapshot() != passenger:
+					failures.append("Occupied rotation camera/attachment at distance %s, reduced motion %s" % [distance, instant])
+					break
+	walker.camera_distance = 5.5
+	walker.reduced_motion = false
+	restore(initial)
+
+func follow_view_is_clear() -> bool:
+	var pivot := walker.avatar.global_position + walker.avatar.global_basis.y * 0.85
+	var target := walker.camera.to_local(pivot)
+	if not walker.camera.global_transform.is_finite() or target.z > -0.5 or absf(target.x) > 0.05 or absf(target.y) > 0.05:
+		return false
+	for piece in pieces:
+		var local := piece.to_local(walker.camera.global_position).abs()
+		if local.x < piece.half.x + 0.07 and local.y < piece.half.y + 0.07 and local.z < piece.half.z + 0.07:
+			return false
+	return true

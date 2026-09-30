@@ -29,6 +29,8 @@ Verified on 30 September 2026 with Godot 4.6.1, Compatibility/OpenGL, and the us
 - Switching first/third person preserves puzzle state; first person hides the avatar from its own view.
 - A 320-frame angled-orbit regression crosses at least three faces while retaining target centering and camera clearance, then checks the settled orientation.
 - Recovery restores the orbit heading/yaw/elevation; optional world-horizon mode remains world-upright.
+- A follow-distance matrix (3, 5.5 and 8 units, reduced motion on/off) checks diagonal corner traversal for 240 frames per combination, followed by 60-frame occupied side-face rotations. Checks cover finite transforms, centered targets, exclusion from solids, and unchanged support-local passenger snapshots during rotation.
+- Opening guidance handles a disconnected carrier, actual occupancy, settling, backtracking despite completed milestones, courtyard underside arrival, remapped controls and an aligned arch.
 
 ## Live MCP Pro checks
 
@@ -51,6 +53,18 @@ For the third-person revision, replayed the opening with camera-relative held mo
 For the surface-change bug, reproduced the reported right-edge approach with yaw -0.21285 and elevation 0.527275 through MCP Pro. The updated camera follows the new face and frames the character upright, instead of retaining the world-fixed orbit. Earlier third-person screenshots below record the previous camera iteration; `camera-edge-fix.png` shows the corrected behaviour.
 
 ## Visual evidence
+
+### Opening clarity pass
+
+Replayed arrival → wall → underside → causeway → carrier → occupied quarter-turn → courtyard underside → courtyard top → aligned arch → destination light in the live game through MCP Pro. Movement used camera-relative held input and deliberate orbit turns; the carrier and arch used their actual animation functions. The contextual states changed at the expected locations. The carrier reported settling during its turn, then the new joined neighbour and actual occupancy afterward. Completion was reached. Checked the persistent guidance preference by changing its checkbox and reloading settings.
+
+The original runtime pose, checkpoint, undo history and persisted files were backed up for the walkthrough and restored afterward. This is an instrumented walkthrough, not a first-time human playtest. Follow [playtest.md](playtest.md) for comfort and discovery feedback.
+
+- [Opening threshold and contextual prompt](opening-threshold.png)
+- [The same landmark after walking onto the wall](opening-wall-guidance.png)
+- [Boarded carrier, connection status and rotation prompt](opening-passenger-guidance.png)
+
+### Earlier milestones
 
 - [Architectural overview](prototype-preview.png)
 - [First-person passage](passage-preview.png)

@@ -88,6 +88,9 @@ F toggles upper/lower inspection without modifying puzzle state. Tab chooses the
 - Large abstract but inhabitable forms, deep blue/violet atmosphere, ivory light, selective warm accents. No RGB axis legend.
 - Prioritize landmarks that remain recognizable after rotation; add bevels, surface detail, translucent elements and metal only where they improve scale/readability.
 - Keep first-person UI quiet; overview exposes only selection, valid movement and essential prompts. No default solution line.
+- The opening's paired warm threshold is a local architectural landmark wrapping across top, wall and underside. Keep it decorative; do not alter route geometry to improve a cue.
+- Derive contextual guidance and escalating hints from actual support/face/configuration. Historical discovery flags must not give stale instructions after backtracking or undo. Use current key bindings in prompts. Keep the guidance card optional and persist that preference separately from checkpoints.
+- Connection feedback must distinguish actual carrier occupancy and settled connections. Never advertise a usable joint while a transformation is busy.
 - Sound reinforces footsteps, joints and settling; visual feedback must carry all essential information too.
 - Retain adjustable sensitivity, reduced motion, checkpoint recovery, undo and escalating hints. Test comfort with players rather than equating smooth animation with comfort.
 - No jumping, combat, time pressure, lives, inventory or unrelated mechanics by default.
@@ -103,6 +106,8 @@ Run this integration smoke test after changing traversal, adjacency, snapshots o
 It walks the opening from the real spawn, probes top/side/underside entry boundaries, tests covered solid joins, the first boarding checkpoint, underside carrier travel, courtyard reorientation, undo after disembarking, camera-state independence, gap isolation and impossible crossing. Follow-camera checks cover upright framing and a trailing arm on six faces, a 320-frame angled-orbit traversal across multiple faces, target centering and clearance throughout, orbit recovery, optional world horizon, camera obstruction and mode switching. It must print `SELF TEST PASS` and exit 0. Test mode does not write player progress.
 
 Then use MCP Pro to run the game and inspect screenshots and errors. Check both modes, HUD at the target size, pause/rebind, carrier A/B, visible avatar, arch activation, destination preview, crossing and completion. Ensure no false connection appears mid-animation. Test side-face turns and corner approach diagonals when changing the walker.
+
+The integration test also exercises diagonal corner framing/solid exclusion and occupied side-face rotation at 3, 5.5 and 8 units with reduced motion on/off. Opening checks cover backtracking, disconnected carrier recovery, occupancy, settling, courtyard underside guidance, remapping and aligned-arch prompts. [playtest.md](playtest.md) separates these technical checks from the human comfort and comprehension questions still to answer.
 
 ## Scope honesty and documentation
 

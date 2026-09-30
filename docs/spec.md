@@ -106,6 +106,8 @@ Full concept: a useful underside passage on a connected arm leads across to a se
 
 **Implemented opening:** the tall arrival slab is separated from the carrier by a narrow fixed causeway. Their top heights and side widths differ; the only matching walking plane at both joins is the underside at world y=-1. Walk around an exposed near/far edge of the arrival, down its wall and underneath it. Turn toward the causeway, cross below it, and board the carrier in state A. Ribs, inset lights and wall recesses make the architecture readable without an automatic solution line.
 
+A paired warm threshold now wraps continuously over the arrival's exposed +Z edge: short top inlays, matching wall strips, and a short underside return. It supplies one recognizable local landmark across the first gravity changes. It is decorative, does not change collisions or connectivity, and does not mark the entire solution.
+
 Progress flags report discovery and update hints; they do not unlock movement. Boarding is constrained by the surface geometry and matching-plane seam rule. Collision probes prevent walking through the solid shared joins. General concave corner climbing is still outside this walker; the level must be reevaluated for alternate routes when that capability is added.
 
 The first carrier boarding saves a checkpoint and advances the chapter from The Other Ground to The Passenger. Rotating the carrier before boarding disconnects its underside from the causeway. The lower inspection view makes the contact and character visible.
@@ -165,6 +167,10 @@ The current build generates small tonal cues for footsteps, transformations, set
 
 The interface shows mode, current support, objective, selected structure and essential controls. No axis legend, automatic solution line, economy or full-screen schematic.
 
+A persistent contextual card introduces edge walking, underside discovery, the carrier's missing connection, rotation while aboard, disembarking, courtyard ascent, arch clearance/alignment, and passage traversal. Its state is derived from the current support, face, configuration and camera mode rather than completion flags, so undo, recovery and backtracking remain coherent. Control names use current bindings. The card can be hidden with **Show contextual guidance** in settings; architectural landmarks and optional H hints remain. Escalating hints likewise use the current support rather than assuming that past milestones describe the player's present location.
+
+The architectural carrier panel reports which neighbour is joined/apart and actual player occupancy. During a transformation it reports that connections are settling, never advertising a usable mid-turn connection. Courtyard underside arrival changes the objective to finding the arch above.
+
 | Action | Default |
 |---|---|
 | Walk / orbit (look in first person) | WASD / mouse |
@@ -202,6 +208,7 @@ Movement, perspective, inspection, rotation, undo, recovery and hint keys can be
 - Selectable arch with one persistent impossible passage and destination preview.
 - Undo, checkpoints, progress persistence, completion and restart.
 - Scalable HUD, click selection, hints, pause, sensitivity, partial input remapping and reduced motion.
+- Wrapped opening landmark, persistent optional contextual guidance, and settled connection/occupancy feedback. Guidance preference persists independently of progress.
 - Surface-following third-person orbit, optional world horizon, adjustable following distance, camera obstruction against traversable solids, and continuous held movement across gravity changes.
 - Procedural art and generated sound; Godot MCP Pro 1.17.1 addon enabled.
 
@@ -218,6 +225,8 @@ Can a player predict the result of a rotation? Can they identify their location 
 Concave and multi-piece inner corners (with a fresh route audit); solid arch collision; bidirectional, arbitrarily oriented paired passages; polished portal clipping and forced-perspective composition; expanded safe-sweep checks for future assemblies; fully remappable mouse and system controls; controller support; additional regions; richer environmental narrative, materials and audio; accessibility/playtest iteration.
 
 The follow camera currently checks the traversable cuboids; decorative arch trim/scenery do not yet provide camera collision. Tight geometry can force a shorter arm or a quicker correction onto the new face. Gravity turns and the portal crossing need human comfort testing at different follow distances and horizon preferences.
+
+The opening pass adds automated diagonal-corner and occupied-rotation checks at follow distances 3, 5.5 and 8, with reduced motion both off and on. These check framing, solid exclusion and local attachment; they cannot establish human comfort or whether a new player understands the route. Use [the short playtest](playtest.md) to assess those questions before extending the campaign.
 
 The success criterion is a player making a spatial prediction, testing it with a transformation and walking through the result—not camera-induced confusion.
 
