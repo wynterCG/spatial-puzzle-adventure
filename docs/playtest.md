@@ -29,7 +29,7 @@ Ask the player to identify the goal, available walking paths and the structure t
 
 ## Camera and accessibility
 
-On the isometric experiment branch, first follow the [A/B comparison procedure](isometric-camera-experiment.md#human-comparison-still-needed) with manual orbit reset. Compare the same occupied turntable and tilt in A and B before introducing right-drag inspection. Record whether the player can explain what moved, where the character ended up and which connection opened. Passing a route or camera test does not answer these questions.
+The user selected ground-direction transport (B) after the camera comparison. With manual orbit reset, test an occupied turntable and tilt: ask the player what moved, where the character ended up and which connection opened. Then introduce right-drag inspection and check that switching views preserves orientation. Record clarity and comfort for each player; the initial preference does not replace broader playtesting. [Decision and historical comparison](isometric-camera-experiment.md).
 
 Start with first person, the chosen default. Walk through a curved gravity transition, stop and restart, look around, and switch to isometric view to recover orientation. Confirm that returning to first person preserves the occupied surface and heading. Compare reduced motion if useful. Stop if uncomfortable and identify the exact contact/turn. Third-person modes are optional experiments and do not need to be included in the primary playtest.
 

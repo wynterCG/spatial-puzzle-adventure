@@ -5,48 +5,45 @@ static func run(g: Node3D) -> Array[String]:
 	var helper = preload("res://scripts/positioning_tests.gd")
 	g.walker.set_third_person(false)
 	g.walker.reduced_motion = false
-	for ground_only in [false, true]:
-		g.follow_ground_normal = ground_only
-		for study in [1, 0]:
-			g.load_trial(study)
-			helper.walk(g, Vector3.LEFT if study == 1 else Vector3.RIGHT, 6 if study == 1 else 9)
-			var foot: Vector3 = g.walker.foot
-			var heading: Vector3 = g.walker.forward
-			var support: SurfacePiece = g.walker.support
-			var turn_start: Basis = g.overview.global_basis
-			var passenger_start: Transform3D = g.walker.avatar.global_transform
-			g.architectural = true
-			g.rotate_selected(1)
-			if not g.busy:
-				failures.append("A/B fixture turn must be physically available")
-				continue
-			for sample_index in range(60):
-				if g.busy: g.tween.custom_step(1.0 / 60)
-				g.walker.sync_pose(1.0 / 60)
-				g.update_camera()
-				var up: Vector3 = support.global_basis * support.surface_frame(foot).y
-				if g.camera_frame.y.dot(up) < .9999 or not g.overview.global_transform.is_finite():
-					failures.append("Both overview modes must stay above the occupied ground")
-				if ground_only and study == 1 and not g.overview.global_basis.is_equal_approx(turn_start):
-					failures.append("B must not inherit turntable yaw at any animation sample")
-				if not g.walker.foot.is_equal_approx(foot) or not g.walker.forward.is_equal_approx(heading):
-					failures.append("The camera experiment must not change passenger-local pose")
-				if g.walker.avatar.global_position.distance_to(support.to_global(foot)) > .0001:
-					failures.append("The passenger must still follow the full carrier transform")
-			var angle := rad_to_deg(turn_start.get_rotation_quaternion().angle_to(g.overview.global_basis.get_rotation_quaternion()))
-			var expected := 0.0 if ground_only and study == 1 else 90.0
-			if absf(angle - expected) > .05: failures.append("Unexpected A/B camera rotation: %s instead of %s" % [angle, expected])
-			if g.walker.avatar.global_transform.is_equal_approx(passenger_start): failures.append("Occupied turn must actually move its passenger")
-			print("OVERVIEW A/B: mode=%s study=%s camera_degrees=%.3f" % ["B" if ground_only else "A", study + 1, angle])
-			var saved: Dictionary = g.snapshot()
-			g.restore(saved)
-			if g.snapshot() != saved: failures.append("Overview transport must survive exact save/restore")
-		g.load_trial(2)
-		var unrelated_view: Transform3D = g.overview.global_transform
-		helper.turn(g, 1, -1, failures)
-		if not g.overview.global_transform.is_equal_approx(unrelated_view): failures.append("Turning another support must not move the overview")
+	for study in [1, 0]:
+		g.load_trial(study)
+		helper.walk(g, Vector3.LEFT if study == 1 else Vector3.RIGHT, 6 if study == 1 else 9)
+		var foot: Vector3 = g.walker.foot
+		var heading: Vector3 = g.walker.forward
+		var support: SurfacePiece = g.walker.support
+		var turn_start: Basis = g.overview.global_basis
+		var passenger_start: Transform3D = g.walker.avatar.global_transform
+		g.architectural = true
+		g.rotate_selected(1)
+		if not g.busy:
+			failures.append("Overview fixture turn must be physically available")
+			continue
+		for sample_index in range(60):
+			if g.busy: g.tween.custom_step(1.0 / 60)
+			g.walker.sync_pose(1.0 / 60)
+			g.update_camera()
+			var up: Vector3 = support.global_basis * support.surface_frame(foot).y
+			if g.camera_frame.y.dot(up) < .9999 or not g.overview.global_transform.is_finite():
+				failures.append("The overview must stay above the occupied ground")
+			if study == 1 and not g.overview.global_basis.is_equal_approx(turn_start):
+				failures.append("The overview must not inherit turntable yaw at any animation sample")
+			if not g.walker.foot.is_equal_approx(foot) or not g.walker.forward.is_equal_approx(heading):
+				failures.append("The overview must not change passenger-local pose")
+			if g.walker.avatar.global_position.distance_to(support.to_global(foot)) > .0001:
+				failures.append("The passenger must still follow the full carrier transform")
+		var angle := rad_to_deg(turn_start.get_rotation_quaternion().angle_to(g.overview.global_basis.get_rotation_quaternion()))
+		var expected := 0.0 if study == 1 else 90.0
+		if absf(angle - expected) > .05: failures.append("Unexpected ground-relative camera rotation: %s instead of %s" % [angle, expected])
+		if g.walker.avatar.global_transform.is_equal_approx(passenger_start): failures.append("Occupied turn must actually move its passenger")
+		print("OVERVIEW GROUND TRANSPORT: study=%s camera_degrees=%.3f" % [study + 1, angle])
+		var saved: Dictionary = g.snapshot()
+		g.restore(saved)
+		if g.snapshot() != saved: failures.append("Overview transport must survive exact save/restore")
+	g.load_trial(2)
+	var unrelated_view: Transform3D = g.overview.global_transform
+	helper.turn(g, 1, -1, failures)
+	if not g.overview.global_transform.is_equal_approx(unrelated_view): failures.append("Turning another support must not move the overview")
 	# Look and view switches are not camera orientation input.
-	g.follow_ground_normal = true
 	g.load_trial(0)
 	var before: Transform3D = g.overview.global_transform
 	g.walker.look(Vector2(125, -50))
@@ -86,11 +83,6 @@ static func run(g: Node3D) -> Array[String]:
 	if g.walker.snapshot() != initial_player: failures.append("Overview controls must not move or turn the character")
 	var chosen: Transform3D = g.overview.global_transform
 	var chosen_size: float = g.overview.size
-	g.set_overview_mode(false)
-	g.update_camera()
-	g.set_overview_mode(true)
-	g.update_camera()
-	if not g.overview.global_transform.is_equal_approx(chosen): failures.append("Changing A/B must preserve the current chosen view")
 	g.toggle_view()
 	g._unhandled_input(motion)
 	g._unhandled_input(wheel)
@@ -122,7 +114,7 @@ static func run(g: Node3D) -> Array[String]:
 		var local_camera: Basis = g.camera_frame.inverse() * g.overview.global_basis
 		var world_camera: Basis = g.overview.global_basis
 		helper.turn(g, 0, 1, failures)
-		if study == 1 and not g.overview.global_basis.is_equal_approx(world_camera): failures.append("Turntable must preserve manual view in B")
+		if study == 1 and not g.overview.global_basis.is_equal_approx(world_camera): failures.append("Turntable must preserve manual view")
 		if not (g.camera_frame.inverse() * g.overview.global_basis).is_equal_approx(local_camera): failures.append("Tilt must carry the manual view within the transported frame")
 		g.undo()
 		if g.snapshot() != saved: failures.append("Undo must restore manual orbit, transport and passenger together")
@@ -159,6 +151,6 @@ static func run(g: Node3D) -> Array[String]:
 			failures.append("Curved traversal or its seam caused an overview heading jump")
 			break
 		previous = g.overview.global_basis
-	if failures.is_empty(): print("OVERVIEW SELF TEST PASS: A/B, attachment, look, seams, orbit, zoom, input, view switching, reset, undo, save migration")
+	if failures.is_empty(): print("OVERVIEW SELF TEST PASS: ground transport, attachment, look, seams, orbit, zoom, input, view switching, reset, undo, save migration")
 	g.load_trial(0)
 	return failures

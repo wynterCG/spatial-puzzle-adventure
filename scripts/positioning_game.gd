@@ -29,7 +29,6 @@ var history: Array[Dictionary] = []
 var initial: Dictionary
 var camera_bias := Basis.IDENTITY
 var camera_frame := Basis.IDENTITY
-var follow_ground_normal := true
 const DEFAULT_ELEVATION := 0.7559694104 # atan2(40, sqrt(30*30 + 30*30))
 var overview_yaw := 0.0
 var overview_elevation := DEFAULT_ELEVATION
@@ -331,23 +330,10 @@ func transport_ground(frame: Basis, next_up: Vector3) -> Basis:
 		return frame if cosine > 0 else (Basis(frame.x.normalized(), PI) * frame).orthonormalized()
 	return (Basis(axis.normalized(), atan2(axis.length(), cosine)) * frame).orthonormalized()
 
-func set_overview_mode(ground_only: bool) -> void:
-	if busy:
-		return
-	update_camera()
-	follow_ground_normal = ground_only
-	var ground := walker.support.global_basis * walker.support.surface_frame(walker.foot)
-	camera_bias = ground.inverse() * camera_frame
-	hud.sync_preferences()
-	hud.refresh()
-
 func update_camera() -> void:
 	var ground := walker.support.global_basis * walker.support.surface_frame(walker.foot)
-	if follow_ground_normal:
-		camera_frame = transport_ground(camera_frame, ground.y)
-		camera_bias = ground.inverse() * camera_frame
-	else:
-		camera_frame = ground * camera_bias
+	camera_frame = transport_ground(camera_frame, ground.y)
+	camera_bias = ground.inverse() * camera_frame
 	overview.size = overview_size * overview_zoom
 	var azimuth := 3.0 * PI / 4.0 + overview_yaw
 	var offset := Vector3(sin(azimuth) * cos(overview_elevation), sin(overview_elevation), cos(azimuth) * cos(overview_elevation)) * sqrt(3400.0)
@@ -610,7 +596,6 @@ func load_preferences() -> void:
 	walker.keep_world_horizon = settings.get_value("comfort", "world_aligned_camera", true)
 	walker.camera_distance = clampf(settings.get_value("comfort", "camera_distance", 5.5), 3, 8)
 	walker.sensitivity = settings.get_value("comfort", "sensitivity", 0.0022)
-	follow_ground_normal = settings.get_value("overview", "follow_ground_normal", true)
 	walker.camera_initialized = false
 	walker.sync_pose(1)
 	hud.sync_preferences()
@@ -621,7 +606,9 @@ func save_preferences() -> void:
 	for key in ["third_person", "reduced_motion", "keep_world_horizon", "camera_distance", "sensitivity"]:
 		settings.set_value("comfort", key, walker.get(key))
 	settings.set_value("comfort", "world_aligned_camera", walker.keep_world_horizon)
-	settings.set_value("overview", "follow_ground_normal", follow_ground_normal)
+	# Retire the experiment preference; old A settings must not restore A.
+	if settings.has_section_key("overview", "follow_ground_normal"):
+		settings.erase_section_key("overview", "follow_ground_normal")
 	settings.save("user://settings.cfg")
 
 func save_progress() -> void:

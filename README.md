@@ -25,7 +25,7 @@ Open **project.godot** in Godot 4.6 and press **F5**. Escape selects a study or 
 
 First person is the default traversal view, with movement and look following the occupied surface. Isometric view stays above the current ground to help you reorient and transform the architecture. The experimental third-person modes remain available in settings.
 
-This branch tests two isometric behaviors, selectable in Escape settings: **A** follows the whole supporting structure; **B** follows only changes in the ground direction. B is the experiment's default, so a horizontal turntable carries the character without orbiting the camera. Both follow tilts and curved ground. Manual orbit is separate, with bounded elevation and zoom; Tab preserves the chosen view. [Comparison and playtest instructions](docs/isometric-camera-experiment.md).
+Isometric view follows changes in the ground direction, the behavior selected after the A/B playtest. A horizontal turntable carries the character without orbiting the camera; tilts and curved ground carry the camera with them. Manual orbit is separate, with bounded elevation and zoom; Tab preserves the chosen view. [Camera decision and comparison history](docs/isometric-camera-experiment.md).
 
 ![Choose your deck](docs/study-1-decks.png)
 

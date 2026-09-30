@@ -14,7 +14,6 @@ var finish: PanelContainer
 var explanation: Label
 var reflection: Label
 var camera_choice: OptionButton
-var overview_choice: OptionButton
 var world_camera: CheckButton
 var reduced: CheckButton
 var distance: HSlider
@@ -88,12 +87,7 @@ func _ready() -> void:
 	column.add_child(label("Choose a study", 15))
 	for index in range(3):
 		column.add_child(button(str(index + 1) + "  " + game.TITLES[index], func(): game.load_trial(index); game.save_progress()))
-	column.add_child(label("Isometric camera comparison", 15))
-	overview_choice = OptionButton.new()
-	overview_choice.add_item("A - Follow the whole structure")
-	overview_choice.add_item("B - Follow the ground direction")
-	overview_choice.item_selected.connect(func(index): game.set_overview_mode(index == 1); game.save_preferences())
-	column.add_child(overview_choice)
+	column.add_child(label("Isometric camera", 15))
 	column.add_child(label("Right-drag: orbit  /  Wheel: zoom  /  Home: reset view", 14))
 	column.add_child(button("Reset isometric view", func(): game.reset_overview()))
 	column.add_child(label("Traversal camera", 15))
@@ -178,7 +172,6 @@ func button(text: String, action: Callable) -> Button:
 	return node
 
 func sync_preferences() -> void:
-	overview_choice.select(1 if game.follow_ground_normal else 0)
 	camera_choice.select(0 if game.walker.third_person else 1)
 	world_camera.set_pressed_no_signal(game.walker.keep_world_horizon)
 	reduced.set_pressed_no_signal(game.walker.reduced_motion)
@@ -190,8 +183,6 @@ func refresh() -> void:
 		return
 	title.text = "%02d  /  %s" % [game.trial + 1, game.TITLES[game.trial]]
 	mode.text = "ARCHITECT  /  arrange the space" if game.architectural else ("INHABITANT  /  third person" if game.walker.third_person else "INHABITANT  /  first person")
-	if game.architectural:
-		mode.text += "  /  B: ground direction" if game.follow_ground_normal else "  /  A: whole structure"
 	question.text = game.QUESTIONS[game.trial]
 	status.text = game.connection_text()
 	selected_label.text = game.rigs[game.selected].label
@@ -200,7 +191,6 @@ func refresh() -> void:
 		if i < game.rigs.size():
 			selectors[i].text = str(i + 1) + "  " + game.rigs[i].label
 	sidebar.visible = game.architectural and not game.paused and not game.won
-	overview_choice.disabled = game.busy
 	menu.visible = game.paused
 	if game.won and not finish.visible:
 		explanation.visible = false
