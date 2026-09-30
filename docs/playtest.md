@@ -2,6 +2,18 @@
 
 Allow 15?25 minutes. Use a fresh study from Escape. Do not explain the solution or read the specification's solution paragraphs to the player. Explain only movement, Tab, structure selection, Q/E and undo.
 
+## Complete puzzle - The Lantern Fold
+
+Select **The Lantern Fold** from Escape. Test it before the isolated studies if measuring unaided reasoning; those studies teach its component dependencies. Explain the controls, but keep H optional.
+
+- Can the player identify the lantern and distinguish the upper and longer underside paths?
+- Does a failed upper-path attempt explain the missing reach, or just feel blocked?
+- Can the player predict what docking will do to the Receiver's turning clearance?
+- After docking too early, can they withdraw, prepare and return without restarting?
+- Before revealing the completion explanation, ask: **Which actions needed to happen before docking? Which could happen in either order?**
+
+Record hints used and recovery attempts. A full solution by repeated rotations does not establish understanding. Difficulty and play time remain unvalidated.
+
 ## Before each attempt
 
 Ask the player to identify the goal, available walking paths and the structure that can move. Ask what they expect a turn to carry with it. Record their prediction before the action; do not correct it immediately.

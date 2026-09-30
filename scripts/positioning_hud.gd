@@ -11,6 +11,7 @@ var feedback: Label
 var sidebar: PanelContainer
 var menu: PanelContainer
 var finish: PanelContainer
+var finish_title: Label
 var explanation: Label
 var reflection: Label
 var camera_choice: OptionButton
@@ -36,7 +37,7 @@ func _ready() -> void:
 	root.add_child(top)
 	top.position = Vector2(38, 28)
 	top.custom_minimum_size.x = 760
-	top.add_child(label("E L S E W H E R E   /   P O S I T I O N I N G   S T U D I E S", 12))
+	top.add_child(label("E L S E W H E R E   /   S P A T I A L   P U Z Z L E S", 12))
 	title = label("", 32)
 	top.add_child(title)
 	mode = label("", 14)
@@ -48,13 +49,13 @@ func _ready() -> void:
 	column.add_child(question)
 	status = label("", 14)
 	column.add_child(status)
-	sidebar = panel(Vector2(38, -266), Vector2(310, 175), Control.PRESET_BOTTOM_LEFT)
+	sidebar = panel(Vector2(38, -306), Vector2(310, 215), Control.PRESET_BOTTOM_LEFT)
 	column = VBoxContainer.new()
 	sidebar.add_child(column)
 	column.add_child(label("RECONFIGURE", 12))
 	selected_label = label("", 21)
 	column.add_child(selected_label)
-	var row := HBoxContainer.new()
+	var row: BoxContainer = VBoxContainer.new()
 	column.add_child(row)
 	for index in range(2):
 		var choice := button(str(index + 1), func(): game.select_rig(index))
@@ -84,7 +85,9 @@ func _ready() -> void:
 	column.add_theme_constant_override("separation", 8)
 	scroll.add_child(column)
 	column.add_child(label("Take a moment", 27))
-	column.add_child(label("Choose a study", 15))
+	column.add_child(label("Complete puzzle", 15))
+	column.add_child(button("The Lantern Fold", func(): game.load_trial(3); game.save_progress()))
+	column.add_child(label("Prototype studies", 15))
 	for index in range(3):
 		column.add_child(button(str(index + 1) + "  " + game.TITLES[index], func(): game.load_trial(index); game.save_progress()))
 	column.add_child(label("Isometric camera", 15))
@@ -120,20 +123,21 @@ func _ready() -> void:
 	sensitivity.value_changed.connect(func(value): game.walker.sensitivity = value; game.save_preferences())
 	column.add_child(sensitivity)
 	column.add_child(button("Optional: original gallery experiment", func(): game.open_gallery()))
-	column.add_child(button("Restart this study", func(): game.restart(); game.set_pause(false)))
+	column.add_child(button("Restart this puzzle", func(): game.restart(); game.set_pause(false)))
 	column.add_child(button("Continue", func(): game.set_pause(false)))
 	finish = panel(Vector2(-290, -160), Vector2(580, 320), Control.PRESET_CENTER)
 	column = VBoxContainer.new()
 	column.add_theme_constant_override("separation", 14)
 	finish.add_child(column)
-	column.add_child(label("Connection reached", 28))
+	finish_title = label("Connection reached", 28)
+	column.add_child(finish_title)
 	reflection = label("", 20)
 	column.add_child(reflection)
 	explanation = label("", 17)
 	column.add_child(explanation)
 	column.add_child(button("Compare your explanation", func(): explanation.visible = true))
-	column.add_child(button("Next study / return to first", func(): game.load_trial((game.trial + 1) % 3); game.save_progress()))
-	column.add_child(button("Try this study again", func(): game.restart()))
+	column.add_child(button("Choose another puzzle", func(): game.set_pause(true)))
+	column.add_child(button("Try this puzzle again", func(): game.restart()))
 
 func style(color: Color) -> StyleBoxFlat:
 	var box := StyleBoxFlat.new()
@@ -181,7 +185,7 @@ func sync_preferences() -> void:
 func refresh() -> void:
 	if game.rigs.is_empty():
 		return
-	title.text = "%02d  /  %s" % [game.trial + 1, game.TITLES[game.trial]]
+	title.text = "The Lantern Fold" if game.trial == 3 else "%02d  /  %s" % [game.trial + 1, game.TITLES[game.trial]]
 	mode.text = "ARCHITECT  /  arrange the space" if game.architectural else ("INHABITANT  /  third person" if game.walker.third_person else "INHABITANT  /  first person")
 	question.text = game.QUESTIONS[game.trial]
 	status.text = game.connection_text()
@@ -195,6 +199,7 @@ func refresh() -> void:
 	if game.won and not finish.visible:
 		explanation.visible = false
 	finish.visible = game.won and not game.paused
+	finish_title.text = "Lantern reached" if game.trial == 3 else "Connection reached"
 	reflection.text = "Before continuing: " + game.QUESTIONS[game.trial]
 	explanation.text = game.REASONS[game.trial]
 	feedback.text = game.message

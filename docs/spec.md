@@ -1,12 +1,12 @@
 # Elsewhere ? positioning prototype specification
 
-Revision 5, 30 September 2026.
+Revision 6, 30 September 2026.
 
 ## Core direction
 
 The central question is **Where do I need to be before I transform the space?** A solution depends on structure configuration, player position and action order. Walking then rotating is not interchangeable with rotating then walking. Isometric manipulation and inhabited traversal must both contribute.
 
-Impossible geometry is optional. The default prototype contains three small physical puzzles using marked paths, surface-relative gravity, curved transitions and rotating structures. No portal, new lever, inventory item or milestone lock is required to complete them. The earlier impossible gallery remains available as a separate experiment, not the foundation of the new route.
+Impossible geometry is optional. The prototype contains The Lantern Fold, a complete physical puzzle, plus the three preserved studies using marked paths, surface-relative gravity, curved transitions and rotating structures. No portal, new lever, inventory item or milestone lock is required to complete them. The earlier impossible gallery remains available as a separate experiment, not the foundation of the new route.
 
 These studies test whether players can explain a dependency, not just reproduce a successful sequence. Their logical dependencies are implemented and mechanically checked; whether people find them engaging and understandable still needs blind playtesting.
 
@@ -62,6 +62,16 @@ The receiver can be arranged while the carrier is withdrawn. Once the carrier do
 
 **Why the order matters:** the useful receiver rotation needs clearance which docking consumes. Boarding can happen before or after preparation; the required ordering is receiver preparation before carrier docking. A premature dock remains recoverable by withdrawing the carrier.
 
+## Complete puzzle - The Lantern Fold
+
+A fourth, independently selectable layout combines two dependencies around one docking connection. The player begins on Arrival. The short upper path is immediately accessible, while the fixed rounded ribbon leads to the underside landing and the longer path. Both paths belong to the Turnover. The long path reaches the Receiver after a half-roll; the short path never does.
+
+The Receiver is an L-shaped walkway with a vertical pivot, initially one quarter-turn away from alignment. Its prepared orientation joins the long path to the Lantern terrace. Brass arms extend from the long path and occupy the receiver sweep when docked. Physical geometry prevents rotating the receiver into or out of alignment while the dock is occupied. Withdrawing the Turnover restores clearance without losing the player's path or requiring restart.
+
+The intended reasoning is to choose the long path before the roll and prepare the Receiver before docking. Those actions need not form a rigid instruction sequence: preparation can happen before or after boarding, including after a premature dock has been withdrawn. Both half-roll directions reach the prepared receiver. Optional H hints escalate from comparison to a direct solution. Reaching the terrace lantern triggers completion and an optional causal explanation.
+
+No study is removed or used as a completion gate. There are no portals, collectible locks or scripted connection flags. See [layout, dependencies and verification](lantern-fold.md).
+
 ## Camera direction
 
 The user's latest decision is to keep first person as the primary traversal view:
@@ -75,13 +85,13 @@ The user's latest decision is to keep first person as the primary traversal view
 
 No camera orientation activates puzzle connections. The shared avatar silhouette remains an overview-only fallback for occlusion.
 
-Scene snapshots store the world reference frame and manual orbit fields; old camera_bias-only saves migrate to their original view. The retired A/B preference is ignored and removed on the next preference save. An exactly opposite instantaneous normal uses the previous camera-reference right axis as a deterministic fallback. Normal animated quarter-turns and curved walking transport incrementally. The optional gallery retains its calibrated original overview; these changes apply to the three positioning studies. See [the camera decision and comparison history](isometric-camera-experiment.md).
+Scene snapshots store the world reference frame and manual orbit fields; old camera_bias-only saves migrate to their original view. The retired A/B preference is ignored and removed on the next preference save. An exactly opposite instantaneous normal uses the previous camera-reference right axis as a deterministic fallback. Normal animated quarter-turns and curved walking transport incrementally. The optional gallery retains its calibrated original overview; these changes apply to the three positioning studies and The Lantern Fold. See [the camera decision and comparison history](isometric-camera-experiment.md).
 
 On ordinary platforms a fresh walking gesture uses the visible camera: W follows projected screen-up and D follows projected screen-right, including upside-down ground. Mouse look does not turn a stationary avatar; a new mouse yaw is applied before mapping walking input. A held key stays one gesture even when it meets a boundary. On the authored curve, the control frame travels with the path and survives key releases, camera orbit, pitch and view switches; S reverses along it. This lock ends with the next fresh gesture on ordinary ground. Returning from first person preserves the curve heading, but does not pin an obsolete heading on a platform.
 
 ## Interface, progression and recovery
 
-The project starts in Study 1, or restores the active study's settled save. Escape opens study selection and camera settings; all three studies are available for comparison without completion gates. The completion panel asks the study's causal question. The player can then choose to reveal the intended explanation, retry, or continue.
+A new save starts in The Lantern Fold; existing saves restore their active puzzle. Escape lists the complete puzzle first, followed by the three original studies and camera settings. All remain available without completion gates. The completion panel asks the study's causal question. The player can reveal the intended explanation, retry, or open the puzzle selection menu.
 
 | Action | Default |
 |---|---|
@@ -94,20 +104,21 @@ The project starts in Study 1, or restores the active study's settled save. Esca
 
 Existing key preferences are imported from the shared settings file. Undo restores structure states, local contact, heading and camera frame from before a turn. Restart restores the study's initial arrangement. There are no lives or time penalties.
 
-`positioning.save` stores the active study, arrangement, player contact, selected structure, overview frame and completion flags. It is separate from the gallery's `journey.save`. Saves occur after settled turns, undo, restart, pausing, completion, returning to the gallery, study selection and a normal window-close request. No mid-turn state is written. Headless tests neither load nor write progress.
+`positioning.save` stores the active puzzle, arrangement, player contact, selected structure, overview frame and completion flags. It is separate from the gallery's `journey.save`. Saves occur after settled turns, undo, restart, pausing, completion, returning to the gallery, study selection and a normal window-close request. No mid-turn state is written. Headless tests neither load nor write progress. Existing three-study completion arrays migrate to four entries, preserving the old flags and leaving The Lantern Fold incomplete.
 
 ## Optional gallery experiment
 
 Escape ? Optional: original gallery experiment opens the earlier guided level. Its menu returns to the positioning studies. Its two local levers, rounded entrance path, carrier, turning covered gallery, two-way concealed spatial connection and contextual cutaways remain available. The floor and cover rotate together. The experiment uses its existing checkpoint format and save file.
 
-The gallery is not needed for any of the three new studies. See [gallery-study.md](gallery-study.md) for its layout, portal implementation, narrative/art proposal and scope. The [original concept](original-concept.md) remains preserved unchanged as design input, not operational instructions.
+The gallery is not needed for the complete puzzle or any study. See [gallery-study.md](gallery-study.md) for its layout, portal implementation, narrative/art proposal and scope. The [original concept](original-concept.md) remains preserved unchanged as design input, not operational instructions.
 
 ## Scope and implementation
 
-This is a set of three independently selectable prototypes, not a connected campaign. Geometry and sound in the retained experiment are procedural; the new studies prioritize readable paths and mechanisms. No new external assets or paid addon dependency is required to play a clone. Narrative, larger combinations, environmental dressing and production art remain future work.
+This is one complete prototype puzzle and three preserved independent studies, not a connected campaign. Geometry and sound in the retained experiment are procedural; the new studies prioritize readable paths and mechanisms. No new external assets or paid addon dependency is required to play a clone. A campaign, narrative, environmental dressing and production art remain future work.
 
 - `scripts/positioning_game.gd`: layouts, physical docking contacts, swept turns, cameras, undo and study saves.
 - `scripts/positioning_hud.gd`: study selection, questions, optional explanations and settings.
+- `scripts/complete_puzzle.gd`, `complete_puzzle_tests.gd`: The Lantern Fold layout, physical dependencies, full routes and recovery checks.
 - `scripts/positioning_tests.gd`: solution routes, counterexamples and camera checks.
 - `scripts/surface_piece.gd`, `surface_walker.gd`, `curved_track.gd`: shared path, movement and camera mechanics.
 - `scripts/game.gd`, `hud.gd`, `scenes/main.tscn`: retained gallery experiment.

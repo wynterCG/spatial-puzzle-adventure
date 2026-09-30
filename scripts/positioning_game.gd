@@ -1,13 +1,13 @@
 extends Node3D
-## Three physical positioning studies. Connectivity follows matching authored
+## Three physical positioning studies and one complete puzzle. Connectivity follows matching authored
 ## contacts; no milestone flag, portal or camera alignment enables a route.
 const Piece = preload("res://scripts/surface_piece.gd")
 const Walker = preload("res://scripts/surface_walker.gd")
 const CurvedPath = preload("res://scripts/curved_track.gd")
 const TrialHUD = preload("res://scripts/positioning_hud.gd")
-const TITLES := ["Choose your deck", "The quiet landing", "Prepare the receiver"]
-const QUESTIONS := ["Which path needs to carry you?", "Where can you stand while the carrier changes?", "What needs to move before the dock closes?"]
-const REASONS := ["The short deck never reaches the exit. The curved path gets you onto the long deck before the roll.", "The carrier's two paths have different ground. The fixed landing and its curve let you change paths while the empty carrier turns.", "The docking arms obstruct the receiver's turn. Arrange the receiver before docking the carrier."]
+const TITLES := ["Choose your deck", "The quiet landing", "Prepare the receiver", "The Lantern Fold"]
+const QUESTIONS := ["Which path needs to carry you?", "Where can you stand while the carrier changes?", "What needs to move before the dock closes?", "Which path must carry you, and what must be ready when it arrives?"]
+const REASONS := ["The short deck never reaches the exit. The curved path gets you onto the long deck before the roll.", "The carrier's two paths have different ground. The fixed landing and its curve let you change paths while the empty carrier turns.", "The docking arms obstruct the receiver's turn. Arrange the receiver before docking the carrier.", "The upper path cannot reach the receiver. Use the curve to reach the longer underside path. Prepare the receiver while the turnover is withdrawn, then ride the long path through two turns. Its brass arms hold the connection until you walk to the lantern."]
 var world: Node3D
 var pieces: Array[SurfacePiece] = []
 var rigs: Array[Dictionary] = []
@@ -38,7 +38,7 @@ var focus := Vector3.ZERO
 var overview_size := 32.0
 var message := ""
 var hint_level := 0
-var completed: Array = [false, false, false]
+var completed: Array = [false, false, false, false]
 var input_bindings := {"forward": KEY_W, "back": KEY_S, "left": KEY_A, "right": KEY_D, "view": KEY_TAB, "rotate_left": KEY_Q, "rotate_right": KEY_E, "undo": KEY_Z, "reset": KEY_R, "hint": KEY_H, "reset_view": KEY_HOME}
 
 func _ready() -> void:
@@ -69,7 +69,7 @@ func _ready() -> void:
 	hud = TrialHUD.new()
 	hud.game = self
 	add_child(hud)
-	load_trial(0)
+	load_trial(3)
 	load_preferences()
 	if "--self-test" in OS.get_cmdline_user_args():
 		call_deferred("run_tests")
@@ -106,7 +106,7 @@ func load_trial(index: int) -> void:
 	ports.clear()
 	obstacles.clear()
 	history.clear()
-	trial = clampi(index, 0, 2)
+	trial = clampi(index, 0, TITLES.size() - 1)
 	selected = 0
 	busy = false
 	paused = false
@@ -117,6 +117,7 @@ func load_trial(index: int) -> void:
 		0: build_decks()
 		1: build_landing()
 		2: build_receiver()
+		3: preload("res://scripts/complete_puzzle.gd").build(self)
 	walker.pieces = pieces
 	walker.camera_obstacles = obstacles
 	walker.camera_initialized = false
@@ -577,7 +578,8 @@ func show_hint() -> void:
 	var hints := [
 		["Compare where the two decks end.", "The short deck stops before the exit, even after a roll.", "Use the curved path to board the long underside deck, then roll twice and walk to the light."],
 		["The two moving paths have no crossing between them.", "The fixed landing remains available while the carrier turns.", "Ride the first path one turn to the landing. Step off, turn once more, follow the fixed curve to the second path, and walk inward to the light."],
-		["Watch the brass arms around the receiver's docking edge.", "Docking the carrier occupies the receiver's turning clearance.", "Arrange the receiver first, while the carrier is withdrawn. Board the carrier, roll it into the prepared receiver, then walk to the light."]
+		["Watch the brass arms around the receiver's docking edge.", "Docking the carrier occupies the receiver's turning clearance.", "Arrange the receiver first, while the carrier is withdrawn. Board the carrier, roll it into the prepared receiver, then walk to the light."],
+		["Compare the two turnover paths and the far end of the receiver. Which can form a continuous route?", "The curved stair leads to the longer path. The brass docking arms occupy the receiver sweep when the turnover arrives.", "Select 2 and turn the receiver left once while the turnover is withdrawn. Follow the curve underneath, board the long path, select 1 and turn twice. Cross the dock and follow the receiver to the lantern."]
 	]
 	message = hints[trial][mini(hint_level, 2)]
 	hint_level += 1
@@ -625,7 +627,13 @@ func load_progress() -> void:
 	if data is Dictionary and data.get("version") == 1 and data.has_all(["scene", "completed"]):
 		load_trial(int(data.scene.trial))
 		restore(data.scene)
-		completed = data.completed
+		restore_completed(data.completed)
+
+func restore_completed(flags: Array) -> void:
+	completed.resize(TITLES.size())
+	completed.fill(false)
+	for i in range(mini(completed.size(), flags.size())):
+		completed[i] = bool(flags[i])
 
 func open_gallery() -> void:
 	save_progress()
@@ -635,6 +643,7 @@ func open_gallery() -> void:
 func run_tests() -> void:
 	await get_tree().process_frame
 	var failures: Array[String] = preload("res://scripts/positioning_tests.gd").run(self)
+	failures.append_array(preload("res://scripts/complete_puzzle_tests.gd").run(self))
 	failures.append_array(preload("res://scripts/overview_tests.gd").run(self))
 	if failures.is_empty():
 		print("POSITIONING SELF TEST PASS: physical links, positioning dependencies, sweep clearance, solutions, undo, cameras, no portals")

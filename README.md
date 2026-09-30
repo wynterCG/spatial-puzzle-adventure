@@ -2,7 +2,9 @@
 
 **Where do I need to be before I transform the space?**
 
-Three small Godot puzzles test player positioning and action order using physical paths, curved gravity transitions and moving structures:
+**The Lantern Fold** is a complete prototype puzzle with one continuous route, two interacting machines, an underside approach and a final lantern. Choose the path that must carry you and prepare the receiving walkway before the docking arms occupy its turning clearance. H offers optional hints; Z and R let you recover or restart.
+
+The three original studies remain separately playable:
 
 1. **Choose your deck:** reach the right walking path before rolling the carrier.
 2. **The quiet landing:** step off onto fixed ground so an empty carrier can bring a different path to you.
@@ -10,7 +12,7 @@ Three small Godot puzzles test player positioning and action order using physica
 
 Impossible geometry is optional. The original gallery experiment is available separately from the menu, with its own saved progress.
 
-Open **project.godot** in Godot 4.6 and press **F5**. Escape selects a study or opens settings. Ordinary edges stop movement; only marked curves change gravity while walking.
+Open **project.godot** in Godot 4.6 and press **F5**. A new save opens The Lantern Fold; existing saves resume their active puzzle. Escape opens the complete puzzle, all three studies, and settings. Ordinary edges stop movement; only marked curves change gravity while walking.
 
 | Action | Default |
 |---|---|
@@ -27,7 +29,9 @@ First person is the default traversal view, with movement and look following the
 
 Isometric view follows changes in the ground direction, the behavior selected after the A/B playtest. A horizontal turntable carries the character without orbiting the camera; tilts and curved ground carry the camera with them. Manual orbit is separate, with bounded elevation and zoom; Tab preserves the chosen view. [Camera decision and comparison history](docs/isometric-camera-experiment.md).
 
-![Choose your deck](docs/study-1-decks.png)
+![The Lantern Fold](docs/lantern-fold-overview.png)
+
+- [Complete puzzle layout and solution](docs/lantern-fold.md)
 
 - [Current specification](docs/spec.md)
 - [Development guide](docs/skill.md)

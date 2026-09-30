@@ -1,10 +1,16 @@
 # Positioning studies - validation
 
-Validated 2026-09-30 with Godot 4.6.1 Mono / Compatibility. The three studies are the default scene; the original gallery remains a separate optional experiment. Historical gallery evidence is in [gallery-validation.md](gallery-validation.md).
+Validated 2026-09-30 with Godot 4.6.1 Mono / Compatibility. The Lantern Fold and three preserved studies share the default scene; the original gallery remains a separate optional experiment. Historical gallery evidence is in [gallery-validation.md](gallery-validation.md).
 
 Latest camera decision: first person is now the default in the walker and both settings loaders. The running game's first-person preference was saved without moving the player or changing its paused state. Both headless suites pass. The third-person reports below are retained as experimental history, not the current primary design direction.
 
 The user selected ground-direction transport (B), reporting "it reads way better". It is now the sole overview behavior for the positioning studies; the A/B selector and full-support alternative are removed. Older A preferences are ignored and cleared when preferences are saved. The retained `OVERVIEW SELF TEST PASS` checks that an occupied horizontal turn produces no camera yaw while a tilt carries the camera 90 degrees, with full passenger attachment throughout. It also covers curved traversal, seams, manual input, bounds, look/Tab independence, reset, undo and save migration. [Historical A/B evidence and current behavior](isometric-camera-experiment.md) distinguish this user preference from broader readability testing.
+
+## Complete puzzle - The Lantern Fold
+
+The fourth layout retains the three study builders and the original gallery. `LANTERN SELF TEST PASS` verifies the full route with both roll directions, the failed upper-path attempt, all 16 settled structure combinations for forbidden bypass links, blocked-turn snapshot/history preservation, recovery by withdrawal, receiver clearance in both directions, save/undo, restart, and migration of old three-study completion flags.
+
+Godot MCP Pro also ran the complete puzzle suite in the live scene with no failures and reached the Lantern terrace. Rendered inspection covered [the initial overview](lantern-fold-overview.png), the underside overview, first person on the underside, rejected-turn feedback, and the revealed completion explanation. These establish a playable route and selected visual checks; human difficulty and comprehension remain unvalidated.
 
 ## Automated mechanical checks
 
