@@ -1,6 +1,12 @@
 # Elsewhere ? positioning prototype specification
 
-Revision 8, 30 September 2026.
+Revision 9, 1 October 2026.
+
+## Separate architectural study: The turning frame
+
+[The turning frame](monument-study.md) is available from the menu or `scenes/monument.tscn`. It consolidates Study 1's positional choice into one substantial frame with a fixed rounded end, two separate moving passages and an offset lantern destination. The upper passage never reaches the goal; the longer underside ledge reaches it after a half-roll. Turning before boarding removes access from the fixed end. Either roll direction works, and wrong choices remain recoverable through normal movement and turns.
+
+The study reuses first person, camera B, marked boundaries, rotation and undo. It adds no portal, lever, compulsory hint or new collision-lock mechanic. Its independent `monument-frame.save` uses the `turning_frame` layout identity. The courtyard remains the F5 default; no earlier puzzle is removed. The default overview, arrival and underside have been inspected, but first-person architectural presence and human comprehension remain playtest questions.
 
 This specification records implemented content. [Chapter 1 / The far light](chapter-one.md) is now a connected blockout with three interdependent, distinctly coloured assemblies around one courtyard and separate persistence. The [game vision](game-vision.md) and [first chapter plan](first-chapter-plan.md) define the remaining human playtest and vertical-slice criteria.
 

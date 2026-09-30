@@ -2,9 +2,11 @@
 
 **Where do I need to be before I transform the space?**
 
+**The turning frame** is a new, separate architectural study: one rounded frame, one moving assembly and one lantern. Choose the passage that must carry you before turning the frame. Open **Escape > The turning frame**, or run `scenes/monument.tscn`. All earlier puzzles remain available. [Study and visual review](docs/monument-study.md).
+
 **Chapter 1 / The far light** is now a playable blockout: a compact turning courtyard where the gallery used to enter becomes the obstruction that must be withdrawn. Three distinctly coloured assemblies share one architectural space, ending at the light seen from the start. It uses first person and isometric camera B. [Chapter details](docs/chapter-one.md).
 
-The next step is human playtesting before vertical-slice production. The [game vision](docs/game-vision.md) and [chapter plan](docs/first-chapter-plan.md) define what to observe.
+The immediate comparison is whether the new frame communicates the puzzle more clearly than the courtyard. Human playtesting comes before vertical-slice production. The [game vision](docs/game-vision.md) and [chapter plan](docs/first-chapter-plan.md) define what to observe.
 
 **The Lantern Fold** is a complete prototype puzzle with one continuous route, two interacting machines, an underside approach and a final lantern. Choose the path that must carry you and prepare the receiving walkway before the docking arms occupy its turning clearance. H offers optional hints; Z and R let you recover or restart.
 

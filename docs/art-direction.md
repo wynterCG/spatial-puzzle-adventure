@@ -4,6 +4,8 @@ User direction adopted 30 September 2026. This guides blockout and production de
 
 ## Recognizable outside, inhabitable inside
 
+The 1 October reference clarifies the next experiment: consolidate around one architectural object whose beams and passages are the puzzle. A surrounding enclosure is not inherently needed. [The turning frame](monument-study.md) tests one main form, central opening, moving assembly and destination while preserving the courtyard for comparison. Integrate curved transitions into the construction. Do not copy the reference's dome, flag or palette as a substitute for this relationship. Keep walking widths usable and inspect both distant composition and walking-height presence. The new underside is still sparse in first person; this is an open design issue.
+
 Create a coherent world identifiable in isometric view and experienced through architecture, proportions, light, materials, sound and recurring details in first person. The Rose's Room reference concerns the relationship between distant recognition and immersion, not a literal toy-room setting. A toy planetarium is an option, not an approved theme.
 
 Large forms and their arrangement must communicate the identity before decoration. Articulated rings, galleries, structural ribs, luminous chambers and shared bases should determine how routes fit together. Adding symbols to unrelated platforms does not satisfy this direction.

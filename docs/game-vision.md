@@ -4,6 +4,8 @@ Working direction, 30 September 2026. This document guides the next chapter expe
 
 ## The experience
 
+The immediate study is now [The turning frame](monument-study.md), alongside the preserved courtyard. It tests whether one recognizable object can communicate the existing positional dependency more clearly. Architecture supplies the actual routes and transformation; a larger enclosure and extra mechanisms are deferred. This comparison precedes any commitment to final chapter geometry or a vertical slice.
+
 A contemplative journey through fantastical structures, where understanding where to position yourself allows you to transform the architecture and open the next path.
 
 The desired progression of experience is curiosity, understanding the rules, anticipating a route, transforming the architecture, and enjoying the passage through what you prepared. The central question remains: **Where do I need to be before I transform the space?**

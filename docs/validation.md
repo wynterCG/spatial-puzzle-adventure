@@ -1,5 +1,15 @@
 # Positioning studies - validation
 
+## Turning-frame study — 1 October 2026
+
+The separate [monument study](monument-study.md) retains every earlier puzzle and adds one architectural assembly. `MONUMENT SELF TEST PASS` verifies all four configurations, the upper-path counterexample, remote turning before boarding, ordinary recovery without restarting, both solving roll directions, full reverse traversal, restart, independent save identity, reload, undo and completion. First-person held-W traversal around the integrated curve is also checked. Headless Godot cannot capture the mouse, so that test calls the same look handler directly; live input dispatch was verified separately.
+
+Through Godot MCP Pro, a mouse-look event and held forward input reached the underside ledge; physical Tab and E key events turned the occupied frame twice; forward input reached `Lantern_landing` and set completion. Rendered inspection covered [default overview](monument-overview.png), [arrival](monument-arrival.png), [underside](monument-underside.png), the completion explanation and the scrollable menu. The game was returned to the study entrance in first person, with processing enabled and only its own save reset. Existing courtyard progress was backed up before testing and is kept separate.
+
+Both full headless suites passed with exit 0 and their PASS markers, including a newly imported clean staged checkout without the proprietary addon or local configuration. The original gallery suite still passes; the positioning suite includes the three original studies, Lantern Fold, camera B, courtyard and monument.
+
+The study establishes a mechanically valid positional choice in a consolidated form. It reuses Study 1's dependency and does not establish novel puzzle depth. The underside forward view is still visually sparse. Human understanding, architectural presence and camera comfort remain to be assessed; screenshots and scripted traversal are not a blind playtest. No new Jev run is claimed.
+
 Validated 2026-09-30 with Godot 4.6.1 Mono / Compatibility. The Lantern Fold and three preserved studies share the default scene; the original gallery remains a separate optional experiment. Historical gallery evidence is in [gallery-validation.md](gallery-validation.md).
 
 Latest camera decision: first person is now the default in the walker and both settings loaders. The running game's first-person preference was saved without moving the player or changing its paused state. Both headless suites pass. The third-person reports below are retained as experimental history, not the current primary design direction.

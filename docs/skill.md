@@ -4,6 +4,8 @@ This is the requested project-local guide, not an installed global assistant ski
 
 ## Current direction takes precedence
 
+The latest architectural experiment is [The turning frame](monument-study.md): one dominant form, one opening, one moving assembly and one destination. Its routes are the architecture, including the integrated rounded end. These are constraints for this study, not every future level. Preserve the courtyard and every earlier prototype. Assess consolidation before adding an enclosure, mechanisms or decoration. The study intentionally reuses the first positioning dependency; do not describe it as a new mechanic or validated puzzle depth.
+
 The current milestone is testing and revising the connected chapter in simple geometry, followed only later by a representative vertical slice. Use [game-vision.md](game-vision.md) and [first-chapter-plan.md](first-chapter-plan.md) as the planning baseline. The revised turning-courtyard blockout is implemented in `chapter_layout.gd`; [chapter-one.md](chapter-one.md) records its scope. Its human playtest is still pending. Give each puzzle an intended discovery; test progression before adding mechanics or finishing the chapter's art. Keep all existing prototypes available.
 
 Build around configuration + player position + action order. The core question is **Where do I need to be before I transform the space?** Impossible geometry is optional. Do not add levers or mechanics when the existing paths and transformations can create a reasoning problem. A correct arrangement with a wrongly positioned player should be a meaningful state.
@@ -19,6 +21,8 @@ Godot 4.6.1, GDScript, Compatibility renderer. F5 runs `scenes/positioning.tscn`
 `chapter_layout.gd` composes the connected journey and `chapter_tests.gd` checks full traversal, wrong positions, return routes, focus transitions, reload and undo. `positioning_game.gd` defines the three studies and their transformations; `complete_puzzle.gd` builds The Lantern Fold as a fourth layout using the same runtime. `complete_puzzle_tests.gd` verifies its solution, physical ordering, both roll directions and recovery. `positioning_hud.gd` presents questions and optional explanations. `positioning_tests.gd` verifies solutions and counterexamples. Both scenes share `surface_piece.gd`, `surface_walker.gd` and `curved_track.gd`; run both suites after shared changes. The original gallery still uses `game.gd` and `hud.gd`.
 
 ## Mechanical invariants
+
+The monument uses layout index 5, `monument_layout.gd`, `monument_tests.gd` and `scenes/monument.tscn`. Keep its `monument-frame.save` and completion flag isolated. Verify all four arrangements, wrong-path and remote-turn counterexamples, recovery, both solving rolls, reverse travel, first-person input, save/reload and undo. Headless Godot cannot capture a mouse; test its look handler there and verify actual event dispatch in a live MCP session.
 
 1. Only marked regions accept flat contact. Ordinary edges stop movement. Never infer a gravity change from proximity, camera direction or an unmarked face.
 2. CurvedTrack is an explicit analytic ribbon. Its radius-3 half-circle transports contact normal, heading and orbit continuously. Its tail is configurable; match the endpoint to the receiving edge without overlapping paving. General concave/spline navigation is not implemented.

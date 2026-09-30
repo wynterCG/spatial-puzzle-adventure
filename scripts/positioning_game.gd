@@ -5,9 +5,11 @@ const Piece = preload("res://scripts/surface_piece.gd")
 const Walker = preload("res://scripts/surface_walker.gd")
 const CurvedPath = preload("res://scripts/curved_track.gd")
 const TrialHUD = preload("res://scripts/positioning_hud.gd")
-const TITLES := ["Choose your deck", "The quiet landing", "Prepare the receiver", "The Lantern Fold", "Chapter 1 / The far light"]
-const QUESTIONS := ["Which path needs to carry you?", "Where can you stand while the carrier changes?", "What needs to move before the dock closes?", "Which path must carry you, and what must be ready when it arrives?", "What changed when you chose where to stand?"]
-const REASONS := ["The short deck never reaches the exit. The curved path gets you onto the long deck before the roll.", "The carrier's two paths have different ground. The fixed landing and its curve let you change paths while the empty carrier turns.", "The docking arms obstruct the receiver's turn. Arrange the receiver before docking the carrier.", "The upper path cannot reach the receiver. Use the curve to reach the longer underside path. Prepare the receiver while the turnover is withdrawn, then ride the long path through two turns. Its brass arms hold the connection until you walk to the lantern.", "The access gallery served two roles: first a way onto the ring, then an obstruction in its sweep. You had to leave it before withdrawing it. The far gallery follows the same rule: a connection can be opened after the ring arrives, but must be withdrawn before the ring can leave."]
+const TITLES := ["Choose your deck", "The quiet landing", "Prepare the receiver", "The Lantern Fold", "Chapter 1 / The far light", "Monument / The turning frame"]
+const QUESTIONS := ["Which path needs to carry you?", "Where can you stand while the carrier changes?", "What needs to move before the dock closes?", "Which path must carry you, and what must be ready when it arrives?", "What changed when you chose where to stand?", "Which passage needs to carry you?"]
+const REASONS := ["The short deck never reaches the exit. The curved path gets you onto the long deck before the roll.", "The carrier's two paths have different ground. The fixed landing and its curve let you change paths while the empty carrier turns.", "The docking arms obstruct the receiver's turn. Arrange the receiver before docking the carrier.", "The upper path cannot reach the receiver. Use the curve to reach the longer underside path. Prepare the receiver while the turnover is withdrawn, then ride the long path through two turns. Its brass arms hold the connection until you walk to the lantern.", "The access gallery served two roles: first a way onto the ring, then an obstruction in its sweep. You had to leave it before withdrawing it. The far gallery follows the same rule: a connection can be opened after the ring arrives, but must be withdrawn before the ring can leave.", "The upper passage ends before the lantern. The rounded end takes you underneath the same frame, onto its longer ledge. You must board before turning: turning the empty frame removes both starting connections."]
+@export var initial_trial := 4
+var monument_completed := false
 var world: Node3D
 var pieces: Array[SurfacePiece] = []
 var rigs: Array[Dictionary] = []
@@ -84,7 +86,7 @@ func _ready() -> void:
 	hud = TrialHUD.new()
 	hud.game = self
 	add_child(hud)
-	load_trial(4)
+	load_trial(initial_trial)
 	load_preferences()
 	if "--self-test" in OS.get_cmdline_user_args():
 		call_deferred("run_tests")
@@ -140,6 +142,7 @@ func load_trial(index: int) -> void:
 		2: build_receiver()
 		3: preload("res://scripts/complete_puzzle.gd").build(self)
 		4: preload("res://scripts/chapter_layout.gd").build(self)
+		5: preload("res://scripts/monument_layout.gd").build(self)
 	walker.pieces = pieces
 	walker.camera_obstacles = obstacles
 	walker.camera_initialized = false
@@ -160,6 +163,8 @@ func load_trial(index: int) -> void:
 	if trial == 4:
 		chapter_focus_from = focus
 		chapter_size_from = overview_size
+		toggle_view()
+	elif trial == 5:
 		toggle_view()
 	initial = snapshot()
 	hud.refresh()
@@ -430,6 +435,7 @@ func _process(delta: float) -> void:
 			won = true
 			finish_open = true
 			if trial == 4: chapter_completed = true
+			elif trial == 5: monument_completed = true
 			else: completed[trial] = true
 			message = "Connection reached. What needed to happen first?"
 			Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
@@ -738,7 +744,7 @@ func set_pause(value: bool) -> void:
 	hud.refresh()
 
 func blocks_play() -> bool:
-	return won and (trial != 4 or finish_open)
+	return won and (trial < 4 or finish_open)
 
 func continue_exploring() -> void:
 	finish_open = false
@@ -752,6 +758,11 @@ func show_reflection() -> void:
 	hud.refresh()
 
 func show_hint() -> void:
+	if trial == 5:
+		var hints = preload("res://scripts/monument_layout.gd").HINTS
+		message = hints[mini(hint_level, hints.size() - 1)]
+		hint_level += 1
+		return
 	if trial == 4:
 		var chapter_hints = preload("res://scripts/chapter_layout.gd").HINTS[chapter_zone]
 		message = chapter_hints[mini(hint_level, chapter_hints.size() - 1)]
@@ -796,9 +807,12 @@ func save_preferences() -> void:
 	settings.save("user://settings.cfg")
 
 func progress_path() -> String:
+	if trial == 5: return "user://monument-frame.save"
 	return "user://chapter-courtyard.save" if trial == 4 else "user://positioning.save"
 
 func progress_data() -> Dictionary:
+	if trial == 5:
+		return {"version": 1, "layout": "turning_frame", "scene": snapshot(), "monument_completed": monument_completed, "won": won, "finish_open": finish_open, "history": history, "architectural": architectural}
 	if trial == 4:
 		return {"version": 1, "layout": "courtyard", "scene": snapshot(), "chapter_completed": chapter_completed, "won": won, "finish_open": finish_open, "history": history, "architectural": architectural}
 	return {"version": 1, "scene": snapshot(), "completed": completed}
@@ -812,15 +826,18 @@ func save_progress() -> void:
 func apply_progress(data: Dictionary) -> void:
 	if data.get("version") != 1 or not data.has("scene"):
 		return
-	if trial != 4 and data.has("completed"):
+	if trial < 4 and data.has("completed"):
 		restore_completed(data.completed)
 	if int(data.scene.trial) != trial:
 		return
 	if trial == 4 and data.get("layout", "") != "courtyard":
 		return # Earlier chapter saves refer to a different physical layout.
+	if trial == 5 and data.get("layout", "") != "turning_frame":
+		return
 	restore(data.scene)
-	if trial == 4:
-		chapter_completed = data.get("chapter_completed", false)
+	if trial in [4, 5]:
+		if trial == 5: monument_completed = data.get("monument_completed", false)
+		if trial == 4: chapter_completed = data.get("chapter_completed", false)
 		won = data.get("won", false)
 		finish_open = data.get("finish_open", true)
 		history.assign(data.get("history", []))
@@ -859,6 +876,7 @@ func run_tests() -> void:
 	failures.append_array(preload("res://scripts/complete_puzzle_tests.gd").run(self))
 	failures.append_array(preload("res://scripts/overview_tests.gd").run(self))
 	failures.append_array(preload("res://scripts/chapter_tests.gd").run(self))
+	failures.append_array(preload("res://scripts/monument_tests.gd").run(self))
 	if failures.is_empty():
 		print("POSITIONING SELF TEST PASS: physical links, positioning dependencies, sweep clearance, solutions, undo, cameras, no portals")
 	else:

@@ -107,6 +107,8 @@ func _ready() -> void:
 	column.add_theme_constant_override("separation", 8)
 	scroll.add_child(column)
 	column.add_child(label("Take a moment", 27))
+	column.add_child(label("New monument study", 15))
+	column.add_child(button("The turning frame", func(): game.choose_puzzle(5)))
 	column.add_child(label("Connected chapter", 15))
 	column.add_child(button("Chapter 1 / The far light", func(): game.choose_puzzle(4)))
 	column.add_child(label("Complete prototype puzzle", 15))
@@ -148,7 +150,7 @@ func _ready() -> void:
 	column.add_child(sensitivity)
 	column.add_child(button("Optional: original gallery experiment", func(): game.open_gallery()))
 	column.add_child(button("Restart this puzzle", func(): game.restart(); game.set_pause(false)))
-	reflection_button = button("View chapter reflection", func(): game.show_reflection())
+	reflection_button = button("View puzzle reflection", func(): game.show_reflection())
 	column.add_child(reflection_button)
 	column.add_child(button("Continue", func(): game.set_pause(false)))
 	finish = panel(Vector2(-290, -160), Vector2(580, 320), Control.PRESET_CENTER)
@@ -242,18 +244,18 @@ func refresh() -> void:
 			var tint: Color = game.rigs[i].get("tint", Color("e4dfd6"))
 			selectors[i].add_theme_color_override("font_color", tint.lightened(.2))
 			selectors[i].add_theme_color_override("font_hover_color", tint.lightened(.4))
-	sidebar.anchor_top = 0.0 if game.trial == 4 else 1.0
+	sidebar.anchor_top = 0.0 if game.trial >= 4 else 1.0
 	sidebar.anchor_bottom = sidebar.anchor_top
-	sidebar.offset_top = 160 if game.trial == 4 else -306
-	sidebar.offset_bottom = 420 if game.trial == 4 else -90
+	sidebar.offset_top = 160 if game.trial >= 4 else -306
+	sidebar.offset_bottom = 320 if game.trial == 5 else 420 if game.trial >= 4 else -90
 	sidebar.visible = game.architectural and not game.paused and not game.blocks_play()
 	menu.visible = game.paused
 	if game.won and not finish.visible:
 		explanation.visible = false
 	finish.visible = game.won and game.finish_open and not game.paused
-	explore_button.visible = game.trial == 4
-	reflection_button.visible = game.trial == 4 and game.won
-	finish_title.text = "The far light" if game.trial == 4 else ("Lantern reached" if game.trial == 3 else "Connection reached")
+	explore_button.visible = game.trial >= 4
+	reflection_button.visible = game.trial >= 4 and game.won
+	finish_title.text = "The turning frame" if game.trial == 5 else "The far light" if game.trial == 4 else ("Lantern reached" if game.trial == 3 else "Connection reached")
 	reflection.text = "Before continuing: " + game.QUESTIONS[game.trial]
 	explanation.text = game.REASONS[game.trial]
 	feedback.text = game.message
