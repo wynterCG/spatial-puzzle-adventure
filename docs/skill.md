@@ -4,11 +4,13 @@ This is the requested project-local guide, not an installed global assistant ski
 
 ## Current direction takes precedence
 
+The next development milestone is a connected chapter in simple geometry, followed by playtesting and only then a representative vertical slice. Use [game-vision.md](game-vision.md) and [first-chapter-plan.md](first-chapter-plan.md) as the planning baseline. Their proposed content is not implemented. Give each puzzle an intended discovery; test progression before adding mechanics or finishing the chapter's art. Keep all existing prototypes available.
+
 Build around configuration + player position + action order. The core question is **Where do I need to be before I transform the space?** Impossible geometry is optional. Do not add levers or mechanics when the existing paths and transformations can create a reasoning problem. A correct arrangement with a wrongly positioned player should be a meaningful state.
 
 The Lantern Fold is the complete puzzle and the entry point for new saves. Preserve all three original positioning studies as independently selectable prototypes. The earlier guided gallery is retained separately, including its portal technique and local interactions. Neither completion nor entry into that experiment is required for a new study.
 
-The latest camera choice supersedes the third-person experiment: first person is the default and the active development direction. Isometric view remains ground-relative for orientation and architecture changes. Preserve the optional third-person modes, but do not continue redesigning them unless requested.
+The user has explicitly reconfirmed first-person exploration with isometric camera B for the game. This pairing is already the prototype default and is the chosen direction for the chapter. Keep optional third person available in the prototypes without making it a parallel development priority. Broader readability and comfort remain unvalidated: test the chosen pairing across the journey, and do not confuse a confirmed preference with evidence of universal usability.
 
 ## Entry points and shared code
 

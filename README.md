@@ -2,6 +2,8 @@
 
 **Where do I need to be before I transform the space?**
 
+The next milestone is a connected chapter in simple geometry, followed by playtesting before vertical-slice production. See the [game vision](docs/game-vision.md) and [first chapter plan](docs/first-chapter-plan.md). The playable content below remains the prototype; the planned chapter is not yet implemented.
+
 **The Lantern Fold** is a complete prototype puzzle with one continuous route, two interacting machines, an underside approach and a final lantern. Choose the path that must carry you and prepare the receiving walkway before the docking arms occupy its turning clearance. H offers optional hints; Z and R let you recover or restart.
 
 The three original studies remain separately playable:

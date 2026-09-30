@@ -2,6 +2,8 @@
 
 Revision 6, 30 September 2026.
 
+This specification records the implemented prototype. The next milestone is planned separately in [the game vision](game-vision.md) and [first chapter plan](first-chapter-plan.md): a connected chapter using simple geometry, playtesting, then a representative vertical slice. Those documents do not imply that the chapter or its production features already exist.
+
 ## Core direction
 
 The central question is **Where do I need to be before I transform the space?** A solution depends on structure configuration, player position and action order. Walking then rotating is not interchangeable with rotating then walking. Isometric manipulation and inhabited traversal must both contribute.
