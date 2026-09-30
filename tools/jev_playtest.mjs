@@ -62,6 +62,9 @@ let initialized = false;
 try {
   let state = runtime(`
 var game = get_tree().current_scene
+if game.get_script().resource_path != 'res://scripts/game.gd':
+    _mcp_print(JSON.stringify({'error': 'This runner supports the original gallery only. Open it from Studies & settings before testing.'}))
+    return
 if game.busy:
     _mcp_print(JSON.stringify({'error': 'Wait until the game settles before testing.'}))
     return

@@ -18,9 +18,11 @@ var camera_distance := 5.5
 var orbit_yaw := 0.0
 var orbit_pitch := 0.42
 var orbit_heading := Vector3.FORWARD
-var keep_world_horizon := false
+var keep_world_horizon := true
 var follow_frame := Basis.IDENTITY
 var camera_initialized := false
+var world_orbit_initialized := false
+var world_orbit_heading := Vector3.FORWARD
 var last_walk_input := Vector2.ZERO
 var orbit_changed := false
 var camera: Camera3D
@@ -253,7 +255,23 @@ func sync_pose(delta: float) -> void:
 func sync_follow_camera(contact: Vector3, up: Vector3, delta: float) -> void:
 	var pivot := contact + up * 0.85
 	var heading := (support.global_basis * orbit_heading.rotated(normal, orbit_yaw)).normalized()
-	var target_frame := Basis(heading.cross(up).normalized(), up, -heading).orthonormalized()
+	var arm_up := up
+	if keep_world_horizon:
+		if not world_orbit_initialized:
+			world_orbit_heading = (-camera.global_basis.z if camera_initialized else support.global_basis * orbit_heading).slide(Vector3.UP)
+			if world_orbit_heading.length_squared() < 0.01:
+				world_orbit_heading = Vector3.FORWARD
+			else:
+				world_orbit_heading = world_orbit_heading.normalized()
+			# Capture the base azimuth, avoiding an extra yaw when enabling it.
+			if camera_initialized:
+				world_orbit_heading = world_orbit_heading.rotated(Vector3.UP, -orbit_yaw)
+			world_orbit_initialized = true
+		heading = world_orbit_heading.rotated(Vector3.UP, orbit_yaw)
+		arm_up = Vector3.UP
+	else:
+		world_orbit_initialized = false
+	var target_frame := Basis(heading.cross(arm_up).normalized(), arm_up, -heading).orthonormalized()
 	var weight := 1.0 if not camera_initialized or delta >= 1.0 or reduced_motion else 1.0 - exp(-delta * 10.0)
 	# Ease a transported frame, not world XYZ. This keeps the arm behind the
 	# traveller, retains orbit distance, and follows rotating supports as well.
@@ -264,7 +282,13 @@ func sync_follow_camera(contact: Vector3, up: Vector3, delta: float) -> void:
 	# A slow turn through the old face can obstruct the eased arm. The new face
 	# provides a clear fallback, instead of collapsing the camera onto the head.
 	if safe.distance_to(pivot) < minf(2.0, camera_distance * 0.5):
-		var settled_offset := (target_frame.z * cos(orbit_pitch) + up * sin(orbit_pitch)) * camera_distance
+		var settled_offset := (target_frame.z * cos(orbit_pitch) + arm_up * sin(orbit_pitch)) * camera_distance
+		if keep_world_horizon:
+			# A world-up arm can enter the floor while the traveller is inverted.
+			# Move the arm to the clear surface side, keeping the screen's world-up
+			# orientation. The character still appears sideways/upside down.
+			var surface_back := -(support.global_basis * orbit_heading.rotated(normal, orbit_yaw)).normalized()
+			settled_offset = (surface_back * cos(orbit_pitch) + up * sin(orbit_pitch)) * camera_distance
 		var fallback := safe_camera_position(pivot, pivot + settled_offset)
 		if fallback.distance_to(pivot) > safe.distance_to(pivot):
 			safe = fallback
@@ -309,7 +333,7 @@ func safe_camera_position(pivot: Vector3, desired: Vector3) -> Vector3:
 	return pivot.lerp(desired, fraction)
 
 func snapshot() -> Dictionary:
-	return {"piece": support.name, "foot": foot, "normal": normal, "forward": forward, "pitch": pitch, "orbit_heading": orbit_heading, "orbit_yaw": orbit_yaw, "orbit_pitch": orbit_pitch}
+	return {"piece": support.name, "foot": foot, "normal": normal, "forward": forward, "pitch": pitch, "orbit_heading": orbit_heading, "orbit_yaw": orbit_yaw, "orbit_pitch": orbit_pitch, "world_orbit_heading": world_orbit_heading}
 
 func restore(data: Dictionary, root: Node) -> void:
 	support = root.get_node(NodePath(data.piece)) as SurfacePiece
@@ -320,4 +344,6 @@ func restore(data: Dictionary, root: Node) -> void:
 	orbit_heading = data.get("orbit_heading", forward)
 	orbit_yaw = data.get("orbit_yaw", 0.0)
 	orbit_pitch = clampf(data.get("orbit_pitch", 0.42), 0.12, 1.0)
+	world_orbit_heading = data.get("world_orbit_heading", Vector3.FORWARD)
+	world_orbit_initialized = data.has("world_orbit_heading")
 	sync_pose(1.0)

@@ -198,7 +198,7 @@ func build_menu() -> void:
 	column.add_child(camera_mode)
 	var horizon := CheckButton.new()
 	horizon.name = "WorldHorizon"
-	horizon.text = "Keep world horizon level (optional)"
+	horizon.text = "World-aligned camera (character can turn upside down)"
 	horizon.toggled.connect(func(value): game.walker.keep_world_horizon = value; game.walker.sync_pose(1.0); save_settings())
 	column.add_child(horizon)
 	var guidance_toggle := CheckButton.new()
@@ -242,6 +242,7 @@ func build_menu() -> void:
 		key_buttons[action] = key_button
 	column.add_child(label("Click a key to remap it. Escape cancels.\nWalk on ivory paths; ordinary edges stop you.\nIn architectural view, click a piece or use 1 / 2.", 14, muted))
 	column.add_child(button("Continue journey", func(): game.set_pause(false)))
+	column.add_child(button("Positioning studies", func(): Input.mouse_mode = Input.MOUSE_MODE_VISIBLE; game.get_tree().change_scene_to_file("res://scenes/positioning.tscn")))
 	column.add_child(button("Return to checkpoint", func(): game.restart_checkpoint(); game.set_pause(false)))
 	column.add_child(button("Start a new journey", func(): game.new_journey()))
 	column.add_child(button("Quit", func(): get_tree().quit()))
@@ -344,6 +345,7 @@ func save_settings() -> void:
 	settings.set_value("comfort", "third_person", game.walker.third_person)
 	settings.set_value("comfort", "camera_distance", game.walker.camera_distance)
 	settings.set_value("comfort", "keep_world_horizon", game.walker.keep_world_horizon)
+	settings.set_value("comfort", "world_aligned_camera", game.walker.keep_world_horizon)
 	settings.set_value("interface", "contextual_guidance", contextual_guidance)
 	for action in game.input_bindings:
 		settings.set_value("keys", action, game.input_bindings[action])
@@ -357,7 +359,7 @@ func load_settings() -> void:
 	game.walker.sensitivity = settings.get_value("comfort", "sensitivity", 0.0022)
 	game.walker.third_person = settings.get_value("comfort", "third_person", true)
 	game.walker.camera_distance = clampf(settings.get_value("comfort", "camera_distance", 5.5), 3.0, 8.0)
-	game.walker.keep_world_horizon = settings.get_value("comfort", "keep_world_horizon", false)
+	game.walker.keep_world_horizon = settings.get_value("comfort", "world_aligned_camera", true)
 	contextual_guidance = settings.get_value("interface", "contextual_guidance", true)
 	menu.find_child("ContextualGuidance", true, false).set_pressed_no_signal(contextual_guidance)
 	menu.find_child("WorldHorizon", true, false).set_pressed_no_signal(game.walker.keep_world_horizon)

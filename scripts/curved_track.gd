@@ -6,13 +6,14 @@ const RADIUS := 3.0
 const TAIL := 3.0
 const WIDTH := 0.8
 const SEGMENTS := 64
+var tail_length := TAIL
 var deployed := false
 var segments: Array[Node3D] = []
 var deployment := 0.0
 var stowed_roll: Node3D
 
 func length() -> float:
-	return PI * RADIUS + TAIL
+	return PI * RADIUS + tail_length
 
 func point_at(distance: float, across := 0.0) -> Vector3:
 	var angle := clampf(distance / RADIUS, 0.0, PI)
@@ -20,7 +21,7 @@ func point_at(distance: float, across := 0.0) -> Vector3:
 
 func distance_at(point: Vector3) -> float:
 	if point.y < -RADIUS and point.z >= 0:
-		return PI * RADIUS + clampf(point.z, 0.0, TAIL)
+		return PI * RADIUS + clampf(point.z, 0.0, tail_length)
 	return clampf(atan2(-point.z, point.y + RADIUS), 0.0, PI) * RADIUS
 
 func surface_frame(point: Vector3) -> Basis:
