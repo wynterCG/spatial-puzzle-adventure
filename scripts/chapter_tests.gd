@@ -52,6 +52,20 @@ static func run(g: Node3D) -> Array[String]:
 	if not is_instance_valid(g.clearance_preview) or g.turn_contact.is_empty(): failures.append("Blocked ring hover must show its actual bracket contact")
 	if g.snapshot() != before_preview or g.history != before_history or g.obstacles.size() != obstacle_count:
 		failures.append("Clearance preview must not mutate the puzzle, undo or collision geometry")
+	g.walker.reduced_motion = false
+	g.preview_selected_turn(-1)
+	var physical_ring: Transform3D = g.rigs[1].node.global_transform
+	var passenger: Dictionary = g.walker.snapshot()
+	if not g.clearance_preview_motion.global_transform.is_equal_approx(g.clearance_preview_start): failures.append("Animated preview must begin at the actual ring pose")
+	for i in range(60): g._process(1.0 / 60.0)
+	if not g.clearance_preview_motion.global_transform.is_equal_approx(g.clearance_preview_end): failures.append("Preview must stop at its sampled collision")
+	if g.rigs[1].node.global_transform != physical_ring or g.walker.snapshot() != passenger or g.history != before_history:
+		failures.append("Animated collision preview must never move the real ring or passenger")
+	g.walker.reduced_motion = true
+	g.preview_selected_turn(-1)
+	if not g.clearance_preview_motion.global_transform.is_equal_approx(g.clearance_preview_end): failures.append("Reduced motion must show the collision pose immediately")
+	g._process(8.1)
+	if is_instance_valid(g.clearance_preview): failures.append("Preview must expire without leaving ghost geometry")
 	h.turn(g, 0, 1, failures)
 	if is_instance_valid(g.clearance_preview): failures.append("Changing the gallery must clear stale collision feedback")
 	var clear: Dictionary = g.snapshot()

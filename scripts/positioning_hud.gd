@@ -7,6 +7,8 @@ var question: Label
 var status: Label
 var selected_label: Label
 var clearance_label: Label
+var clearance_marker: PanelContainer
+var clearance_leader: Line2D
 var controls: Label
 var feedback: Label
 var sidebar: PanelContainer
@@ -70,7 +72,7 @@ func _ready() -> void:
 		var turn_button := button("Turn left" if direction < 0 else "Turn right", func(): game.rotate_selected(direction))
 		turn_button.mouse_entered.connect(func(): game.preview_selected_turn(direction))
 		row.add_child(turn_button)
-	clearance_label = label("Orange: blocking bracket\nFaint outline: attempted turn", 14)
+	clearance_label = label("Turn preview: ring meets bracket.\nMove the gallery to clear its path.", 14)
 	column.add_child(clearance_label)
 	feedback = label("", 17)
 	root.add_child(feedback)
@@ -80,6 +82,19 @@ func _ready() -> void:
 	feedback.offset_top = -130
 	feedback.offset_bottom = -86
 	feedback.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	clearance_leader = Line2D.new()
+	clearance_leader.width = 3.0
+	clearance_leader.default_color = Color("ffad75")
+	root.add_child(clearance_leader)
+	clearance_marker = PanelContainer.new()
+	clearance_marker.custom_minimum_size = Vector2(230, 44)
+	clearance_marker.add_theme_stylebox_override("panel", style(Color("192236")))
+	clearance_marker.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(clearance_marker)
+	var contact_label := label("Ring hits this bracket", 17)
+	contact_label.autowrap_mode = TextServer.AUTOWRAP_OFF
+	contact_label.add_theme_color_override("font_color", Color("ffcfaa"))
+	clearance_marker.add_child(contact_label)
 	var bottom := panel(Vector2(38, -65), Vector2(1364, 40), Control.PRESET_BOTTOM_LEFT)
 	controls = label("", 14)
 	bottom.add_child(controls)
@@ -204,6 +219,21 @@ func refresh() -> void:
 	status.text = game.connection_text()
 	selected_label.text = game.rigs[game.selected].label
 	clearance_label.visible = is_instance_valid(game.clearance_preview) and game.architectural
+	clearance_marker.visible = clearance_label.visible and not game.paused and not game.blocks_play()
+	clearance_leader.visible = clearance_marker.visible
+	if clearance_marker.visible:
+		clearance_marker.size = clearance_marker.get_combined_minimum_size()
+		var contact: Vector2 = game.overview.unproject_position(game.clearance_contact_point)
+		var viewport_size: Vector2 = root.get_viewport_rect().size
+		var player_world: Vector3 = game.walker.support.to_global(game.walker.foot + game.walker.normal * .85)
+		var player_screen: Vector2 = game.overview.unproject_position(player_world)
+		for offset in [Vector2(44, -80), Vector2(-274, -80), Vector2(44, 30), Vector2(-274, 30)]:
+			clearance_marker.position = (contact + offset).clamp(Vector2(24, 140), viewport_size - clearance_marker.size - Vector2(24, 100))
+			var box := Rect2(clearance_marker.position, clearance_marker.size)
+			if not box.grow(32).has_point(player_screen) and not box.intersects(sidebar.get_global_rect()): break
+		var edge_x := 0.0 if clearance_marker.position.x > contact.x else clearance_marker.size.x
+		var target: Vector2 = clearance_marker.position + Vector2(edge_x, clearance_marker.size.y * .5)
+		clearance_leader.points = PackedVector2Array([contact, contact + Vector2(18, -22), target])
 	selected_label.add_theme_color_override("font_color", game.rigs[game.selected].get("tint", Color("e4dfd6")))
 	for i in range(selectors.size()):
 		selectors[i].visible = i < game.rigs.size()

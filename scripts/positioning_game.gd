@@ -50,6 +50,10 @@ var chapter_completed := false
 var turn_contact: Dictionary = {}
 var clearance_preview: Node3D
 var clearance_preview_time := 0.0
+var clearance_preview_motion: Node3D
+var clearance_preview_start := Transform3D.IDENTITY
+var clearance_preview_end := Transform3D.IDENTITY
+var clearance_contact_point := Vector3.ZERO
 var input_bindings := {"forward": KEY_W, "back": KEY_S, "left": KEY_A, "right": KEY_D, "view": KEY_TAB, "rotate_left": KEY_Q, "rotate_right": KEY_E, "undo": KEY_Z, "reset": KEY_R, "hint": KEY_H, "reset_view": KEY_HOME}
 
 func _ready() -> void:
@@ -413,6 +417,8 @@ func _process(delta: float) -> void:
 	if is_instance_valid(clearance_preview):
 		clearance_preview.visible = architectural and not paused
 		if not paused: clearance_preview_time -= delta
+		var amount := 1.0 if walker.reduced_motion else smoothstep(0.0, 1.0, (8.0 - clearance_preview_time) / .9)
+		clearance_preview_motion.global_transform = clearance_preview_start.interpolate_with(clearance_preview_end, amount)
 		if clearance_preview_time <= 0: clear_turn_preview()
 	if walker.support == null:
 		return
@@ -538,18 +544,28 @@ func show_turn_preview() -> void:
 	clearance_preview = Node3D.new()
 	clearance_preview.name = "Clearance_preview"
 	add_child(clearance_preview)
-	clearance_preview_time = 6.0
-	var ghost := MeshInstance3D.new()
-	ghost.mesh = turn_contact.mesh
-	var mat := Piece.material(Color("ffc99a"))
+	clearance_preview_time = 8.0
+	clearance_preview_start = turn_contact.start
+	clearance_preview_end = turn_contact.end
+	clearance_contact_point = turn_contact.blocker_frame.origin
+	clearance_preview_motion = Node3D.new()
+	clearance_preview.add_child(clearance_preview_motion)
+	clearance_preview_motion.global_transform = clearance_preview_end if walker.reduced_motion else clearance_preview_start
+	var mat := Piece.material(Color("ffe8bb"))
 	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	mat.albedo_color.a = .16
+	mat.albedo_color.a = .32
 	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	ghost.material_override = mat
-	ghost.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	clearance_preview.add_child(ghost)
-	ghost.global_transform = turn_contact.frame
-	preview_outline(turn_contact.mesh.size, turn_contact.frame, Color("cba987"), .025)
+	var rib_mat: StandardMaterial3D = mat.duplicate()
+	rib_mat.albedo_color.a = .1
+	# Animate the recognizable whole assembly, not an isolated box at a pose
+	# that requires the player to infer the missing movement. Only copies move.
+	for part in turn_contact.parts:
+		var ghost := MeshInstance3D.new()
+		ghost.mesh = part.mesh
+		ghost.material_override = mat if part.mesh.size.x > 7.0 else rib_mat
+		ghost.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		clearance_preview_motion.add_child(ghost)
+		ghost.transform = part.frame
 	preview_outline(turn_contact.blocker_size + Vector3.ONE * .06, turn_contact.blocker_frame, Color("ff934f"), .075)
 
 func boxes_overlap(a: MeshInstance3D, b: MeshInstance3D) -> bool:
@@ -579,6 +595,7 @@ func turn_obstruction(index: int, direction: int) -> String:
 	turn_contact.clear()
 	var entry := rigs[index]
 	var original: Basis = entry.node.basis
+	var original_frame: Transform3D = entry.node.global_transform
 	var fixed: Array[MeshInstance3D] = []
 	for part in pieces:
 		if not entry.node.is_ancestor_of(part):
@@ -608,8 +625,10 @@ func turn_obstruction(index: int, direction: int) -> String:
 				if boxes_overlap(moving, stationary):
 					result = "The turn is blocked by " + str(stationary.get_parent().name).replace("_", " ") + "."
 					if trial == 4 and index == 1 and stationary.has_meta("clearance_label"):
-						result = str(stationary.get_meta("clearance_label")) + "'s brass brackets occupy the ring's turning path."
-						turn_contact = {"mesh": moving.mesh, "frame": moving.global_transform, "blocker_size": stationary.mesh.size, "blocker_frame": stationary.global_transform}
+						result = "The ring would hit " + str(stationary.get_meta("clearance_label")) + "'s bracket. Move that gallery out of its path."
+						turn_contact = {"mesh": moving.mesh, "frame": moving.global_transform, "blocker_size": stationary.mesh.size, "blocker_frame": stationary.global_transform, "start": original_frame, "end": entry.node.global_transform, "parts": []}
+						for part in entry.solids:
+							turn_contact.parts.append({"mesh": part.mesh, "frame": entry.node.global_transform.affine_inverse() * part.global_transform})
 					break
 			if not result.is_empty():
 				break

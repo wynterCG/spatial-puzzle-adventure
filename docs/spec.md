@@ -29,7 +29,7 @@ The revised layout uses `chapter-courtyard.save` with a layout identity guard. T
 - A connection requires coincident authored endpoints (within 0.03 units) and matching world normals. The existing walker also checks the actual attempted contact against both walking regions. Configuration integers alone never enable links.
 - Small end inlays become teal when they join. The HUD reports the current ground and its neighbours; there is no automatic solution overlay.
 - Each turn samples the complete swept geometry against other structural boxes and checks the passenger/body clearance. Oriented-box tests use 0.04-unit construction clearance at docking edges. The docking carrier has a recessed structural slab at its hinge, beneath the shallow paving lip.
-- A rejected turn leaves the arrangement, player and undo history unchanged. In the courtyard, blocked ring turns and turn-button hover show the actual blocking bracket and a ghost at the attempted collision pose; vertical and inverted gallery withdrawal are both valid. Feedback identifies an obstruction; requested hints provide progressively more explicit reasoning.
+- A rejected turn leaves the arrangement, player and undo history unchanged. In the courtyard, blocked ring turns and turn-button hover show an animated copy of the ring stopping at the blocking bracket, with a labelled contact pointer (static in reduced-motion mode); vertical and inverted gallery withdrawal are both valid. Feedback identifies an obstruction; requested hints provide progressively more explicit reasoning.
 - Turns are quarter rotations over 0.8 seconds, or atomic with reduced motion. The entire moving assembly shares a pivot. There are no new manipulation locks or forced interaction sequences.
 
 ## Study 1 ? Choose your deck
