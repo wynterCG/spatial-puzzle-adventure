@@ -6,14 +6,14 @@ This is the requested project-local skill.md, not an installed global assistant 
 
 The user explicitly corrected unrestricted wall-walking and the appearance of the exposed teleport arch. The current game has **authored walkable paths**, a **architectural camera above the occupied ground**, and **portal technology concealed in ordinary architecture**. Third person remains the default after the earlier comfort feedback.
 
-Do not restore the original draft's all-six-faces rule, automatic edge wrapping, freely orbitable overview, or explicit teleport presentation. The old underside causeway puzzle and the old inspection key are retired. The player's latest explanation confirms that a portal is appropriate as the technical implementation; its appearance should be a continuous doorway, gallery or passage.
+Do not restore the original draft's all-six-faces rule, automatic edge wrapping, freely orbitable overview, or explicit teleport presentation. The old underside causeway puzzle and inspection key remain retired. A new explicit rounded ribbon now leads to an underside control; it does not restore general edge wrapping. Local controls work in third person, while optional first person remains available. The player's latest explanation confirms that a portal is appropriate as the technical implementation; its appearance should be a continuous doorway, gallery or passage.
 
 ## Stack and entry points
 
 - Godot 4.6.1, GDScript, Compatibility renderer; no .NET gameplay dependency.
 - Open project.godot, run scenes/main.tscn with F6 or the project with F5.
 - Geometry is built at runtime. Inspect the running game, not the empty editor scene.
-- Four gameplay scripts under scripts/.
+- Five gameplay scripts under scripts/.
 - The original workstation has the user-supplied Godot MCP Pro 1.17.1 addon.
 - No external assets or package downloads are needed to play a fresh clone.
 
@@ -38,24 +38,26 @@ Godot 4.6 can save a stale open script-editor buffer over an externally edited f
 
 ## Mechanics invariants
 
-1. Only SurfacePiece.walk_regions on its local-UP plane accept contact. Architectural mass is not implicitly walkable.
+1. Flat supports accept only SurfacePiece.walk_regions on their local-UP plane. CurvedTrack is an explicit exception with analytic contact and a tangent frame along its radius-3 half-circle and underside tail. Architectural mass is not implicitly walkable.
 2. Ordinary path and platform edges stop movement. Never infer gravity transitions from nearest geometry, view direction or an unmarked adjoining face.
 3. A normal seam requires both an authored settled neighbour link and genuinely matching world contact/normal.
-4. Carrier rotation changes world gravity by carrying the same support-local foot, normal, heading and orbit. Walking does not change its support-local face.
+4. Carrier rotation changes world gravity by carrying the same support-local foot, normal, heading and orbit. Walking on flat supports does not change their local face. On the authored ribbon, transport normal, forward and orbit through surface_frame; never derive gravity from arbitrary nearby geometry.
 5. Disable movement and neighbour links while a transformation is busy. Intermediate overlaps never become routes.
 6. Reject unsafe passenger/body sweeps with feedback. Keep a safe gallery-operating landing outside its turn radius.
 7. Impossible adjacency is activated by the authored configuration, independently of the active camera. Accepted connections must work in traversal.
 8. Source/destination rendering and traversal use the same endpoint transform. The current pair is parallel, translated by (-18, -15, -24).
-9. Undo and recovery restore the full player/configuration snapshot. Save only settled valid contacts. Version 3 rejects old free-surface coordinates.
-10. Transport one architectural camera frame with the occupied support: local offset (36, 48, -30) and local UP. Keep azimuth, elevation and distance constant; do not select opposite world-space directions or follow walking heading. The landing/gallery frame preserves endpoint projection alignment. Other surface frames may expose separation. Reduced motion changes structure and camera atomically; off-support turns leave the view unchanged. Do not add a free inspection orbit.
+9. Undo and recovery restore the full player/configuration snapshot. Save only settled valid contacts. Version 4 includes track_open and carrier_released. Migrate version-3 authored-path progress without stranding the player; older free-surface coordinates remain invalid.
+10. Transport one architectural camera frame with the occupied support and its contact surface_frame: local offset (36, 48, -30) and local UP. Keep azimuth, elevation and distance constant; do not select opposite world-space directions or follow walking heading. The landing/gallery frame preserves endpoint projection alignment. Other surface frames may expose separation. Reduced motion changes structure and camera atomically; off-support turns leave the view unchanged. Do not add a free inspection orbit.
 
 ## Layout and workflow
+
+First operate the entrance lever in traversal view (F), follow the extended rounded walkway upside down, and release the carrier brake from the underside control. Return along the same ribbon. Interactions need a reachable, clear control on the same ground; they are unavailable in overview. Commit links/checkpoints only when deployment settles. Restore visible levers, gate, ribbon and brake together with their state on undo/recovery. Both first and third person must work.
 
 Arrival and causeway feed the carrier's marked top deck in state 0. The carrier rolls about local X: state 1 brings that deck onto the violet landing's world-vertical walking plane; states 2/3 join neither neighbour. Occupancy is necessary because turning first removes the entrance link.
 
 The landing has a T-shaped authored path. Operate the turning gallery from the branch near the carrier. Gallery state 0 opens the central route; other states stop it before the unaligned structure. A ten-unit covered gallery conceals the two-way coordinate crossing at local Z=-11. The destination continues to the light. See spec.md for dimensions and footprints.
 
-Model route regions and settled links before adding decorative detail. Draw ivory paving from the same regions used by movement. Never fix a bypass with an invisible milestone gate. New surface-transition mechanisms must be explicit, readable and tested; arbitrary curved/concave routes are not implemented yet.
+Model route regions and settled links before adding decorative detail. Draw ivory paving from the same regions used by movement. Never fix a bypass with an invisible milestone gate. New surface-transition mechanisms must be explicit, readable and tested; the current convex half-circle is explicitly authored; arbitrary spline/concave routes are not implemented yet.
 
 ## Passage presentation
 
@@ -79,7 +81,7 @@ Run the integration test and require both exit 0 and the literal SELF TEST PASS 
 & 'C:\Users\Wynter\Downloads\Godot_v4.6.1-stable_mono_win64\Godot_v4.6.1-stable_mono_win64\Godot_v4.6.1-stable_mono_win64_console.exe' --headless --path . --quit-after 120 -- --self-test
 ```
 
-Checks cover blocked ordinary edges and diagonals; forbidden faces; disconnected boarding; entrance traversal; occupied gravity roll and attachment; three follow distances with reduced motion on/off; vertical landing arrival; undo after leaving; inactive gallery blocking; gallery sweep safety; actual endpoint projection alignment; camera-state independence; constant surface-local camera basis through a full revolution and all eight directed quarter-turns; walking-heading independence; default/hover/occupancy/exit cutaway states; two-way passage mapping; reverse-aperture orientation; completion route and snapshot recovery.
+Checks cover local interactions in both traversal camera modes, rejected remote/overview actions, folded/deployed connectivity, carrier brake gating, continuous top-to-underside walking and return, ribbon side/end boundaries, curved pose recovery, mechanism undo, then blocked ordinary edges and diagonals; forbidden faces; disconnected boarding; entrance traversal; occupied gravity roll and attachment; three follow distances with reduced motion on/off; vertical landing arrival; undo after leaving; inactive gallery blocking; gallery sweep safety; actual endpoint projection alignment; camera-state independence; constant surface-local camera basis through a full revolution and all eight directed quarter-turns; walking-heading independence; default/hover/occupancy/exit cutaway states; two-way passage mapping; reverse-aperture orientation; completion route and snapshot recovery.
 
 The Jev runner in tools/jev_playtest.mjs can make bounded structured-state playtest decisions through MCP Pro using TYPESAFE_API_KEY and GODOT_MCP_CLI from the environment. It preserves runtime state and the checkpoint file, and writes its actual decisions to docs/jev-playtest-report.json. It does not inspect screenshots or establish human comfort. Never commit credentials.
 

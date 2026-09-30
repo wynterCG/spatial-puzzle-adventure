@@ -1,6 +1,6 @@
 # Elsewhere - current game specification
 
-Prototype revision 3, 30 September 2026. Working title.
+Prototype revision 4, 30 September 2026. Working title.
 
 ## Authoritative design corrections
 
@@ -8,11 +8,11 @@ The user's clarifications supersede conflicting passages in the [original concep
 
 1. Third person is the default traversal view for comfort; first person is optional.
 2. Movement follows **authored walkable paths**. Ordinary edges stop movement. The character cannot freely walk onto every face of a solid.
-3. A moving support carries the player's local position, heading and gravity. Changing orientation requires a designed mechanism or transition; the current opening uses an occupied rolling deck.
+3. A moving support carries the player's local position, heading and gravity. Changing orientation requires a designed mechanism or transition; the current opening combines an authored rounded walkway and an occupied rolling deck.
 4. The architectural view is fixed relative to the occupied walking surface: the same azimuth, elevation and distance throughout rotations. It stays above the floor without switching between front and back views. A freely orbiting overview would expose view-dependent illusions. The former separation/underside inspection control has been removed from normal play.
 5. **Portal describes the spatial technique, not the visual theme.** A pair of separated endpoints becomes directly traversable through ordinary-looking architecture. The accepted arrangement activates the connection; the camera does not sustain it.
 
-The previous mandatory underside route and automatic edge wrapping are retired. The new opening is built around these corrected rules, rather than placing invisible exceptions on the old free-surface puzzle.
+The old unrestricted edge wrapping remains retired. The latest addition deliberately reintroduces an underside route through a visibly rounded, authored ribbon. Local interactions work in third person, with first person retained as an optional setting; their changes persist into architectural view.
 
 ## Identity and design pillars
 
@@ -28,13 +28,13 @@ The intended campaign progresses through arrival spaces, moving courtyards, link
 
 ## Traversal and path boundaries
 
-Every support defines one or more rectangles in its local X/Z plane at local Y = half-height. Only this authored local-UP face is walkable. Ivory paving communicates the regions; unused architectural mass is not a walking route.
+Flat supports define one or more rectangles in their local X/Z plane at local Y = half-height. Only this authored local-UP face is walkable. The rounded walkway is a separate analytic ribbon with a changing surface normal. Ivory paving communicates the regions; unused architectural mass is not a walking route.
 
 Movement uses short substeps and constrains attempted movement to the region union. A path edge stops the character without changing their normal or dropping them into the void. No automatic face folding, nearest-object gravity, gap snapping or camera-dependent attachment is allowed. Footstep feedback is based on actual movement, not blocked input.
 
 A normal cross-piece seam requires both an authored neighbour relationship and genuinely touching compatible walking regions. Links exist only in accepted settled states. Geometry and body checks also reject entry into solid architecture. Merely touching an unmarked side does not create a path.
 
-Curved paths, stairs, arbitrary mesh navigation and explicit pedestrian gravity-transition junctions are future work. This build changes the world direction of gravity by rotating the occupied support, while the support-local walking normal remains UP.
+The rounded walkway is an explicit gravity transition: a radius-3 half-circle followed by a 3-unit underside landing, with walkable half-width 0.8. Contact uses distance along the curve and lateral position. Gravity, walking heading and orbit are transported together through its tangent frame, so continuing forward carries the traveller from upright through a wall orientation to upside down. Returning reverses the same curve. Side edges and the far end stop movement. Rendered articulated slats follow the same analytic route, with box solids for camera/body clearance. This is one authored convex curve, not arbitrary mesh navigation, nearest-surface gravity or permission to wrap around other edges. Stairs, concave curves and general spline authoring remain future work.
 
 ## Cameras and comfort
 
@@ -42,7 +42,7 @@ Traversal defaults to a visible third-person traveller. The camera orbit lives i
 
 Follow distance is adjustable from 3 to 8 (default 5.5). Settings include sensitivity, reduced motion, optional fixed world horizon and optional first person. No head bob or camera shake is enabled. First person hides the avatar from its own camera. Camera settings are independent of puzzle checkpoints.
 
-The orthographic architectural camera focuses on (-1, -2, -7), with size 46. Its offset is the occupied support's basis multiplied by local vector (36, 48, -30). Its up direction uses the same support frame. This preserves one local azimuth, elevation and distance through every occupied rotation; it does not choose between opposite world-space viewpoints or react to the traveller's walking heading. The structure tween transports the camera frame continuously. Off-support turns leave it unchanged; reduced motion applies structure and camera together in a discrete turn.
+The orthographic architectural camera focuses on (-1, -2, -7), with size 46. Its offset is the occupied support's basis multiplied by the contact's surface frame and local vector (36, 48, -30). Its up direction uses the same ground frame. Flat supports use the identity contact frame; the rounded track rotates it continuously around the curve. This preserves one local azimuth, elevation and distance through every occupied rotation; it does not choose between opposite world-space viewpoints or react to the traveller's walking heading. The structure tween transports the camera frame continuously. Off-support turns leave it unchanged; reduced motion applies structure and camera together in a discrete turn.
 
 The local offset is calibrated to preserve the existing world offset (36, 30, 48) on the landing/gallery plane. Thus the actual gallery endpoints still coincide in projection in the view used to align and traverse them. Views from the entrance and disconnected carrier orientations can expose their spatial separation; the concealed traversable connection remains configuration-driven and independent of camera mode. Decorative background monuments are culled from overview when they would stand in front of the playable composition, preventing foreground obstruction and camera clipping at the new angles. Traversal retains the full scenery. There is no arbitrary inspection orbit. Undo, checkpoint recovery, view switching and a new journey recover the camera from the restored support frame.
 
@@ -54,7 +54,15 @@ Aligned galleries form one apparent passage and reveal together, so the duplicat
 
 Walking pauses during architectural manipulation. Third-person view switches are cuts; optional first person retains its short transition unless reduced motion is enabled. Comfort still requires human testing.
 
-## Current puzzle: board, roll, align, cross
+## Current puzzle: extend, release, board, roll, align, cross
+
+### The Rounded Walkway
+
+The entrance has a short ivory branch leading to a rolled-up walkway and a brass lever. Enter traversal view, approach within 2 units and press the remappable interaction key (default F). A visible prompt appears for a reachable, unused control. Both third and first person work. Controls cannot be operated from overview, remotely, while paused, during a transformation or after completion. Reach requires the matching support, compatible ground orientation and a clear hand-height line through the mechanism/gallery obstacles.
+
+The first lever extends the articulated ribbon over 1.2 seconds; its gate opens and its entry link activates only after it settles. Walk around the rounded edge onto the underside landing. A second brass lever releases the visible carrier brake. The release persists when changing views: the carrier can now rotate in isometric mode. Retrace the ribbon, board the carrier, and continue the existing puzzle. The gate, handle positions, brake and ivory route communicate the changes physically. Used controls remain in their operated positions. Undo can reverse either action and restores the character along with it.
+
+Reduced motion applies each mechanism change in one settled step. The curved route still turns gravity as the character walks; disabling mechanism animation does not remove the necessary surface-relative camera rotation. Motion comfort remains a human playtest question. These mechanisms are a compact prototype of inhabitant actions enabling architectural changes, not an inventory or generic interaction system.
 
 ### The Passenger
 
@@ -96,7 +104,8 @@ This is an authored parallel-frame pair, not a general impossible-space renderer
 
 | Piece | World centre | Local dimensions | Orientation / path |
 |---|---|---|---|
-| Arrival | (-13, 0, 0) | (6, 2, 6) | UP; X from -2.8 to 3, Z +/-0.8 |
+| Arrival | (-13, 0, 0) | (6, 2, 6) | UP; X from -2.8 to 3, Z +/-0.8, plus branch X -2.6 to -1.0, Z -3 to 0 |
+| Rounded walkway | (-14.8, 1, -3), entry | Radius 3; arc length 3*pi plus tail 3; width 1.6 | Curves about local X to DOWN; returns to Arrival at its upper end |
 | Causeway | (-8, 0, 0) | (4, 2, 2) | UP; X +/-2, Z +/-0.8 |
 | Carrier | (0, 0, 0) | (12, 2, 3) | Local UP; X +/-6, Z +/-0.8; rolls about X |
 | Landing | (10, 0, 0) | (8, 2, 24) | X rotation 90 degrees; T-shaped authored path |
@@ -108,7 +117,7 @@ Start is arrival-local (-1.8, 1, 0), facing local +X. The landing's horizontal p
 
 Manipulation disables movement and settled neighbour links. The carrier's attached-body sweep is sampled at 24 intermediate angles against fixed architectural volumes. A stationary player can also block a turn that would sweep into them. Gallery rotation requires standing outside its conservative sweep zone. Rejected actions provide an explanation.
 
-Undo restores both structure configuration and the player's complete local pose, even after disembarking. Checkpoints are saved at the start, boarding, landing and first distant arrival, never mid-animation. Returning to a checkpoint clears undo history. Save version 3 rejects coordinates from the retired free-surface layout. A workstation backup of the earlier save was made before migration; the source concept and previous Git revisions remain available.
+Undo restores both structure configuration and the player's complete local pose, even after disembarking. Checkpoints are saved at the start, each settled local interaction, boarding, landing and first distant arrival, never mid-animation. Returning to a checkpoint clears undo history. Save version 4 stores walkway deployment and brake release with the player pose. Version-3 authored-path saves migrate in memory: existing carrier/landing/destination progress retains access with the new mechanisms released; an untouched entrance starts with them closed. Older free-surface saves remain incompatible. A workstation backup was made before this revision; the source concept and previous Git revisions remain available.
 
 No lives, time penalty, inventory, combat or economy are introduced. New journey resets the current local progress. Test mode does not load or write player progress.
 
@@ -123,23 +132,25 @@ Generated footsteps and tones communicate movement, turning, settling and comple
 | Walk / orbit or first-person look | WASD / mouse |
 | Switch architectural / traversal | Tab |
 | Select carrier / turning gallery | 1 / 2, or click in overview |
+| Local interaction in traversal | F near a control |
 | Turn | Q / E or buttons |
 | Undo / checkpoint | Z / R |
 | Hint / pause | H / Escape |
 
-Movement, switching, turning, undo, recovery and hints can be rebound. Escape, mouse and 1/2 remain fixed in this prototype. Conflicting keyboard bindings swap. Settings persist locally, including contextual guidance, sensitivity, camera mode/distance, horizon and reduced motion.
+Movement, switching, interaction, turning, undo, recovery and hints can be rebound. Escape, mouse and 1/2 remain fixed in this prototype. Conflicting keyboard bindings swap. Settings persist locally, including contextual guidance, sensitivity, camera mode/distance, horizon and reduced motion.
 
 ## Art and production scope
 
 Abstract, inhabitable architecture uses navy/violet atmosphere, terracotta machinery, muted teal destination and ivory paths. Warm highlights identify important details without an RGB axis code. All current geometry, materials and sound are generated locally. Production assets could add bevels, ceramic/stone/metal materials, restrained surface detail, richer lighting and narrative landmarks.
 
-Implemented: authored rectangle paths; occupied gravity-changing roll; composed overview with ground-relative roll; one aligned two-way concealed passage; surface-following camera; collision checks; recovery; settings; guidance; completion. Explicit exclusions remain multiplayer, procedural campaign generation, combat, physics-object collection, unrestricted gravity changes and a complete campaign.
+Implemented: third/first-person local interactions; retractable curved ribbon to an underside control; persistent carrier brake release; authored rectangle paths; occupied gravity-changing roll; composed overview with ground-relative roll; one aligned two-way concealed passage; surface-following camera; collision checks; recovery; settings; guidance; completion. Explicit exclusions remain multiplayer, procedural campaign generation, combat, physics-object collection, unrestricted gravity changes and a complete campaign.
 
 Next acceptance questions: does a player understand path boundaries, predict the roll, choose to board first, recognize gallery alignment, and experience the crossing as architectural continuity? Use [playtest.md](playtest.md). Technical checks and visual evidence are in [validation.md](validation.md).
 
 ## Implementation map
 
 - `scripts/surface_piece.gd`: architecture, authored regions and settled neighbour references.
+- `scripts/curved_track.gd`: analytic rounded contact, tangent frame, slat geometry and deployment.
 - `scripts/surface_walker.gd`: constrained movement, support-local pose, camera and solid checks.
 - `scripts/game.gd`: authored layout, rotations, passage rendering/crossing, state, sound and integration checks.
 - `scripts/hud.gd`: controls, guidance and settings.

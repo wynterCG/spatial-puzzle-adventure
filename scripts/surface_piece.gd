@@ -16,6 +16,12 @@ var solid_boxes: Array[AABB] = []
 var solid_meshes: Array[MeshInstance3D] = []
 var pick_body: StaticBody3D
 
+func surface_frame(_point: Vector3) -> Basis:
+	return Basis.IDENTITY
+
+func step_contact(point: Vector3, direction: Vector3, distance: float) -> Vector3:
+	return constrain_to_path(point + direction * distance)
+
 func contains_solid(point: Vector3, padding := 0.0) -> bool:
 	for bounds in solid_boxes:
 		if bounds.grow(padding).has_point(point):

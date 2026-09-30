@@ -97,12 +97,15 @@ func update_overview_visibility(view: Camera3D, enabled: bool) -> void:
 		var point := avatar.to_global(Vector3(0, height, 0))
 		var origin := view.project_ray_origin(view.unproject_position(point))
 		for piece in pieces:
-			for bounds in piece.solid_boxes:
-				if bounds.intersects_segment(piece.to_local(origin), piece.to_local(point)):
+			for solid in piece.solid_meshes:
+				if not solid.is_visible_in_tree():
+					continue
+				var size: Vector3 = (solid.mesh as BoxMesh).size
+				if AABB(-size * 0.5, size).intersects_segment(solid.to_local(origin), solid.to_local(point)):
 					overview_silhouette.visible = true
 					return
 		for solid in camera_obstacles:
-			if (solid.layers & view.cull_mask) == 0:
+			if not solid.is_visible_in_tree() or (solid.layers & view.cull_mask) == 0:
 				continue
 			var size: Vector3 = (solid.mesh as BoxMesh).size
 			if AABB(-size * 0.5, size).intersects_segment(solid.to_local(origin), solid.to_local(point)):
@@ -190,14 +193,23 @@ func advance(world_direction: Vector3, distance: float) -> Vector3:
 		forward = other.global_basis.inverse() * (support.global_basis * forward)
 		orbit_heading = other.global_basis.inverse() * (support.global_basis * orbit_heading)
 		support = other
-		foot = local
-		normal = Vector3.UP
+		foot = other.constrain_to_path(local)
+		var transport := Basis(Quaternion(up, other.surface_frame(foot).y))
+		forward = (transport * forward).normalized()
+		orbit_heading = (transport * orbit_heading).normalized()
+		normal = other.surface_frame(foot).y
 		changed_surface.emit()
-		return world_direction
+		return other.global_basis * transport * (other.global_basis.inverse() * world_direction)
 	# Ordinary edges are boundaries. No face folding, gravity snapping or wrapping.
-	next = support.constrain_to_path(next)
-	if support.allows_point(next, normal) and pose_is_clear(support, next, normal):
+	next = support.step_contact(foot, direction, distance)
+	var next_normal := support.surface_frame(next).y
+	if support.allows_point(next, next_normal) and pose_is_clear(support, next, next_normal):
+		var transport := support.surface_frame(next) * support.surface_frame(foot).inverse()
+		forward = (transport * forward).normalized()
+		orbit_heading = (transport * orbit_heading).normalized()
 		foot = next
+		normal = next_normal
+		return support.global_basis * transport * direction
 	return world_direction
 
 func pose_is_clear(piece: SurfacePiece, point: Vector3, up: Vector3) -> bool:
@@ -210,6 +222,8 @@ func pose_is_clear(piece: SurfacePiece, point: Vector3, up: Vector3) -> bool:
 			if other.contains_solid(local, 0.10):
 				return false
 	for obstacle in camera_obstacles:
+		if not obstacle.is_visible_in_tree():
+			continue
 		var bounds: Vector3 = (obstacle.mesh as BoxMesh).size * 0.5
 		for height in [0.25, 0.8, 1.55]:
 			var local := obstacle.to_local(piece.to_global(point + up * height)).abs()
@@ -268,6 +282,8 @@ func safe_camera_position(pivot: Vector3, desired: Vector3) -> Vector3:
 		solids.append_array(piece.solid_meshes)
 	solids.append_array(camera_obstacles)
 	for solid in solids:
+		if not solid.is_visible_in_tree():
+			continue
 		var origin := solid.to_local(pivot)
 		var ray := solid.to_local(desired) - origin
 		var half_size: Vector3 = (solid.mesh as BoxMesh).size * 0.5

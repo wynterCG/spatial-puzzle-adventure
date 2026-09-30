@@ -4,7 +4,8 @@ extends Node3D
 const Piece = preload("res://scripts/surface_piece.gd")
 const Walker = preload("res://scripts/surface_walker.gd")
 const HUD = preload("res://scripts/hud.gd")
-const SAVE_VERSION := 3
+const CurvedTrack = preload("res://scripts/curved_track.gd")
+const SAVE_VERSION := 4
 const PASSAGE_OFFSET := Vector3(-18, -15, -24)
 const CROSSING_Z := -11.0
 const START_FOOT := Vector3(-1.8, 1, 0)
@@ -16,6 +17,12 @@ var causeway: SurfacePiece
 var carrier: SurfacePiece
 var courtyard: SurfacePiece
 var destination: SurfacePiece
+var rounded_track: CurvedTrack
+var track_open := false
+var carrier_released := false
+var local_controls: Array[Dictionary] = []
+var carrier_brake: Node3D
+var track_gate: MeshInstance3D
 var arch: Node3D
 var arch_state := 1
 var passage_views: Array[Dictionary] = []
@@ -40,7 +47,7 @@ var history: Array[Dictionary] = []
 var checkpoint: Dictionary
 var hint_level := 0
 var hint_context := ""
-var message := "Follow the ivory path. Board before changing the arrangement."
+var message := "Enter the world and inspect the brass control beside the folded walkway."
 var message_time := 8.0
 var rotation_tween: Tween
 var camera_tween: Tween
@@ -48,7 +55,7 @@ var audio: AudioStreamPlayer
 var passage_previous := 0.0
 var time := 0.0
 var transition_camera: Camera3D
-var input_bindings := {"forward": KEY_W, "back": KEY_S, "left": KEY_A, "right": KEY_D, "view": KEY_TAB, "rotate_left": KEY_Q, "rotate_right": KEY_E, "undo": KEY_Z, "reset": KEY_R, "hint": KEY_H}
+var input_bindings := {"forward": KEY_W, "back": KEY_S, "left": KEY_A, "right": KEY_D, "view": KEY_TAB, "interact": KEY_F, "rotate_left": KEY_Q, "rotate_right": KEY_E, "undo": KEY_Z, "reset": KEY_R, "hint": KEY_H}
 
 func _ready() -> void:
 	get_viewport().mouse_entered.connect(func(): pointer_in_viewport = true)
@@ -149,12 +156,13 @@ func build_world() -> void:
 	])
 	build_landing_detail(courtyard, false)
 	build_landing_detail(destination, true)
-	arrival.walk_regions = [Rect2(-2.8, -0.8, 5.8, 1.6)]
+	arrival.walk_regions = [Rect2(-2.8, -0.8, 5.8, 1.6), Rect2(-2.6, -3, 1.6, 3)]
 	causeway.walk_regions = [Rect2(-2, -0.8, 4, 1.6)]
 	carrier.walk_regions = [Rect2(-6, -0.8, 12, 1.6)]
 	destination.walk_regions = [Rect2(-0.9, -15.5, 1.8, 14.5)]
 	for piece in [arrival, causeway, carrier, destination]:
 		piece.draw_paths()
+	build_local_mechanisms()
 	build_arch()
 	update_connections()
 	# The destination's shrine shares the landing's local gravity frame.
@@ -209,6 +217,9 @@ func update_connections() -> void:
 		return
 	arrival.neighbours.append(causeway)
 	causeway.neighbours.append(arrival)
+	if track_open:
+		arrival.neighbours.append(rounded_track)
+		rounded_track.neighbours.append(arrival)
 	if carrier.state == 0:
 		causeway.neighbours.append(carrier)
 		carrier.neighbours.append(causeway)
@@ -224,10 +235,113 @@ func update_overview_camera() -> void:
 	var ground_up := (walker.support.global_basis * walker.normal).normalized()
 	# Transport one authored camera frame with the ground. Do not select a new
 	# side based on world-up or walking heading: either causes front/back swaps.
-	overview.position = focus + walker.support.global_basis * OVERVIEW_LOCAL_OFFSET
+	var ground_frame := walker.support.global_basis * walker.support.surface_frame(walker.foot)
+	overview.position = focus + ground_frame * OVERVIEW_LOCAL_OFFSET
 	overview.look_at(focus, ground_up)
 	update_architecture_cutaway()
 	update_backdrop_visibility()
+
+func build_local_mechanisms() -> void:
+	rounded_track = CurvedTrack.new()
+	rounded_track.name = "RoundedTrack"
+	add_child(rounded_track)
+	rounded_track.position = arrival.to_global(Vector3(-1.8, 1, -3))
+	rounded_track.build()
+	pieces.append(rounded_track)
+	make_local_control("extend", arrival, Vector3(-2.82, 1, -1.6), Basis.IDENTITY)
+	make_local_control("release", rounded_track, rounded_track.point_at(rounded_track.length() - 0.7, 0.87), Basis(Vector3.RIGHT, -PI))
+	track_gate = Piece.box(arrival, Vector3(-1.8, 1.38, -2.86), Vector3(1.7, 0.12, 0.14), Piece.material(Color("bd9670")))
+	gallery_solids.append(track_gate)
+	# A visible brake ties the underside control to the architectural action.
+	carrier_brake = Node3D.new()
+	causeway.add_child(carrier_brake)
+	carrier_brake.position = Vector3(1.75, 0, 0)
+	for side in [-1.0, 1.0]:
+		Piece.box(carrier_brake, Vector3(0, 0, side * 1.12), Vector3(0.6, 1.5, 0.22), Piece.material(Color("ba9767")))
+		Piece.box(carrier_brake, Vector3(0.4, -0.65, side * 1.12), Vector3(1.1, 0.2, 0.22), Piece.material(Color("ba9767")))
+	refresh_local_mechanisms()
+
+func make_local_control(id: String, support: SurfacePiece, foot: Vector3, frame: Basis) -> void:
+	var root := Node3D.new()
+	support.add_child(root)
+	root.transform = Transform3D(frame, foot)
+	var base := Piece.box(root, Vector3(0, 0.42, 0), Vector3(0.28, 0.84, 0.32), Piece.material(Color("626f80")))
+	gallery_solids.append(base)
+	Piece.box(root, Vector3(0, 0.87, 0), Vector3(0.4, 0.09, 0.42), Piece.material(Color("bc9b71")))
+	var lever := Node3D.new()
+	root.add_child(lever)
+	lever.position.y = 0.93
+	lever.rotation.z = -0.45
+	Piece.box(lever, Vector3(0, 0.16, 0), Vector3(0.07, 0.32, 0.07), Piece.material(Color("d3bea0")))
+	var knob := Piece.box(lever, Vector3(0, 0.34, 0), Vector3(0.19, 0.12, 0.19), Piece.material(Color("ffda94"), 0.8))
+	local_controls.append({"id": id, "support": support, "root": root, "lever": lever, "knob": knob})
+
+func refresh_local_mechanisms() -> void:
+	rounded_track.deployed = track_open
+	rounded_track.set_deployment(1.0 if track_open else 0.0)
+	track_gate.visible = not track_open
+	carrier_brake.position.y = -1.15 if carrier_released else 0.0
+	for control in local_controls:
+		var used: bool = track_open if control.id == "extend" else carrier_released
+		control.root.visible = control.id == "extend" or track_open
+		control.lever.rotation.z = 0.55 if used else -0.45
+		control.knob.material_override = Piece.material(Color("84bcb5") if used else Color("ffda94"), 0.5)
+
+func available_interaction() -> String:
+	if architectural or busy or paused or won:
+		return ""
+	for control in local_controls:
+		if control.support != walker.support or not control.root.is_visible_in_tree():
+			continue
+		if (control.id == "extend" and track_open) or (control.id == "release" and carrier_released):
+			continue
+		var contact := walker.support.to_global(walker.foot)
+		if contact.distance_to(control.root.global_position) <= 2.0 and (walker.support.global_basis * walker.normal).dot(control.root.global_basis.y) > 0.95:
+			# Same ground, reachable distance and an unobstructed hand-height line.
+			var hand := contact + walker.support.global_basis * walker.normal
+			var target: Vector3 = control.root.to_global(Vector3(0, 1.0, 0))
+			var clear := true
+			for obstacle in gallery_solids:
+				if not obstacle.is_visible_in_tree() or obstacle.get_parent() == control.root:
+					continue
+				var size: Vector3 = (obstacle.mesh as BoxMesh).size
+				if AABB(-size * 0.5, size).intersects_segment(obstacle.to_local(hand), obstacle.to_local(target)):
+					clear = false
+			if clear:
+				return control.id
+	return ""
+
+func interaction_text() -> String:
+	match available_interaction():
+		"extend": return key_name("interact") + "  Extend the rounded walkway"
+		"release": return key_name("interact") + "  Release the carrier brake"
+	return ""
+
+func interact() -> void:
+	var action := available_interaction()
+	if action.is_empty():
+		return
+	history.append(snapshot())
+	busy = true
+	update_connections()
+	play_tone(250, 0.3, 0.1)
+	rotation_tween = create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	var duration := 0.0 if walker.reduced_motion else 1.2
+	if action == "extend":
+		rotation_tween.tween_method(rounded_track.set_deployment, 0.0, 1.0, duration)
+	else:
+		rotation_tween.tween_property(carrier_brake, "position:y", -1.15, duration)
+	rotation_tween.tween_callback(func():
+		track_open = track_open or action == "extend"
+		carrier_released = carrier_released or action == "release"
+		busy = false
+		refresh_local_mechanisms()
+		update_connections()
+		checkpoint = snapshot()
+		save_progress()
+		notify("Follow the curve. It carries your ground around the edge." if action == "extend" else "The carrier is released. Return along the curve, board it, then turn it from above.")
+		play_tone(620, 0.2, 0.1)
+	)
 
 func update_backdrop_visibility() -> void:
 	# Scenic monuments must remain behind the playable composition as its view
@@ -282,9 +396,12 @@ func gallery_at_screen(screen: Vector2) -> Node3D:
 				found = gallery
 	# A foreground support must not permit hovering through its visible mass.
 	for piece in pieces:
-		for solid in piece.solid_boxes:
-			var hit: Variant = solid.intersects_ray(piece.to_local(origin), piece.global_basis.inverse() * direction)
-			if hit is Vector3 and origin.distance_to(piece.to_global(hit)) < nearest:
+		for solid in piece.solid_meshes:
+			if not solid.is_visible_in_tree():
+				continue
+			var size: Vector3 = (solid.mesh as BoxMesh).size
+			var hit: Variant = AABB(-size * 0.5, size).intersects_ray(solid.to_local(origin), solid.global_basis.inverse() * direction)
+			if hit is Vector3 and origin.distance_to(solid.to_global(hit)) < nearest:
 				return null
 	return found
 
@@ -453,8 +570,7 @@ func _process(delta: float) -> void:
 	walker.sync_pose(delta)
 	walker.avatar.visible = architectural or walker.third_person
 	update_gallery_hover()
-	update_architecture_cutaway()
-	update_backdrop_visibility()
+	update_overview_camera()
 	walker.update_overview_visibility(overview, architectural)
 	update_passage_views()
 	hud.refresh()
@@ -473,6 +589,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		restart_checkpoint()
 	elif event.is_action_pressed("hint"):
 		show_hint()
+	elif event.is_action_pressed("interact"):
+		interact()
 	elif architectural and not busy:
 		if event.is_action_pressed("rotate_left"):
 			rotate_selected(-1)
@@ -534,6 +652,9 @@ func select_piece(index: int) -> void:
 
 func rotate_selected(direction: int) -> void:
 	if busy or paused or not architectural:
+		return
+	if selected == 0 and not carrier_released:
+		notify("The carrier brake is engaged. Follow the rounded walkway to its release control.")
 		return
 	if selected == 1 and walker.support == courtyard and walker.foot.distance_to(Vector3(0, 1, -6)) < 6.6:
 		notify("Step back onto the landing before turning the gallery.")
@@ -616,7 +737,7 @@ func surface_changed() -> void:
 		notify("A new landing. The gallery must meet its distant counterpart.")
 
 func snapshot() -> Dictionary:
-	return {"version": SAVE_VERSION, "carrier": carrier.state, "arch": arch_state, "player": walker.snapshot(), "boarded": boarded, "court": reached_court, "crossed": crossed}
+	return {"version": SAVE_VERSION, "carrier": carrier.state, "arch": arch_state, "player": walker.snapshot(), "boarded": boarded, "court": reached_court, "crossed": crossed, "track_open": track_open, "carrier_released": carrier_released}
 
 func restore(data: Dictionary) -> void:
 	hovered_gallery = null
@@ -629,6 +750,11 @@ func restore(data: Dictionary) -> void:
 	carrier.rotation.x = carrier.state * PI * 0.5
 	arch_state = data.arch
 	arch.rotation.y = arch_state * PI * 0.5
+	# Existing authored-path progress remains usable after the new opening.
+	var prior_progress: bool = data.boarded or data.court or data.crossed or int(data.carrier) != 0
+	track_open = data.get("track_open", prior_progress)
+	carrier_released = data.get("carrier_released", prior_progress)
+	refresh_local_mechanisms()
 	update_connections()
 	walker.restore(data.player, self)
 	boarded = data.boarded
@@ -670,6 +796,9 @@ func new_journey() -> void:
 	carrier.rotation.x = 0
 	arch_state = 1
 	arch.rotation.y = PI / 2
+	track_open = false
+	carrier_released = false
+	refresh_local_mechanisms()
 	update_connections()
 	boarded = false
 	reached_court = false
@@ -690,7 +819,7 @@ func new_journey() -> void:
 	else:
 		overview.current = true
 		walker.avatar.visible = true
-	notify("Follow the ivory path. Board before changing the arrangement.")
+	notify("Enter the world and inspect the brass control beside the folded walkway.")
 
 func save_progress() -> void:
 	if busy or "--self-test" in OS.get_cmdline_user_args():
@@ -705,11 +834,11 @@ func load_progress() -> void:
 	if FileAccess.file_exists("user://journey.save"):
 		var file := FileAccess.open("user://journey.save", FileAccess.READ)
 		var data = file.get_var()
-		if data is Dictionary and data.get("version", 0) != SAVE_VERSION:
+		if data is Dictionary and data.get("version", 0) not in [3, SAVE_VERSION]:
 			notify("Revised paths: the earlier free-walking checkpoint is preserved; this journey starts at the new entrance.")
 			return
 		if data is Dictionary and data.has_all(["player", "carrier", "arch", "boarded", "court", "crossed"]):
-			if data.player is Dictionary and str(data.player.get("piece", "")) in ["Arrival", "Causeway", "Carrier", "Courtyard", "Destination"]:
+			if data.player is Dictionary and str(data.player.get("piece", "")) in ["Arrival", "Causeway", "Carrier", "Courtyard", "Destination", "RoundedTrack"]:
 				checkpoint = data
 				restore(data)
 
@@ -735,6 +864,8 @@ func notify(text: String) -> void:
 func carrier_connection_text() -> String:
 	if busy:
 		return "Connections settle after the turn."
+	if not carrier_released:
+		return "BRAKE ENGAGED\nRelease it from the underside control."
 	var connection: String = ["Entrance joined / landing apart", "Landing joined / entrance apart", "Both paths apart", "Both paths apart"][carrier.state]
 	return connection + ("\nYou are aboard." if walker.support == carrier else "\nYou are off the carrier.")
 
@@ -743,6 +874,12 @@ func guidance() -> Dictionary:
 	var turn := key_name("rotate_left") + " / " + key_name("rotate_right")
 	if busy:
 		return {"id": "settling", "title": "Your ground travels with you", "text": "Wait for the structure to settle before walking."}
+	if not track_open:
+		return {"id": "extend", "title": "A path waiting to unfold", "text": (view + "  Enter the world.\n" if architectural else "") + "Approach the brass control on the entrance platform.\n" + key_name("interact") + "  Extend the walkway."}
+	if not carrier_released:
+		return {"id": "release", "title": "Follow the rounded edge", "text": "The ivory ribbon continues beneath the entrance. Walk around its curve to the second control.\n" + key_name("interact") + "  Release the carrier."}
+	if walker.support == rounded_track:
+		return {"id": "return_curve", "title": "Bring the change back above", "text": "Retrace the curved walkway to the entrance. Board the terracotta carrier, then use " + view + " to turn it."}
 	if walker.support == destination:
 		return {"id": "light", "title": "Follow the light", "text": "Follow the ivory path out of the gallery to the light."}
 	if walker.support == courtyard:
@@ -766,6 +903,12 @@ func show_hint() -> void:
 		hint_context = context
 	var hints: Array[String]
 	match context:
+		"extend":
+			hints = ["Some changes need a traveller's hands.", "The brass control is beside the short branch on the entrance platform.", "Use " + key_name("view") + " to enter the world, approach the control, then press " + key_name("interact") + "."]
+		"release":
+			hints = ["This path has a rounded edge instead of an abrupt end.", "Keep walking along the ribbon. Your ground follows its curve.", "Follow the ribbon onto the underside, then press " + key_name("interact") + " near the second brass control. This releases the carrier for architectural rotation."]
+		"return_curve":
+			hints = ["The change remains when you leave the control.", "The same curved path returns to the entrance.", "Walk back around the curve, board the terracotta deck, then switch to architectural view and turn it toward the violet landing."]
 		"board":
 			hints = ["The ivory paving marks where you can walk.", "The deck joins the entrance now, but not the vertical landing.", "Walk along the entrance path onto the middle of the terracotta deck, then open architectural view with " + key_name("view") + "."]
 		"recall":
@@ -825,6 +968,7 @@ func test_walk(frames: int, direction := Vector2(0, -1)) -> void:
 func run_self_test() -> void:
 	await get_tree().process_frame
 	var failures: Array[String] = []
+	test_local_mechanisms(failures)
 	new_journey()
 	walker.set_third_person(true)
 	walker.keep_world_horizon = false
@@ -843,6 +987,9 @@ func run_self_test() -> void:
 		if walker.support != arrival or walker.normal != Vector3.UP or not arrival.allows_point(walker.foot, walker.normal):
 			failures.append("An ordinary edge must stop movement without changing face")
 	# Turning the empty carrier first leaves a genuine break in the authored route.
+	track_open = true
+	carrier_released = true
+	refresh_local_mechanisms()
 	carrier.state = 1
 	carrier.rotation.x = PI / 2
 	update_connections()
@@ -851,6 +998,10 @@ func run_self_test() -> void:
 	if walker.support != causeway or walker.foot.x > 2.001 or guidance().id != "recall":
 		failures.append("A disconnected carrier must not be boardable")
 	new_journey()
+	track_open = true
+	carrier_released = true
+	refresh_local_mechanisms()
+	update_connections()
 	test_walk(254)
 	if walker.support != carrier or not boarded or str(checkpoint.player.piece) != "Carrier":
 		failures.append("Entrance path must lead onto the carrier and save boarding")
@@ -1041,11 +1192,161 @@ func run_self_test() -> void:
 	if not overview.global_basis.y.is_equal_approx(Vector3.UP.slide(composed_direction).normalized()):
 		failures.append("New journey must restore the entrance camera frame")
 	if failures.is_empty():
-		print("SELF TEST PASS: authored boundaries, compound solids, occupied gravity roll, ground-relative overview, architectural cutaway, camera matrix, landing, undo, safe gallery rotation, composed alignment, two-way concealed crossing, recovery, camera modes")
+		print("SELF TEST PASS: local interactions, rounded track, underside return, mechanism recovery, authored boundaries, occupied gravity roll, ground-relative overview, architectural cutaway, camera matrix, landing, undo, safe gallery rotation, composed alignment, two-way concealed crossing, recovery, camera modes")
 	else:
 		for failure in failures:
 			push_error("SELF TEST FAIL: " + failure)
 	get_tree().quit(0 if failures.is_empty() else 1)
+
+func test_local_mechanisms(failures: Array[String]) -> void:
+	new_journey()
+	walker.set_third_person(true)
+	var initial := snapshot()
+	rotate_selected(1)
+	interact()
+	if busy or snapshot() != initial or not available_interaction().is_empty():
+		failures.append("An engaged brake must reject rotation; overview cannot operate local controls")
+	toggle_view()
+	if available_interaction() != "extend":
+		failures.append("The entry control must be reachable in third person")
+	interact()
+	if not busy or not arrival.neighbours.is_empty():
+		failures.append("Walkway deployment must disable traversal until settled")
+	rotation_tween.custom_step(1.5)
+	if not track_open or carrier_released or not arrival.neighbours.has(rounded_track):
+		failures.append("The local control must extend a connected walkway without releasing the brake")
+	undo()
+	if snapshot() != initial or rounded_track.deployed or rounded_track.deployment != 0:
+		failures.append("Undo must restore the folded route and its contact state")
+	walker.set_third_person(false)
+	interact()
+	rotation_tween.custom_step(1.5)
+	if not track_open:
+		failures.append("First person must retain the same local interaction")
+	walker.set_third_person(true)
+	walker.place(carrier, Vector3(0, 1, 0))
+	if not available_interaction().is_empty():
+		failures.append("Local controls must not operate remotely")
+	walker.place(arrival, Vector3(-1.8, 1, -1.9), Vector3.UP, Vector3.FORWARD)
+	var max_normal_step := 0.0
+	var curve_samples := 0
+	update_overview_camera()
+	var camera_frame := overview.global_basis
+	for frame in range(270):
+		var previous_normal := walker.normal
+		walker.walk(Vector2(0, -1), 1.0 / 60.0)
+		walker.sync_pose(1.0 / 60.0)
+		update_overview_camera()
+		max_normal_step = maxf(max_normal_step, previous_normal.angle_to(walker.normal))
+		if walker.support == rounded_track:
+			curve_samples += 1
+			var ground := rounded_track.global_basis * rounded_track.surface_frame(walker.foot)
+			if not walker.support.allows_point(walker.foot, walker.normal) or not (ground.inverse() * overview.global_basis).is_equal_approx(camera_frame):
+				failures.append("Curve contact and consistent above-ground overview must agree")
+				break
+			if not walker.camera.global_transform.is_finite() or not follow_view_is_clear():
+				failures.append("Follow camera must stay clear while rounding the authored track")
+				break
+	if curve_samples < 150 or max_normal_step > 0.03 or walker.normal.dot(Vector3.DOWN) < 0.999 or rounded_track.distance_at(walker.foot) < rounded_track.length() - 0.05:
+		failures.append("Walking must smoothly reach the underside and stop at the tail boundary: %s / %s / %s" % [curve_samples, walker.foot, walker.normal])
+	var underside := snapshot()
+	if available_interaction() != "release":
+		failures.append("Only the underside pose should reach the brake control")
+	interact()
+	rotation_tween.custom_step(1.5)
+	if not carrier_released or not checkpoint.carrier_released:
+		failures.append("The underside control must release and checkpoint the architectural mechanism")
+	undo()
+	if snapshot() != underside or carrier_released:
+		failures.append("Undo must re-engage the brake and preserve the underside pose")
+	interact()
+	rotation_tween.custom_step(1.5)
+	var released := snapshot()
+	toggle_view()
+	rotate_selected(1)
+	if not busy:
+		failures.append("The third-person interaction must enable isometric carrier rotation")
+	else:
+		rotation_tween.custom_step(1.0)
+	undo()
+	if snapshot() != released:
+		failures.append("Architectural undo must keep the local mechanism's released state")
+	toggle_view()
+	# Walk backward continuously: return must transport heading and orbit too.
+	test_walk(280, Vector2(0, 1))
+	if walker.support != arrival or walker.normal.dot(Vector3.UP) < 0.999:
+		failures.append("The same ribbon must return continuously to the entrance")
+	for instant in [false, true]:
+		walker.reduced_motion = instant
+		for third in [false, true]:
+			walker.set_third_person(third)
+			walker.place(rounded_track, rounded_track.point_at(4.0), rounded_track.surface_frame(rounded_track.point_at(4.0)).y, -rounded_track.surface_frame(rounded_track.point_at(4.0)).z)
+			var mid_curve := snapshot()
+			test_walk(20)
+			restore(mid_curve)
+			if snapshot() != mid_curve or not walker.camera.global_transform.is_finite():
+				failures.append("Recovery must preserve a curved contact in both camera modes")
+	# Side edges do not connect to the underside or to the structural backing.
+	test_walk(100, Vector2(1, 0))
+	if absf(walker.foot.x) > CurvedTrack.WIDTH + 0.001 or absf(rounded_track.distance_at(walker.foot) - 4.0) > 0.01:
+		failures.append("Curved ribbon sides must remain authored boundaries")
+	# Exercise held screen-relative input, including the real camera clearance
+	# solver at all supported follow distances in both comfort modes.
+	walker.set_third_person(true)
+	walker.keep_world_horizon = false
+	for distance in [3.0, 5.5, 8.0]:
+		for instant in [false, true]:
+			walker.camera_distance = distance
+			walker.reduced_motion = instant
+			walker.place(arrival, Vector3(-1.8, 1, -1.9), Vector3.UP, Vector3.FORWARD)
+			for movement in [Vector2(0, -1), Vector2(0, 1)]:
+				for frame in range(270):
+					walker.align_movement_to_camera(movement)
+					walker.walk(movement, 1.0 / 60.0)
+					walker.sync_pose(1.0 / 60.0)
+					if not follow_view_is_clear():
+						failures.append("Curved follow camera must stay clear at distance %s, reduced motion %s" % [distance, instant])
+						break
+				if movement.y < 0 and (walker.support != rounded_track or walker.normal.dot(Vector3.DOWN) < 0.999):
+					failures.append("Held screen-relative forward must reach the underside")
+				elif movement.y > 0 and walker.support != arrival:
+					failures.append("Held screen-relative reverse must return to Arrival")
+	walker.camera_distance = 5.5
+	walker.reduced_motion = false
+	walker.set_third_person(true)
+	# Migrate a valid old authored-path save without resetting later progress.
+	var legacy := snapshot()
+	legacy.version = 3
+	legacy.erase("track_open")
+	legacy.erase("carrier_released")
+	legacy.boarded = true
+	legacy.player = {"piece": "Carrier", "foot": Vector3(0, 1, 0), "normal": Vector3.UP, "forward": Vector3.RIGHT, "pitch": -0.08}
+	restore(legacy)
+	if not carrier_released or not track_open or walker.support != carrier:
+		failures.append("Version-3 progress must retain access to the carrier")
+	new_journey()
+	toggle_view()
+	paused = true
+	interact()
+	paused = false
+	won = true
+	interact()
+	won = false
+	if track_open or busy:
+		failures.append("Paused and completed games cannot operate controls")
+	walker.reduced_motion = true
+	interact()
+	if rounded_track.deployment != 0.0:
+		failures.append("Reduced motion must wait for an atomic settled mechanism change")
+	rotation_tween.custom_step(0.01)
+	if not track_open or busy or rounded_track.deployment != 1.0:
+		failures.append("Reduced motion must finish deployment in a single step")
+	var saved_contact := checkpoint.duplicate(true)
+	walker.place(carrier, Vector3(0, 1, 0))
+	restart_checkpoint()
+	if snapshot() != saved_contact:
+		failures.append("Checkpoint recovery must restore the last local control and route")
+	walker.reduced_motion = false
 
 func test_contextual_cutaway(failures: Array[String]) -> void:
 	var saved := snapshot()

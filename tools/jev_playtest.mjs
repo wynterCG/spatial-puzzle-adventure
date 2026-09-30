@@ -26,6 +26,10 @@ game.hud.refresh()
 var observation = {
     'piece': str(game.walker.support.name),
     'foot_local_xz': [game.walker.foot.x, game.walker.foot.z],
+    'foot_local_y': game.walker.foot.y,
+    'track_open': game.track_open, 'carrier_released': game.carrier_released,
+    'interaction': game.available_interaction(),
+    'track_distance': game.rounded_track.distance_at(game.walker.foot) if game.walker.support == game.rounded_track else -1,
     'carrier_state': game.carrier.state, 'gallery_state': game.arch_state,
     'view': 'overview' if game.architectural else 'traversal',
     'guidance': game.guidance(), 'feedback': game.message,
@@ -42,8 +46,9 @@ _mcp_print(JSON.stringify(observation))
 const criteria = {
   east: 'Walk +local X for 2 units in traversal view.',
   west: 'Walk -local X for 2 units in traversal view.',
-  north: 'Walk -local Z for 2 units in traversal view.',
-  south: 'Walk +local Z for 2 units in traversal view.',
+  north: 'Walk forward along the surface for 2 units: -Z on a flat support, toward the underside on the rounded track.',
+  south: 'Walk back along the surface for 2 units: +Z on a flat support, toward the entrance on the rounded track.',
+  interact: 'Operate the nearby control in traversal view when interaction is available.',
   east_small: 'Walk +local X for 0.5 units in traversal view.',
   west_small: 'Walk -local X for 0.5 units in traversal view.',
   switch_view: 'Toggle overview/traversal. Walking requires traversal; turning requires overview.',
@@ -71,14 +76,14 @@ ${observe}`);
   let blockedActions = new Set();
   for (let step = 0; step < 60 && !state.complete; step++) {
     const available = Object.fromEntries(Object.entries(criteria).filter(([action]) =>
-      !blockedActions.has(action) && (action === 'switch_view' ||
+      !blockedActions.has(action) && (action !== 'interact' || state.interaction) && (action === 'switch_view' ||
       (state.view === 'overview' ? action.startsWith('carrier_') || action.startsWith('gallery_') : !action.startsWith('carrier_') && !action.startsWith('gallery_')))));
     const response = await fetch('https://api.typesafe.ai/v1/systemone', {
       method: 'POST', signal: AbortSignal.timeout(20000),
       headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ model: 'jev-latest', state: {
         objective: 'Play this spatial puzzle to reach the light on Destination (local z < -14). Choose one next control. Avoid repeating blocked actions.',
-        rules: 'Only ivory authored paths allow walking. Ordinary edges stop you. The carrier carries its passenger when turned. State 0 links Arrival/Causeway; state 1 links Courtyard, whose ground has a different world orientation. Gallery state 0 joins the passage; turning requires a safe position on the landing outside its sweep. Coordinates are support-local; +X is east and -Z is north on every support. Arrival feeds Causeway then Carrier along +X. Courtyard has an east/west landing and a northward gallery path around X=0. Destination continues north to the light. Surface transfers use actual touching paths; gallery crossing is automatic. A control may be blocked and report why.',
+        rules: 'Only ivory authored paths allow walking. Ordinary edges stop you. The carrier carries its passenger when turned. State 0 links Arrival/Causeway; state 1 links Courtyard, whose ground has a different world orientation. Gallery state 0 joins the passage; turning requires a safe position on the landing outside its sweep. First extend the folded walkway using the nearby control on Arrival. Follow the branch at local X=-1.8 toward Z=-3 and around the rounded track; its far control releases the carrier brake. Return along the same curve before boarding. North/south follow the curved surface toward/away from the underside. Elsewhere coordinates are support-local; +X is east and -Z is north. Arrival feeds Causeway then Carrier along +X. Courtyard has an east/west landing and a northward gallery path around X=0. Destination continues north to the light. Surface transfers use actual touching paths; gallery crossing is automatic. A control may be blocked and report why.',
         current: state, recent: report.steps.slice(-8).map(s => ({ action: s.action, after: s.after })),
       }, questions: { action: { type: 'choice', instructions: 'Which next control best advances toward the light, respecting the current view and geometry?', criteria: available } } }),
     });
@@ -91,19 +96,20 @@ ${observe}`);
     let code = 'var game = get_tree().current_scene\n';
     if (movement) {
       code += `if not game.architectural and not game.busy:
-    game.walker.forward = Vector3(${movement[0]}, 0, ${movement[1]})
+    game.walker.forward = game.walker.support.surface_frame(game.walker.foot) * Vector3(${movement[0]}, 0, ${movement[1]})
     for frame in range(${Math.round(movement[2] * 60 / 3.5)}):
         game.walker.walk(Vector2(0, -1), 1.0 / 60.0)
         game.check_passage()
 `;
-    } else if (action === 'switch_view') code += 'game.toggle_view()\n';
+    } else if (action === 'interact') code += 'game.interact()\nif game.busy:\n    game.rotation_tween.custom_step(1.5)\n';
+    else if (action === 'switch_view') code += 'game.toggle_view()\n';
     else code += `game.select_piece(${action.startsWith('carrier') ? 0 : 1})
 game.rotate_selected(${action.endsWith('right') ? 1 : -1})
 if game.busy:
     game.rotation_tween.custom_step(1.0)
 `;
     const after = runtime(code + observe);
-    const pose = s => JSON.stringify([s.piece, s.foot_local_xz, s.carrier_state, s.gallery_state, s.view]);
+    const pose = s => JSON.stringify([s.piece, s.foot_local_xz, s.foot_local_y, s.carrier_state, s.gallery_state, s.view, s.track_open, s.carrier_released]);
     if (pose(after) === pose(state)) blockedActions.add(action);
     else blockedActions.clear();
     report.steps.push({ action, confidence: decision.answers.action.confidence, before: state, after });
@@ -138,6 +144,7 @@ ${observe}`);
   const trace = { ...report, steps: report.steps.map(({ action, confidence, after }) => ({
     action, confidence, piece: after.piece, foot_local_xz: after.foot_local_xz,
     view: after.view, carrier: after.carrier_state, gallery: after.gallery_state,
+    track_distance: after.track_distance, track_open: after.track_open, carrier_released: after.carrier_released,
     complete: after.complete,
   })) };
   writeFileSync('docs/jev-playtest-report.json', JSON.stringify(trace, null, 2) + '\n');

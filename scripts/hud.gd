@@ -16,6 +16,7 @@ var toast: Label
 var controls: Label
 var sidebar: PanelContainer
 var crosshair: Label
+var interaction: Label
 var menu: PanelContainer
 var completion: PanelContainer
 var rebind_action := ""
@@ -127,6 +128,14 @@ func _ready() -> void:
 	crosshair.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
 	crosshair.offset_left = -5
 	crosshair.offset_top = -19
+	interaction = label("", 20, Color("ffda94"))
+	root.add_child(interaction)
+	interaction.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
+	interaction.offset_left = -380
+	interaction.offset_right = 380
+	interaction.offset_top = -186
+	interaction.offset_bottom = -144
+	interaction.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	build_menu()
 	build_completion()
 	load_settings()
@@ -255,6 +264,8 @@ func build_completion() -> void:
 	completion.visible = false
 
 func refresh() -> void:
+	interaction.text = game.interaction_text()
+	interaction.visible = not interaction.text.is_empty()
 	mode.text = "ARCHITECT  /  observe & transform" if game.architectural else ("INHABITANT  /  third person" if game.walker.third_person else "INHABITANT  /  first person")
 	sidebar.visible = game.architectural and not game.paused and not game.won
 	controls.get_parent().visible = not game.paused and not game.won
@@ -266,7 +277,13 @@ func refresh() -> void:
 	guide_body.text = current_guide.text
 	guide.visible = contextual_guidance and not game.paused and not game.won
 	chapter_title.text = "03   /   THE JOINED GALLERIES" if game.reached_court else ("02   /   THE FOLDED LANDING" if game.boarded else "01   /   THE PASSENGER")
-	if game.walker.support == game.destination:
+	if not game.track_open:
+		task.text = "Extend the folded walkway"
+	elif not game.carrier_released:
+		task.text = "Find the underside control"
+	elif game.walker.support == game.rounded_track:
+		task.text = "Return to the carrier"
+	elif game.walker.support == game.destination:
 		task.text = "Reach the light"
 	elif game.walker.support == game.courtyard:
 		task.text = "Cross the joined galleries" if game.arch_state == 0 else "Align the galleries"
@@ -285,6 +302,8 @@ func refresh() -> void:
 	var walk_keys: String = game.key_name("forward") + game.key_name("left") + game.key_name("back") + game.key_name("right")
 	controls.text += (game.key_name("rotate_left") + " · " + game.key_name("rotate_right") + "  Rotate" if game.architectural else walk_keys + ("  Walk  ·  Mouse  Orbit" if game.walker.third_person else "  Walk  ·  Mouse  Look"))
 	controls.text += "     /     " + game.key_name("undo") + "  Undo     /     " + game.key_name("hint") + "  Hint     /     Esc  Pause"
+	if not game.architectural:
+		controls.text += "     /     " + game.key_name("interact") + "  Interact"
 
 func show_menu(value: bool) -> void:
 	menu.visible = value
