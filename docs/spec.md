@@ -12,7 +12,7 @@ These studies test whether players can explain a dependency, not just reproduce 
 
 ## Shared traversal and manipulation
 
-- Third person is the default traversal mode; first person remains available in settings.
+- First person is the default traversal mode. The experimental third-person modes remain available in settings.
 - Ivory paving identifies authored walkable regions. Architectural mass is not automatically a path. Ordinary edges stop the character; there is no arbitrary edge wrapping, jumping or falling puzzle.
 - The rounded ribbons are explicit gravity transitions. Contact, normal, heading and local orbit are transported continuously around a radius-3 half-circle. A configurable straight tail joins the next path without overlapping its paving.
 - Moving structures carry the same local player contact and orientation. Walking is disabled while a turn is in progress.
@@ -64,11 +64,13 @@ The receiver can be arranged while the carrier is withdrawn. Once the carrier do
 
 ## Camera direction
 
-The user's latest correction intentionally separates the two views:
+The user's latest decision is to keep first person as the primary traversal view:
 
-- **Third person defaults to world alignment.** The screen uses world up; the character can appear sideways or upside down. Mouse yaw owns the world azimuth: obstacles never choose a different side. The arm's elevation lowers continuously as the occupied ground turns over. Solid architecture can shorten the arm, with look-ahead along the authored walking path and gradual extension. A local translucent cutaway of obstructing curved-track sections keeps the camera from being crushed into the avatar; path constraints and body collision remain intact. Isometric view immediately restores the whole opaque track. Switching views preserves the arm. This still needs human comfort testing.
+- **First person is the default.** Movement and look follow the occupied surface through curved gravity transitions. Isometric view supplies the wider orientation and architecture controls.
+
+- **Optional third person defaults to world alignment.** The screen uses world up; the character can appear sideways or upside down. Mouse yaw owns the world azimuth: obstacles never choose a different side. The arm's elevation lowers continuously as the occupied ground turns over. Solid architecture can shorten the arm, with look-ahead along the authored walking path and gradual extension. A local translucent cutaway of obstructing curved-track sections keeps the camera from being crushed into the avatar; path constraints and body collision remain intact. Isometric view immediately restores the whole opaque track. Switching views preserves the arm. This remains an experimental alternative, not the primary traversal direction.
 - **Isometric view provides orientation.** It remains above the occupied ground with a consistent local angle. The studies use offset (30, 40, -30) in the transported contact frame. Matching seams preserve world azimuth even when the adjoining pieces have different local axes. Walking heading never chooses a camera side. No free overview orbit is added.
-- A setting restores surface-following third person. First person remains optional and keeps its surface-relative look. Follow distance (3?8), sensitivity and reduced motion remain available. Reduced motion skips transformation animation; it does not eliminate orientation changes caused by walking around a curve.
+- Surface-following third person is also available. Follow distance (3?8), sensitivity and reduced motion remain available. Reduced motion skips transformation animation; it does not eliminate orientation changes caused by walking around a curve.
 
 No camera orientation activates puzzle connections. The shared avatar silhouette remains an overview-only fallback for occlusion.
 

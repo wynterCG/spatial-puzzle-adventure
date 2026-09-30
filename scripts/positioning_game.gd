@@ -521,7 +521,7 @@ func connection_text() -> String:
 func load_preferences() -> void:
 	var settings := ConfigFile.new()
 	settings.load("user://settings.cfg")
-	walker.third_person = settings.get_value("comfort", "third_person", true)
+	walker.third_person = settings.get_value("comfort", "third_person", false)
 	walker.reduced_motion = settings.get_value("comfort", "reduced_motion", false)
 	walker.keep_world_horizon = settings.get_value("comfort", "world_aligned_camera", true)
 	walker.camera_distance = clampf(settings.get_value("comfort", "camera_distance", 5.5), 3, 8)

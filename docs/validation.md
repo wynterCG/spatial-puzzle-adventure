@@ -2,6 +2,8 @@
 
 Validated 2026-09-30 with Godot 4.6.1 Mono / Compatibility. The three studies are the default scene; the original gallery remains a separate optional experiment. Historical gallery evidence is in [gallery-validation.md](gallery-validation.md).
 
+Latest camera decision: first person is now the default in the walker and both settings loaders. The running game's first-person preference was saved without moving the player or changing its paused state. Both headless suites pass. The third-person reports below are retained as experimental history, not the current primary design direction.
+
 ## Automated mechanical checks
 
 Both headless suites pass with exit 0 and their literal PASS markers:

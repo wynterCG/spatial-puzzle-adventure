@@ -357,7 +357,7 @@ func load_settings() -> void:
 		return
 	game.walker.reduced_motion = settings.get_value("comfort", "reduced_motion", false)
 	game.walker.sensitivity = settings.get_value("comfort", "sensitivity", 0.0022)
-	game.walker.third_person = settings.get_value("comfort", "third_person", true)
+	game.walker.third_person = settings.get_value("comfort", "third_person", false)
 	game.walker.camera_distance = clampf(settings.get_value("comfort", "camera_distance", 5.5), 3.0, 8.0)
 	game.walker.keep_world_horizon = settings.get_value("comfort", "world_aligned_camera", true)
 	contextual_guidance = settings.get_value("interface", "contextual_guidance", true)

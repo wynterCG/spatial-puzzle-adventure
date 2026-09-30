@@ -21,7 +21,7 @@ Open **project.godot** in Godot 4.6 and press **F5**. Escape selects a study or 
 | Undo / restart study | Z / R |
 | Hint / studies and settings | H / Escape |
 
-Third person now keeps the screen aligned to the world, allowing the character to appear upside down. Isometric view stays above their current ground to help you reorient. Surface-following third person and optional first person remain available in settings.
+First person is the default traversal view, with movement and look following the occupied surface. Isometric view stays above the current ground to help you reorient and transform the architecture. The experimental third-person modes remain available in settings.
 
 ![Choose your deck](docs/study-1-decks.png)
 

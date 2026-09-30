@@ -29,9 +29,9 @@ Ask the player to identify the goal, available walking paths and the structure t
 
 ## Camera and accessibility
 
-Try world-aligned third person through a curve: the avatar can become inverted while the screen stays world-up. Switch to isometric view and check whether ground-relative framing restores orientation. Look for arm repositioning near solids, clipped views or unexpectedly changing movement. Compare the optional surface-following mode and first person; neither is required. Compare reduced motion and follow distances 3 and 8 if useful. Stop if uncomfortable and identify the exact contact/turn.
+Start with first person, the chosen default. Walk through a curved gravity transition, stop and restart, look around, and switch to isometric view to recover orientation. Confirm that returning to first person preserves the occupied surface and heading. Compare reduced motion if useful. Stop if uncomfortable and identify the exact contact/turn. Third-person modes are optional experiments and do not need to be included in the primary playtest.
 
-After returning to an ordinary platform, release all walking keys, orbit the camera substantially, then try W and D. They should follow the visible screen directions. Repeat on the underside. On the curve, stop/restart and freely look around: movement retains the transported route direction there. Check whether the local track cutaway makes the character readable without hiding too much of the route. A successful scripted loop is insufficient evidence that these general controls feel right.
+If comparing experimental third person: after returning to an ordinary platform, release all walking keys, orbit the camera substantially, then try W and D. They should follow the visible screen directions. Repeat on the underside. On the curve, stop/restart and freely look around: movement retains the transported route direction there. Check whether the local track cutaway makes the character readable without hiding too much of the route. A successful scripted loop is insufficient evidence that these general controls feel right.
 
 ## What to record
 

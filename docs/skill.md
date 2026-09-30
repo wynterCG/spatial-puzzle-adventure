@@ -8,7 +8,7 @@ Build around configuration + player position + action order. The core question i
 
 Three physical positioning studies are the default entry point. The earlier guided gallery is retained separately, including its portal technique and local interactions. Neither completion nor entry into that experiment is required for a new study.
 
-The latest camera choice is intentional: third person defaults to a world-aligned screen, allowing the avatar to appear sideways/upside down. Isometric view remains ground-relative. Keep optional first person and the surface-following third-person preference.
+The latest camera choice supersedes the third-person experiment: first person is the default and the active development direction. Isometric view remains ground-relative for orientation and architecture changes. Preserve the optional third-person modes, but do not continue redesigning them unless requested.
 
 ## Entry points and shared code
 
