@@ -6,7 +6,7 @@ This is the requested project-local `skill.md`, not an installed global assistan
 
 Develop a calm first-person/isometric spatial puzzle adventure where the player reshapes architecture and travels through the consequences. Preserve all four pillars: two views of the same space, meaningful player positioning, dependable impossible-space rules, and visual clarity with atmosphere.
 
-The user's later comfort feedback changes the default traversal camera to **third person with a steady world horizon**. Keep first person as an optional setting. The source concept remains unchanged as a historical design reference; current implementation follows this explicit revision.
+The user's comfort feedback changes traversal to **third person**. Their subsequent report of the camera losing its position at surface changes establishes **surface-following orbit** as the default, with a short eased frame transition. Keep fixed world horizon and first person as optional settings. The source concept remains unchanged as a historical design reference; current implementation follows these explicit revisions.
 
 ## Stack and entry points
 
@@ -80,7 +80,8 @@ F toggles upper/lower inspection without modifying puzzle state. Tab chooses the
 
 ## Presentation and accessibility
 
-- Third-person camera roll follows world up, not surface up; only the character follows local gravity. Mouse orbits, and distance is adjustable. Preserve camera collision after positional smoothing, not just at the desired endpoint.
+- Store the third-person orbit tangent in support-local space. Transport it through edge turns and support transfers with the character; do not clamp a world-fixed orbit onto each new face. Ease the full camera frame and retain arm length. Default camera up follows the smoothed surface frame; world-up roll is optional. Keep obstruction checks after frame interpolation, with a clear new-face fallback when the arm collapses.
+- Include orbit heading/yaw/elevation in recovery snapshots, and preserve them across the parallel-frame passage. Switching camera modes must not mutate the puzzle snapshot.
 - New movement is screen-relative. While an unchanged key direction is held, preserve its transported tangent through edge turns; reprojecting every frame can send the player back across the same edge. A new input or intentional orbit reestablishes camera-relative movement.
 - Third-person camera switches use cuts to avoid long fly-throughs. First person retains optional smooth transitions. Neither mode is assumed universally comfortable.
 
@@ -99,7 +100,7 @@ Run this integration smoke test after changing traversal, adjacency, snapshots o
 & 'C:\Users\Wynter\Downloads\Godot_v4.6.1-stable_mono_win64\Godot_v4.6.1-stable_mono_win64\Godot_v4.6.1-stable_mono_win64_console.exe' --headless --path 'E:\Godot Games\spacial_puzzleGame' --quit-after 120 -- --self-test
 ```
 
-It walks the opening from the real spawn, probes top/side/underside entry boundaries, tests covered solid joins, the first boarding checkpoint, underside carrier travel, courtyard reorientation, undo after disembarking, camera-state independence, gap isolation and impossible crossing. Follow-camera checks cover horizon, screen-relative controls on six faces, held input around edges, camera obstruction and first/third-person switching. It must print `SELF TEST PASS` and exit 0. Test mode does not write player progress.
+It walks the opening from the real spawn, probes top/side/underside entry boundaries, tests covered solid joins, the first boarding checkpoint, underside carrier travel, courtyard reorientation, undo after disembarking, camera-state independence, gap isolation and impossible crossing. Follow-camera checks cover upright framing and a trailing arm on six faces, a 320-frame angled-orbit traversal across multiple faces, target centering and clearance throughout, orbit recovery, optional world horizon, camera obstruction and mode switching. It must print `SELF TEST PASS` and exit 0. Test mode does not write player progress.
 
 Then use MCP Pro to run the game and inspect screenshots and errors. Check both modes, HUD at the target size, pause/rebind, carrier A/B, visible avatar, arch activation, destination preview, crossing and completion. Ensure no false connection appears mid-animation. Test side-face turns and corner approach diagonals when changing the walker.
 

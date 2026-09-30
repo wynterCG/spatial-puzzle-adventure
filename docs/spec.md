@@ -37,7 +37,9 @@ Proposed story: spatial relationships have drifted out of alignment, although th
 
 Walk, look, explore and position the character. There is no required jumping, precision platforming, combat, time limit or gravity-launch action. Scale and local discoveries must be legible.
 
-The follow camera frames a visible character from 5.5 units by default (adjustable 3–8). Mouse movement orbits independently of the character's local gravity. The character follows the supporting face while the camera maintains world-up roll. The camera stays on the exposed side of that face, smooths positional changes, and shortens its offset when a padded segment test encounters a traversable solid. The avatar has a visor and backpack to clarify orientation.
+The follow camera frames a visible character from 5.5 units by default (adjustable 3–8). Its orbit heading lives in the supporting piece's local coordinates. Crossing an edge rotates that heading by the same quarter-turn as the character; crossing a seam converts it into the new piece's frame. Mouse yaw and elevation remain relative to that transported heading. This prevents the previous world-fixed orbit from remaining behind when the player changes surfaces.
+
+The camera eases a complete orientation frame into the new surface frame, keeping its orbital radius instead of interpolating world positions through the solid. The character appears upright once the short turn settles. Padded segment checks prevent camera penetration; when the eased arm is severely obstructed, a clear position on the new face takes precedence over collapsing the view into the character. Optional **Keep world horizon level** retains world-up roll while still using the transported orbit. The avatar has a visor and backpack to clarify orientation.
 
 WASD is screen-relative when a new movement begins. Holding the same direction carries it continuously around surface edges; it is not reprojected midway through a turn. Releasing/changing input or deliberately orbiting reestablishes screen-relative movement. This prevents a held W from reversing at a gravity boundary.
 
@@ -51,7 +53,7 @@ The current build offers upper and lower inspection views, toggled with F or a v
 
 ### Transitions and comfort
 
-Third person switches directly between traversal and architectural views, avoiding the long fly-through. The optional first-person mode retains its 0.45-second interpolated transition unless reduced motion is enabled. Third-person gravity changes turn the character without rolling the camera; positional following is smoothed and rechecked for obstruction after interpolation. Reduced motion removes follow lag and shortens structural rotations. The first-person camera still reorients with local gravity. These are comfort options, not a guarantee of comfort; human playtesting remains necessary. No head bob or camera shake is enabled.
+Third person switches directly between traversal and architectural views, avoiding the long fly-through. The optional first-person mode retains its 0.45-second interpolated transition unless reduced motion is enabled. Third-person surface turns ease the camera frame over roughly 0.3 seconds; reduced motion settles it immediately and shortens structural rotations. Players preferring world-up roll can enable Keep world horizon level. The first-person camera reorients with local gravity. These are comfort options, not a guarantee of comfort; human playtesting remains necessary. No head bob or camera shake is enabled.
 
 ## 5. Surface-relative traversal
 
@@ -182,7 +184,7 @@ Movement, perspective, inspection, rotation, undo, recovery and hint keys can be
 
 - Undo restores the pre-transformation configuration **and** player pose, not just reverse rotation under a relocated player.
 - Checkpoints at entry, first carrier boarding, courtyard and destination restore stable states. Never save mid-rotation or mid-crossing. Save schema version 2 rejects earlier-layout checkpoints without loading them into invalid geometry; settings are preserved.
-- `user://journey.save` stores checkpoint progress. `user://settings.cfg` stores key bindings, sensitivity, reduced motion, traversal camera preference and follow distance.
+- `user://journey.save` stores checkpoint progress, including the transported orbit heading/yaw/elevation. Older snapshots fall back to the saved character heading. `user://settings.cfg` stores key bindings, sensitivity, reduced motion, traversal camera preference, follow distance and the optional world-horizon preference.
 - No lives, time penalty or punitive loss of campaign progress.
 - Adjustable sensitivity, reduced-motion transitions and no default head bob.
 - Hints escalate from a relevant relationship to a concrete action; no automatic full-route overlay.
@@ -200,7 +202,7 @@ Movement, perspective, inspection, rotation, undo, recovery and hint keys can be
 - Selectable arch with one persistent impossible passage and destination preview.
 - Undo, checkpoints, progress persistence, completion and restart.
 - Scalable HUD, click selection, hints, pause, sensitivity, partial input remapping and reduced motion.
-- Stable third-person horizon, adjustable following distance, camera obstruction against traversable solids, and continuous held movement across gravity changes.
+- Surface-following third-person orbit, optional world horizon, adjustable following distance, camera obstruction against traversable solids, and continuous held movement across gravity changes.
 - Procedural art and generated sound; Godot MCP Pro 1.17.1 addon enabled.
 
 ### Explicit exclusions
@@ -215,7 +217,7 @@ Can a player predict the result of a rotation? Can they identify their location 
 
 Concave and multi-piece inner corners (with a fresh route audit); solid arch collision; bidirectional, arbitrarily oriented paired passages; polished portal clipping and forced-perspective composition; expanded safe-sweep checks for future assemblies; fully remappable mouse and system controls; controller support; additional regions; richer environmental narrative, materials and audio; accessibility/playtest iteration.
 
-The follow camera currently checks the traversable cuboids; decorative arch trim/scenery do not yet provide camera collision. Fixed-world horizon framing can change quickly near tight geometry, so gravity turns and the portal crossing need human comfort testing at different follow distances.
+The follow camera currently checks the traversable cuboids; decorative arch trim/scenery do not yet provide camera collision. Tight geometry can force a shorter arm or a quicker correction onto the new face. Gravity turns and the portal crossing need human comfort testing at different follow distances and horizon preferences.
 
 The success criterion is a player making a spatial prediction, testing it with a transformation and walking through the result—not camera-induced confusion.
 

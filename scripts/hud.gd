@@ -160,10 +160,15 @@ func build_menu() -> void:
 	column.add_child(label("Traversal camera", 15, muted))
 	var camera_mode := OptionButton.new()
 	camera_mode.name = "CameraMode"
-	camera_mode.add_item("Third person · steady horizon")
+	camera_mode.add_item("Third person · surface follow")
 	camera_mode.add_item("First person")
 	camera_mode.item_selected.connect(func(index): game.walker.set_third_person(index == 0); save_settings())
 	column.add_child(camera_mode)
+	var horizon := CheckButton.new()
+	horizon.name = "WorldHorizon"
+	horizon.text = "Keep world horizon level (optional)"
+	horizon.toggled.connect(func(value): game.walker.keep_world_horizon = value; game.walker.sync_pose(1.0); save_settings())
+	column.add_child(horizon)
 	column.add_child(label("Third-person camera distance", 15, muted))
 	var distance := HSlider.new()
 	distance.name = "CameraDistance"
@@ -279,6 +284,7 @@ func save_settings() -> void:
 	settings.set_value("comfort", "sensitivity", game.walker.sensitivity)
 	settings.set_value("comfort", "third_person", game.walker.third_person)
 	settings.set_value("comfort", "camera_distance", game.walker.camera_distance)
+	settings.set_value("comfort", "keep_world_horizon", game.walker.keep_world_horizon)
 	for action in game.input_bindings:
 		settings.set_value("keys", action, game.input_bindings[action])
 	settings.save("user://settings.cfg")
@@ -291,6 +297,8 @@ func load_settings() -> void:
 	game.walker.sensitivity = settings.get_value("comfort", "sensitivity", 0.0022)
 	game.walker.third_person = settings.get_value("comfort", "third_person", true)
 	game.walker.camera_distance = clampf(settings.get_value("comfort", "camera_distance", 5.5), 3.0, 8.0)
+	game.walker.keep_world_horizon = settings.get_value("comfort", "keep_world_horizon", false)
+	menu.find_child("WorldHorizon", true, false).set_pressed_no_signal(game.walker.keep_world_horizon)
 	menu.find_child("CameraMode", true, false).select(0 if game.walker.third_person else 1)
 	menu.find_child("CameraDistance", true, false).set_value_no_signal(game.walker.camera_distance)
 	game.walker.sync_pose(1.0)

@@ -16,6 +16,9 @@ var third_person := true
 var camera_distance := 5.5
 var orbit_yaw := 0.0
 var orbit_pitch := 0.42
+var orbit_heading := Vector3.FORWARD
+var keep_world_horizon := false
+var follow_frame := Basis.IDENTITY
 var camera_initialized := false
 var last_walk_input := Vector2.ZERO
 var orbit_changed := false
@@ -66,11 +69,17 @@ func _ready() -> void:
 		if part is MeshInstance3D:
 			part.layers = 4
 
-func place(piece: SurfacePiece, point: Vector3, up := Vector3.UP, heading := Vector3.FORWARD) -> void:
+func place(piece: SurfacePiece, point: Vector3, up := Vector3.UP, heading := Vector3.FORWARD, preserve_orbit := false) -> void:
+	var previous_orbit := support.global_basis * orbit_heading if support != null else heading
 	support = piece
 	foot = point
 	normal = up
 	forward = heading
+	if preserve_orbit:
+		orbit_heading = (piece.global_basis.inverse() * previous_orbit).slide(up).normalized()
+	else:
+		orbit_heading = heading
+		orbit_yaw = 0.0
 	pitch = -0.08
 	moving = false
 	last_walk_input = Vector2.ZERO
@@ -79,7 +88,7 @@ func place(piece: SurfacePiece, point: Vector3, up := Vector3.UP, heading := Vec
 func look(relative: Vector2) -> void:
 	if third_person:
 		orbit_yaw -= relative.x * sensitivity
-		orbit_pitch = clampf(orbit_pitch + relative.y * sensitivity, -1.0, 1.0)
+		orbit_pitch = clampf(orbit_pitch + relative.y * sensitivity, 0.12, 1.0)
 		orbit_changed = true
 		return
 	forward = forward.rotated(normal, -relative.x * sensitivity).normalized()
@@ -149,6 +158,7 @@ func advance(world_direction: Vector3, distance: float) -> Vector3:
 			if not pose_is_clear(other, local, up.round()):
 				return world_direction
 			forward = other.global_basis.inverse() * (support.global_basis * forward)
+			orbit_heading = other.global_basis.inverse() * (support.global_basis * orbit_heading)
 			support = other
 			foot = local
 			normal = up.round()
@@ -158,6 +168,7 @@ func advance(world_direction: Vector3, distance: float) -> Vector3:
 	var face_axis := normal.abs().max_axis_index()
 	var next_normal := normal
 	var next_forward := forward
+	var next_orbit_heading := orbit_heading
 	var folded := false
 	for axis in range(3):
 		if axis == face_axis or absf(next[axis]) <= support.half[axis]:
@@ -168,6 +179,7 @@ func advance(world_direction: Vector3, distance: float) -> Vector3:
 		new_normal[axis] = sign_axis
 		var rotation_axis := normal.cross(new_normal).normalized()
 		next_forward = forward.rotated(rotation_axis, PI * 0.5).normalized()
+		next_orbit_heading = orbit_heading.rotated(rotation_axis, PI * 0.5).normalized()
 		direction = direction.rotated(rotation_axis, PI * 0.5).normalized()
 		next[axis] = sign_axis * support.half[axis]
 		next[face_axis] -= normal[face_axis] * excess
@@ -180,6 +192,7 @@ func advance(world_direction: Vector3, distance: float) -> Vector3:
 	foot = next
 	normal = next_normal
 	forward = next_forward
+	orbit_heading = next_orbit_heading
 	if folded:
 		edge_count += 1
 		# Observers and checkpoints must see the committed contact and frame.
@@ -218,21 +231,27 @@ func sync_pose(delta: float) -> void:
 
 func sync_follow_camera(contact: Vector3, up: Vector3, delta: float) -> void:
 	var pivot := contact + up * 0.85
-	var orbit := Vector3(sin(orbit_yaw) * cos(orbit_pitch), sin(orbit_pitch), cos(orbit_yaw) * cos(orbit_pitch))
-	var offset := orbit * camera_distance
-	# Stay on the exposed side of the supporting face while retaining world-up roll.
-	offset += up * maxf(0.0, 1.8 - offset.dot(up))
-	# A wall turn should not unexpectedly zoom in just because the offset changed.
-	offset = offset.normalized() * camera_distance
+	var heading := (support.global_basis * orbit_heading.rotated(normal, orbit_yaw)).normalized()
+	var target_frame := Basis(heading.cross(up).normalized(), up, -heading).orthonormalized()
+	var weight := 1.0 if not camera_initialized or delta >= 1.0 or reduced_motion else 1.0 - exp(-delta * 10.0)
+	# Ease a transported frame, not world XYZ. This keeps the arm behind the
+	# traveller, retains orbit distance, and follows rotating supports as well.
+	follow_frame = follow_frame.slerp(target_frame, weight).orthonormalized()
+	var offset := (follow_frame.z * cos(orbit_pitch) + follow_frame.y * sin(orbit_pitch)) * camera_distance
 	var desired := pivot + offset
-	var weight := 1.0 if not camera_initialized or delta >= 1.0 or reduced_motion else 1.0 - exp(-delta * 7.0)
-	var smoothed := camera.global_position.lerp(desired, weight)
-	# Clamp after smoothing: an edge turn must not sweep through the solid.
-	camera.global_position = safe_camera_position(pivot, smoothed)
+	var safe := safe_camera_position(pivot, desired)
+	# A slow turn through the old face can obstruct the eased arm. The new face
+	# provides a clear fallback, instead of collapsing the camera onto the head.
+	if safe.distance_to(pivot) < minf(2.0, camera_distance * 0.5):
+		var settled_offset := (target_frame.z * cos(orbit_pitch) + up * sin(orbit_pitch)) * camera_distance
+		var fallback := safe_camera_position(pivot, pivot + settled_offset)
+		if fallback.distance_to(pivot) > safe.distance_to(pivot):
+			safe = fallback
+	camera.global_position = safe
 	var view_direction := pivot - camera.global_position
-	if view_direction.length_squared() > 0.001 and Vector2(view_direction.x, view_direction.z).length_squared() > 0.00001:
-		# Retain the last stable orientation at a pole; never substitute a rolled up-axis.
-		camera.look_at(pivot, Vector3.UP)
+	var view_up := Vector3.UP if keep_world_horizon else follow_frame.y
+	if view_direction.length_squared() > 0.001 and view_direction.normalized().cross(view_up).length_squared() > 0.00001:
+		camera.look_at(pivot, view_up)
 	camera_initialized = true
 
 func safe_camera_position(pivot: Vector3, desired: Vector3) -> Vector3:
@@ -262,7 +281,7 @@ func safe_camera_position(pivot: Vector3, desired: Vector3) -> Vector3:
 	return pivot.lerp(desired, fraction)
 
 func snapshot() -> Dictionary:
-	return {"piece": support.name, "foot": foot, "normal": normal, "forward": forward, "pitch": pitch}
+	return {"piece": support.name, "foot": foot, "normal": normal, "forward": forward, "pitch": pitch, "orbit_heading": orbit_heading, "orbit_yaw": orbit_yaw, "orbit_pitch": orbit_pitch}
 
 func restore(data: Dictionary, root: Node) -> void:
 	support = root.get_node(NodePath(data.piece)) as SurfacePiece
@@ -270,4 +289,7 @@ func restore(data: Dictionary, root: Node) -> void:
 	normal = data.normal
 	forward = data.forward
 	pitch = data.pitch
+	orbit_heading = data.get("orbit_heading", forward)
+	orbit_yaw = data.get("orbit_yaw", 0.0)
+	orbit_pitch = clampf(data.get("orbit_pitch", 0.42), 0.12, 1.0)
 	sync_pose(1.0)

@@ -22,11 +22,13 @@ Verified on 30 September 2026 with Godot 4.6.1, Compatibility/OpenGL, and the us
 - An occupied carrier delivers the player onto the courtyard underside, and ordinary edge traversal returns them to its top.
 - Undo after disembarking restores the pre-rotation passenger position and state.
 - Switching inspection views does not mutate the puzzle snapshot.
-- Third-person camera keeps a world-up horizon on all six support faces.
+- Default third-person camera settles upright relative to all six support faces, with its arm behind the transported orbit heading.
 - New forward/strafe inputs project to screen-up/right on every face.
 - Holding movement continues from the arrival top, around its wall and onto the underside without reversing at the edge.
 - Camera obstruction stops the follow offset before a padded solid.
 - Switching first/third person preserves puzzle state; first person hides the avatar from its own view.
+- A 320-frame angled-orbit regression crosses at least three faces while retaining target centering and camera clearance, then checks the settled orientation.
+- Recovery restores the orbit heading/yaw/elevation; optional world-horizon mode remains world-upright.
 
 ## Live MCP Pro checks
 
@@ -46,6 +48,8 @@ For the new opening, also verified a rotation can be paused while busy and resum
 
 For the third-person revision, replayed the opening with camera-relative held movement and observed the visible character on the wall and underside. Continued across the carrier and through the active arch to completion in third person. Inspected the destination preview from the follow camera. Selected first person in settings, reloaded settings to verify the preference persisted, then restored third person. Camera obstruction is limited to traversable solids; comfort remains a human playtest question.
 
+For the surface-change bug, reproduced the reported right-edge approach with yaw -0.21285 and elevation 0.527275 through MCP Pro. The updated camera follows the new face and frames the character upright, instead of retaining the world-fixed orbit. Earlier third-person screenshots below record the previous camera iteration; `camera-edge-fix.png` shows the corrected behaviour.
+
 ## Visual evidence
 
 - [Architectural overview](prototype-preview.png)
@@ -58,5 +62,7 @@ For the third-person revision, replayed the opening with camera-relative held mo
 - [Third-person wall traversal](third-person-wall.png)
 - [Third-person underside](third-person-underside.png)
 - [Third-person distant passage](third-person-passage.png)
+- [Corrected camera on the reported right-side transition](camera-edge-fix.png)
+- [Corrected camera following the underside](camera-underside-fix.png)
 
 These are runtime screenshots captured through MCP Pro. The gameplay remains a mechanical prototype. This verification does not replace human comfort/playability testing or resolve the production limitations listed in [spec.md](spec.md).

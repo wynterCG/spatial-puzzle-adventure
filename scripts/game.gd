@@ -427,7 +427,7 @@ func check_passage() -> void:
 		if portal_previous > 0 and current <= 0 and absf(position_world.x) < 1.30:
 			var mapped := position_world + Vector3(19, 0, -10.08)
 			var heading := walker.support.global_basis * walker.forward
-			walker.place(destination, destination.to_local(mapped), Vector3.UP, heading)
+			walker.place(destination, destination.to_local(mapped), Vector3.UP, heading, true)
 			crossed = true
 			notify("Far away was only another kind of next door.")
 			play_tone(740, 0.45, 0.15)
@@ -734,15 +734,19 @@ func run_self_test() -> void:
 	walker.sync_pose(1)
 	if walker.normal != Vector3.BACK or world_up_before.is_equal_approx(carrier.global_basis * walker.normal):
 		failures.append("Side-face attachment must carry gravity")
-	# Follow-camera horizon and controls on every support orientation.
+	# Follow-camera framing and controls on every support orientation.
 	walker.set_third_person(true)
+	walker.keep_world_horizon = false
 	for up in [Vector3.UP, Vector3.DOWN, Vector3.LEFT, Vector3.RIGHT, Vector3.FORWARD, Vector3.BACK]:
 		var point: Vector3 = up * destination.half
 		var heading: Vector3 = Vector3.FORWARD if absf(up.y) > 0.5 else Vector3.UP
 		walker.place(destination, point, up, heading)
 		walker.align_movement_to_camera(Vector2(0, -1))
-		if absf(walker.camera.global_basis.x.y) > 0.001:
-			failures.append("Third-person horizon must not roll with gravity")
+		if absf(walker.camera.global_basis.x.dot(up)) > 0.001 or walker.camera.global_basis.y.dot(up) < 0.8:
+			failures.append("Surface follow must keep the character upright")
+		var arm: Vector3 = walker.camera.global_position - (walker.avatar.global_position + up * 0.85)
+		if arm.dot(-heading) < walker.camera_distance * 0.7:
+			failures.append("Surface follow must remain behind its transported heading")
 		if (destination.global_basis * walker.forward).dot(walker.camera.global_basis.y) <= 0.0:
 			failures.append("New movement input must follow screen-up")
 		var side := (destination.global_basis * walker.forward).cross(up)
@@ -754,6 +758,41 @@ func run_self_test() -> void:
 	var clipped := walker.safe_camera_position(pivot, destination.global_position)
 	if destination.to_local(clipped).y < destination.half.y + 0.18:
 		failures.append("Camera obstruction must stop before solid geometry")
+	# Regression for losing the camera on a right-edge crossing with an orbited view.
+	walker.place(destination, Vector3(0, 1, 0), Vector3.UP, Vector3.RIGHT)
+	walker.orbit_yaw = -0.21285
+	walker.orbit_pitch = 0.527275
+	walker.reduced_motion = false
+	walker.sync_pose(1.0)
+	var observed_faces: Array[Vector3] = []
+	for i in range(320):
+		walker.align_movement_to_camera(Vector2(0, -1))
+		walker.walk(Vector2(0, -1), 1.0 / 60.0)
+		walker.sync_pose(1.0 / 60.0)
+		if not walker.normal in observed_faces:
+			observed_faces.append(walker.normal)
+		var focus := walker.avatar.global_position + walker.avatar.global_basis.y * 0.85
+		var screen_focus := walker.camera.to_local(focus)
+		if screen_focus.z >= -1.7 or absf(screen_focus.x) > 0.05 or absf(screen_focus.y) > 0.05:
+			failures.append("Camera must retain target and clearance throughout edge turns")
+			break
+	if observed_faces.size() < 3:
+		failures.append("Camera regression must exercise top, side and underside")
+	for i in range(60):
+		walker.sync_pose(1.0 / 60.0)
+	if walker.camera.global_basis.y.dot(walker.avatar.global_basis.y) < 0.8:
+		failures.append("Camera must settle upright after a surface change")
+	var orbit_snapshot := walker.snapshot()
+	walker.orbit_yaw = 1.4
+	walker.orbit_heading = -walker.orbit_heading
+	walker.restore(orbit_snapshot, self)
+	if walker.snapshot() != orbit_snapshot:
+		failures.append("Recovery must restore the transported orbit")
+	walker.keep_world_horizon = true
+	walker.sync_pose(1.0)
+	if walker.camera.global_basis.y.y <= 0.0:
+		failures.append("Optional world-horizon mode must remain world-upright")
+	walker.keep_world_horizon = false
 	new_journey()
 	for i in range(260):
 		walker.align_movement_to_camera(Vector2(0, -1))
@@ -769,7 +808,7 @@ func run_self_test() -> void:
 	if snapshot() != before_camera_mode:
 		failures.append("Camera preference must not change puzzle state")
 	if failures.is_empty():
-		print("SELF TEST PASS: puzzle route, recovery, passage, corners, third-person horizon, controls, obstruction, camera modes")
+		print("SELF TEST PASS: puzzle route, recovery, passage, corners, transported camera, edge framing, controls, obstruction, camera modes")
 	else:
 		for failure in failures:
 			push_error("SELF TEST FAIL: " + failure)
