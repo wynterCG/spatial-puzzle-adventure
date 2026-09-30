@@ -6,6 +6,8 @@ This is the requested project-local `skill.md`, not an installed global assistan
 
 Develop a calm first-person/isometric spatial puzzle adventure where the player reshapes architecture and travels through the consequences. Preserve all four pillars: two views of the same space, meaningful player positioning, dependable impossible-space rules, and visual clarity with atmosphere.
 
+The user's later comfort feedback changes the default traversal camera to **third person with a steady world horizon**. Keep first person as an optional setting. The source concept remains unchanged as a historical design reference; current implementation follows this explicit revision.
+
 ## Stack and entry points
 
 - Godot 4.6.1, GDScript, Compatibility renderer, no .NET dependency.
@@ -78,6 +80,10 @@ F toggles upper/lower inspection without modifying puzzle state. Tab chooses the
 
 ## Presentation and accessibility
 
+- Third-person camera roll follows world up, not surface up; only the character follows local gravity. Mouse orbits, and distance is adjustable. Preserve camera collision after positional smoothing, not just at the desired endpoint.
+- New movement is screen-relative. While an unchanged key direction is held, preserve its transported tangent through edge turns; reprojecting every frame can send the player back across the same edge. A new input or intentional orbit reestablishes camera-relative movement.
+- Third-person camera switches use cuts to avoid long fly-throughs. First person retains optional smooth transitions. Neither mode is assumed universally comfortable.
+
 - Large abstract but inhabitable forms, deep blue/violet atmosphere, ivory light, selective warm accents. No RGB axis legend.
 - Prioritize landmarks that remain recognizable after rotation; add bevels, surface detail, translucent elements and metal only where they improve scale/readability.
 - Keep first-person UI quiet; overview exposes only selection, valid movement and essential prompts. No default solution line.
@@ -93,7 +99,7 @@ Run this integration smoke test after changing traversal, adjacency, snapshots o
 & 'C:\Users\Wynter\Downloads\Godot_v4.6.1-stable_mono_win64\Godot_v4.6.1-stable_mono_win64\Godot_v4.6.1-stable_mono_win64_console.exe' --headless --path 'E:\Godot Games\spacial_puzzleGame' --quit-after 120 -- --self-test
 ```
 
-It walks the opening from the real spawn, probes top/side/underside entry boundaries, tests covered solid joins, the first boarding checkpoint, underside carrier travel, courtyard reorientation, undo after disembarking, camera-state independence, gap isolation and impossible crossing. It must print `SELF TEST PASS` and exit 0. Test mode does not write player progress.
+It walks the opening from the real spawn, probes top/side/underside entry boundaries, tests covered solid joins, the first boarding checkpoint, underside carrier travel, courtyard reorientation, undo after disembarking, camera-state independence, gap isolation and impossible crossing. Follow-camera checks cover horizon, screen-relative controls on six faces, held input around edges, camera obstruction and first/third-person switching. It must print `SELF TEST PASS` and exit 0. Test mode does not write player progress.
 
 Then use MCP Pro to run the game and inspect screenshots and errors. Check both modes, HUD at the target size, pause/rebind, carrier A/B, visible avatar, arch activation, destination preview, crossing and completion. Ensure no false connection appears mid-animation. Test side-face turns and corner approach diagonals when changing the walker.
 

@@ -22,6 +22,11 @@ Verified on 30 September 2026 with Godot 4.6.1, Compatibility/OpenGL, and the us
 - An occupied carrier delivers the player onto the courtyard underside, and ordinary edge traversal returns them to its top.
 - Undo after disembarking restores the pre-rotation passenger position and state.
 - Switching inspection views does not mutate the puzzle snapshot.
+- Third-person camera keeps a world-up horizon on all six support faces.
+- New forward/strafe inputs project to screen-up/right on every face.
+- Holding movement continues from the arrival top, around its wall and onto the underside without reversing at the edge.
+- Camera obstruction stops the follow offset before a padded solid.
+- Switching first/third person preserves puzzle state; first person hides the avatar from its own view.
 
 ## Live MCP Pro checks
 
@@ -39,6 +44,8 @@ Verified Escape opens settings, the menu fits the viewport, and key rebinding ac
 
 For the new opening, also verified a rotation can be paused while busy and resumes to a settled state afterward. The expanded settings menu scrolls within the viewport so the additional inspection binding does not push controls outside the window.
 
+For the third-person revision, replayed the opening with camera-relative held movement and observed the visible character on the wall and underside. Continued across the carrier and through the active arch to completion in third person. Inspected the destination preview from the follow camera. Selected first person in settings, reloaded settings to verify the preference persisted, then restored third person. Camera obstruction is limited to traversable solids; comfort remains a human playtest question.
+
 ## Visual evidence
 
 - [Architectural overview](prototype-preview.png)
@@ -47,5 +54,9 @@ For the new opening, also verified a rotation can be paused while busy and resum
 - [Settings](settings-preview.png)
 - [The Other Ground in first person](other-ground-first-person.png)
 - [The Other Ground from below](other-ground-overview.png)
+- [Third-person arrival](third-person-arrival.png)
+- [Third-person wall traversal](third-person-wall.png)
+- [Third-person underside](third-person-underside.png)
+- [Third-person distant passage](third-person-passage.png)
 
 These are runtime screenshots captured through MCP Pro. The gameplay remains a mechanical prototype. This verification does not replace human comfort/playability testing or resolve the production limitations listed in [spec.md](spec.md).

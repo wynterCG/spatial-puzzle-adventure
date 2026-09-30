@@ -281,11 +281,14 @@ func _process(delta: float) -> void:
 	if walker == null:
 		return
 	if not architectural and not busy and not paused and not won:
-		walker.walk(Input.get_vector("left", "right", "forward", "back"), minf(delta, 0.1))
+		var movement := Input.get_vector("left", "right", "forward", "back")
+		walker.align_movement_to_camera(movement)
+		walker.walk(movement, minf(delta, 0.1))
 		check_passage()
 		if walker.support == destination and walker.foot.z < -2.6 and walker.normal.y > 0.9:
 			complete()
 	walker.sync_pose(delta)
+	walker.avatar.visible = architectural or walker.third_person
 	if portal.visible:
 		var active_camera := overview if architectural else walker.camera
 		portal_camera.global_transform = active_camera.global_transform
@@ -329,8 +332,9 @@ func _unhandled_input(event: InputEvent) -> void:
 func toggle_view() -> void:
 	var from := overview.global_transform if architectural else walker.camera.global_transform
 	architectural = not architectural
+	walker.moving = false
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE if architectural else Input.MOUSE_MODE_CAPTURED
-	walker.avatar.visible = architectural
+	walker.avatar.visible = architectural or walker.third_person
 	if architectural:
 		inspect_below = (walker.support.global_basis * walker.normal).y < -0.5
 		update_inspection_camera()
@@ -339,7 +343,7 @@ func toggle_view() -> void:
 		walker.sync_pose(1.0)
 		walker.camera.current = true
 		portal_previous = walker.support.to_global(walker.foot).z + 11.6
-	if not walker.reduced_motion:
+	if not walker.reduced_motion and not walker.third_person:
 		busy = true
 		transition_camera.global_transform = from
 		transition_camera.current = true
@@ -520,6 +524,8 @@ func new_journey() -> void:
 	hud.completion.hide()
 	hint_level = 0
 	history.clear()
+	walker.orbit_yaw = 0.0
+	walker.orbit_pitch = 0.42
 	walker.place(arrival, START_FOOT, Vector3.UP, Vector3.BACK)
 	checkpoint = snapshot()
 	save_progress()
@@ -728,8 +734,42 @@ func run_self_test() -> void:
 	walker.sync_pose(1)
 	if walker.normal != Vector3.BACK or world_up_before.is_equal_approx(carrier.global_basis * walker.normal):
 		failures.append("Side-face attachment must carry gravity")
+	# Follow-camera horizon and controls on every support orientation.
+	walker.set_third_person(true)
+	for up in [Vector3.UP, Vector3.DOWN, Vector3.LEFT, Vector3.RIGHT, Vector3.FORWARD, Vector3.BACK]:
+		var point: Vector3 = up * destination.half
+		var heading: Vector3 = Vector3.FORWARD if absf(up.y) > 0.5 else Vector3.UP
+		walker.place(destination, point, up, heading)
+		walker.align_movement_to_camera(Vector2(0, -1))
+		if absf(walker.camera.global_basis.x.y) > 0.001:
+			failures.append("Third-person horizon must not roll with gravity")
+		if (destination.global_basis * walker.forward).dot(walker.camera.global_basis.y) <= 0.0:
+			failures.append("New movement input must follow screen-up")
+		var side := (destination.global_basis * walker.forward).cross(up)
+		if side.dot(walker.camera.global_basis.x) <= 0.0:
+			failures.append("Strafe input must follow screen-right")
+		if walker.camera.global_position.distance_to(walker.avatar.global_position) < 2.0:
+			failures.append("Follow camera must frame the character")
+	var pivot := destination.to_global(Vector3(0, 2, 0))
+	var clipped := walker.safe_camera_position(pivot, destination.global_position)
+	if destination.to_local(clipped).y < destination.half.y + 0.18:
+		failures.append("Camera obstruction must stop before solid geometry")
+	new_journey()
+	for i in range(260):
+		walker.align_movement_to_camera(Vector2(0, -1))
+		walker.walk(Vector2(0, -1), 1.0 / 60.0)
+		walker.sync_pose(1.0 / 60.0)
+	if walker.normal != Vector3.DOWN or not found_underside:
+		failures.append("Held camera-relative movement must continue across edges")
+	var before_camera_mode := snapshot()
+	walker.set_third_person(false)
+	if walker.camera.cull_mask & 4:
+		failures.append("First-person camera must hide the avatar")
+	walker.set_third_person(true)
+	if snapshot() != before_camera_mode:
+		failures.append("Camera preference must not change puzzle state")
 	if failures.is_empty():
-		print("SELF TEST PASS: mandatory underside, boundary probes, solid joins, boarding checkpoint, attachment, gaps, restore, passage, corners")
+		print("SELF TEST PASS: puzzle route, recovery, passage, corners, third-person horizon, controls, obstruction, camera modes")
 	else:
 		for failure in failures:
 			push_error("SELF TEST FAIL: " + failure)

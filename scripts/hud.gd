@@ -157,6 +157,22 @@ func build_menu() -> void:
 	scroll.add_child(column)
 	column.add_child(label("Take a moment", 30))
 	column.add_child(label("COMFORT & CONTROLS", 12, muted))
+	column.add_child(label("Traversal camera", 15, muted))
+	var camera_mode := OptionButton.new()
+	camera_mode.name = "CameraMode"
+	camera_mode.add_item("Third person · steady horizon")
+	camera_mode.add_item("First person")
+	camera_mode.item_selected.connect(func(index): game.walker.set_third_person(index == 0); save_settings())
+	column.add_child(camera_mode)
+	column.add_child(label("Third-person camera distance", 15, muted))
+	var distance := HSlider.new()
+	distance.name = "CameraDistance"
+	distance.min_value = 3.0
+	distance.max_value = 8.0
+	distance.step = 0.25
+	distance.value = 5.5
+	distance.value_changed.connect(func(value): game.walker.camera_distance = value; save_settings())
+	column.add_child(distance)
 	var reduced := CheckButton.new()
 	reduced.name = "ReducedMotion"
 	reduced.text = "Reduced motion"
@@ -205,10 +221,10 @@ func build_completion() -> void:
 	completion.visible = false
 
 func refresh() -> void:
-	mode.text = "ARCHITECT  /  observe & transform" if game.architectural else "INHABITANT  /  walk & discover"
+	mode.text = "ARCHITECT  /  observe & transform" if game.architectural else ("INHABITANT  /  third person" if game.walker.third_person else "INHABITANT  /  first person")
 	sidebar.visible = game.architectural and not game.paused and not game.won
 	controls.get_parent().visible = not game.paused and not game.won
-	crosshair.visible = not game.architectural and not game.paused and not game.won
+	crosshair.visible = not game.architectural and not game.walker.third_person and not game.paused and not game.won
 	selection.text = ("The Passenger  ·  " + ("A" if game.carrier.state % 2 == 0 else "B")) if game.selected == 0 else ("The Distant Arch  ·  " + ("CONNECTED" if game.arch_state == 0 else "UNALIGNED"))
 	chapter_title.text = "03   /   THE DISTANT ARCH" if game.reached_court else ("02   /   THE PASSENGER" if game.boarded else "01   /   THE OTHER GROUND")
 	task.text = "Reach the light" if game.crossed else ("Connect the distant arch" if game.reached_court else ("Travel with the carrier" if game.boarded else ("Board from the lower causeway" if game.found_underside else "Discover the other ground")))
@@ -222,7 +238,7 @@ func refresh() -> void:
 	var view_key: String = game.key_name("view")
 	controls.text = view_key + "  " + ("Enter the world" if game.architectural else "Architectural view") + "     /     "
 	var walk_keys: String = game.key_name("forward") + game.key_name("left") + game.key_name("back") + game.key_name("right")
-	controls.text += (game.key_name("rotate_left") + " · " + game.key_name("rotate_right") + "  Rotate" if game.architectural else walk_keys + "  Walk  ·  Mouse  Look")
+	controls.text += (game.key_name("rotate_left") + " · " + game.key_name("rotate_right") + "  Rotate" if game.architectural else walk_keys + ("  Walk  ·  Mouse  Orbit" if game.walker.third_person else "  Walk  ·  Mouse  Look"))
 	controls.text += "     /     " + game.key_name("undo") + "  Undo     /     " + game.key_name("hint") + "  Hint     /     Esc  Pause"
 
 func show_menu(value: bool) -> void:
@@ -261,6 +277,8 @@ func save_settings() -> void:
 	var settings := ConfigFile.new()
 	settings.set_value("comfort", "reduced_motion", game.walker.reduced_motion)
 	settings.set_value("comfort", "sensitivity", game.walker.sensitivity)
+	settings.set_value("comfort", "third_person", game.walker.third_person)
+	settings.set_value("comfort", "camera_distance", game.walker.camera_distance)
 	for action in game.input_bindings:
 		settings.set_value("keys", action, game.input_bindings[action])
 	settings.save("user://settings.cfg")
@@ -271,5 +289,10 @@ func load_settings() -> void:
 		return
 	game.walker.reduced_motion = settings.get_value("comfort", "reduced_motion", false)
 	game.walker.sensitivity = settings.get_value("comfort", "sensitivity", 0.0022)
+	game.walker.third_person = settings.get_value("comfort", "third_person", true)
+	game.walker.camera_distance = clampf(settings.get_value("comfort", "camera_distance", 5.5), 3.0, 8.0)
+	menu.find_child("CameraMode", true, false).select(0 if game.walker.third_person else 1)
+	menu.find_child("CameraDistance", true, false).set_value_no_signal(game.walker.camera_distance)
+	game.walker.sync_pose(1.0)
 	menu.find_child("ReducedMotion", true, false).set_pressed_no_signal(game.walker.reduced_motion)
 	menu.find_child("Sensitivity", true, false).set_value_no_signal(game.walker.sensitivity)

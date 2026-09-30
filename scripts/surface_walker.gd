@@ -12,6 +12,13 @@ var pitch := -0.08
 var speed := 3.5
 var sensitivity := 0.0022
 var reduced_motion := false
+var third_person := true
+var camera_distance := 5.5
+var orbit_yaw := 0.0
+var orbit_pitch := 0.42
+var camera_initialized := false
+var last_walk_input := Vector2.ZERO
+var orbit_changed := false
 var camera: Camera3D
 var avatar: Node3D
 var moving := false
@@ -44,6 +51,9 @@ func _ready() -> void:
 	dot.material_override = mat
 	avatar.add_child(dot)
 	dot.position.y = 1.3
+	# A small visor makes heading readable from the follow camera.
+	SurfacePiece.box(avatar, Vector3(0, 1.32, -0.19), Vector3(0.28, 0.11, 0.07), SurfacePiece.material(Color("29374f")))
+	SurfacePiece.box(avatar, Vector3(0, 0.88, 0.19), Vector3(0.3, 0.38, 0.12), SurfacePiece.material(Color("b57d67")))
 	var ring := MeshInstance3D.new()
 	var ring_mesh := TorusMesh.new()
 	ring_mesh.inner_radius = 0.32
@@ -52,6 +62,9 @@ func _ready() -> void:
 	ring.material_override = mat
 	avatar.add_child(ring)
 	ring.position.y = 0.035
+	for part in avatar.get_children():
+		if part is MeshInstance3D:
+			part.layers = 4
 
 func place(piece: SurfacePiece, point: Vector3, up := Vector3.UP, heading := Vector3.FORWARD) -> void:
 	support = piece
@@ -59,13 +72,42 @@ func place(piece: SurfacePiece, point: Vector3, up := Vector3.UP, heading := Vec
 	normal = up
 	forward = heading
 	pitch = -0.08
+	moving = false
+	last_walk_input = Vector2.ZERO
 	sync_pose(1.0)
 
 func look(relative: Vector2) -> void:
+	if third_person:
+		orbit_yaw -= relative.x * sensitivity
+		orbit_pitch = clampf(orbit_pitch + relative.y * sensitivity, -1.0, 1.0)
+		orbit_changed = true
+		return
 	forward = forward.rotated(normal, -relative.x * sensitivity).normalized()
 	pitch = clampf(pitch - relative.y * sensitivity, -1.35, 1.35)
 
+func align_movement_to_camera(input: Vector2) -> void:
+	if not third_person:
+		return
+	# Keep a held direction parallel-transported across an edge. Reprojecting W
+	# halfway through a fold would immediately send the player back up the wall.
+	if input.length_squared() > 0.01 and moving and input.is_equal_approx(last_walk_input) and not orbit_changed:
+		return
+	orbit_changed = false
+	var world_up := (support.global_basis * normal).normalized()
+	# Screen-up projected onto the surface keeps W intuitive on walls/undersides.
+	var screen_up := camera.global_basis.y.slide(world_up)
+	if screen_up.length_squared() < 0.02:
+		screen_up = (-camera.global_basis.z).slide(world_up)
+	if screen_up.length_squared() > 0.001:
+		forward = (support.global_basis.inverse() * screen_up.normalized()).normalized()
+
+func set_third_person(enabled: bool) -> void:
+	third_person = enabled
+	camera_initialized = false
+	sync_pose(1.0)
+
 func walk(input: Vector2, delta: float) -> void:
+	last_walk_input = input
 	if input.length() < 0.01:
 		moving = false
 		return
@@ -164,11 +206,60 @@ func sync_pose(delta: float) -> void:
 	var orientation := Basis(right, up, -heading).orthonormalized()
 	var contact := support.to_global(foot)
 	avatar.global_transform = Transform3D(orientation, contact)
+	camera.cull_mask = 7 if third_person else 3
+	if third_person:
+		sync_follow_camera(contact, up, delta)
+		return
 	var target := Transform3D(orientation * Basis(Vector3.RIGHT, pitch), contact + up * 1.55)
 	if reduced_motion or delta >= 1.0:
 		camera.global_transform = target
 	else:
 		camera.global_transform = camera.global_transform.interpolate_with(target, 1.0 - exp(-delta * 16.0))
+
+func sync_follow_camera(contact: Vector3, up: Vector3, delta: float) -> void:
+	var pivot := contact + up * 0.85
+	var orbit := Vector3(sin(orbit_yaw) * cos(orbit_pitch), sin(orbit_pitch), cos(orbit_yaw) * cos(orbit_pitch))
+	var offset := orbit * camera_distance
+	# Stay on the exposed side of the supporting face while retaining world-up roll.
+	offset += up * maxf(0.0, 1.8 - offset.dot(up))
+	# A wall turn should not unexpectedly zoom in just because the offset changed.
+	offset = offset.normalized() * camera_distance
+	var desired := pivot + offset
+	var weight := 1.0 if not camera_initialized or delta >= 1.0 or reduced_motion else 1.0 - exp(-delta * 7.0)
+	var smoothed := camera.global_position.lerp(desired, weight)
+	# Clamp after smoothing: an edge turn must not sweep through the solid.
+	camera.global_position = safe_camera_position(pivot, smoothed)
+	var view_direction := pivot - camera.global_position
+	if view_direction.length_squared() > 0.001 and Vector2(view_direction.x, view_direction.z).length_squared() > 0.00001:
+		# Retain the last stable orientation at a pole; never substitute a rolled up-axis.
+		camera.look_at(pivot, Vector3.UP)
+	camera_initialized = true
+
+func safe_camera_position(pivot: Vector3, desired: Vector3) -> Vector3:
+	var fraction := 1.0
+	for piece in pieces:
+		var origin := piece.to_local(pivot)
+		var ray := piece.to_local(desired) - origin
+		var bounds := piece.half + Vector3.ONE * 0.18
+		var enter := 0.0
+		var leave := 1.0
+		var intersects := true
+		for axis in range(3):
+			if absf(ray[axis]) < 0.00001:
+				if absf(origin[axis]) > bounds[axis]:
+					intersects = false
+					break
+			else:
+				var first := (-bounds[axis] - origin[axis]) / ray[axis]
+				var second := (bounds[axis] - origin[axis]) / ray[axis]
+				enter = maxf(enter, minf(first, second))
+				leave = minf(leave, maxf(first, second))
+				if enter > leave:
+					intersects = false
+					break
+		if intersects and leave > 0.0 and enter <= 1.0:
+			fraction = minf(fraction, maxf(0.0, enter - 0.025))
+	return pivot.lerp(desired, fraction)
 
 func snapshot() -> Dictionary:
 	return {"piece": support.name, "foot": foot, "normal": normal, "forward": forward, "pitch": pitch}
