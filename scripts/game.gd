@@ -147,8 +147,7 @@ func build_world() -> void:
 	destination.rotation.x = PI / 2
 	# Build the load-bearing mass around the route, not two enormous flat cards.
 	courtyard.set_solid_boxes([
-		AABB(Vector3(-4, -1, -1.2), Vector3(8, 2, 2.5)),
-		AABB(Vector3(-1.9, 0.7, -11), Vector3(3.8, 0.3, 9.8))
+		AABB(Vector3(-4, -1, -1.2), Vector3(8, 2, 2.5))
 	])
 	destination.set_solid_boxes([
 		AABB(Vector3(-1.9, 0.7, -11), Vector3(3.8, 0.3, 10.2)),
@@ -442,7 +441,8 @@ func build_landing_detail(piece: SurfacePiece, is_destination: bool) -> void:
 	var z_start := -16.0 if is_destination else -11.0
 	var z_end := -11.0 if is_destination else -1.2
 	var width := 6.0 if is_destination else 3.8
-	Piece.box(piece, Vector3(0, 0.73, (z_start + z_end) * 0.5), Vector3(width, 0.06, z_end - z_start), shadow)
+	if is_destination:
+		Piece.box(piece, Vector3(0, 0.73, (z_start + z_end) * 0.5), Vector3(width, 0.06, z_end - z_start), shadow)
 	if not is_destination:
 		# The carrier enters a small inhabited landing instead of hitting a wall.
 		for side in [-1.0, 1.0]:
@@ -500,7 +500,10 @@ func build_gallery(parent: Node3D) -> Node3D:
 		pediment.mesh = surface.commit()
 		pediment.material_override = stone
 		gallery.add_child(pediment)
-	Piece.box(gallery, Vector3(0, -0.08, 0), Vector3(3.8, 0.18, 10.65), dark)
+	# The structural floor belongs to the same pivot as its enclosure. A second
+	# fixed neck beneath it made a turned gallery look like a misplaced cover.
+	var floor_slab := Piece.box(gallery, Vector3(0, -0.08, 0), Vector3(3.8, 0.18, 10.65), dark)
+	gallery_solids.append(floor_slab)
 	Piece.box(gallery, Vector3(0, 0.015, 0), Vector3(1.8, 0.02, 10.2), Piece.material(Color("d8c8ac")))
 	for z in [-4.8, -2.4, 0.0, 2.4, 4.8]:
 		Piece.box(gallery, Vector3(0, 3.72, z), Vector3(2.45, 0.10, 0.10), warm)
@@ -972,8 +975,8 @@ func run_self_test() -> void:
 	new_journey()
 	walker.set_third_person(true)
 	walker.keep_world_horizon = false
-	if courtyard.contains_solid(Vector3(3, 0, 8)) or not courtyard.contains_solid(Vector3(-3, 0, 0)) or not courtyard.contains_solid(Vector3(0, 0.85, -6)):
-		failures.append("Compound support solids must match the landing and gallery neck")
+	if courtyard.contains_solid(Vector3(3, 0, 8)) or not courtyard.contains_solid(Vector3(-3, 0, 0)) or courtyard.contains_solid(Vector3(0, 0.85, -6)):
+		failures.append("The fixed landing must not leave a duplicate floor beneath the turning gallery")
 	walker.update_overview_visibility(overview, true)
 	if walker.overview_silhouette.visible:
 		failures.append("An unobstructed arrival must not need an occlusion silhouette")

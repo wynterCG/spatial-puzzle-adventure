@@ -64,3 +64,5 @@ Prioritize misleading boundaries, loss of orientation and exposed seams before e
 - Undo each lever and a later carrier turn; recover a checkpoint on the underside. The route, controls, brake and feet must agree.
 - Repeat with first person, short/long follow distance and reduced motion. First person is retained as a preference; it is never required. Reduced motion skips mechanism animations but walking around the curve still changes camera orientation.
 - Complete the existing gallery puzzle after the new opening. Confirm the opening adds a useful relationship between views rather than feeling like an unrelated detour.
+
+- Turn the gallery through all four orientations. Its floor and cover should remain one module, with no extra stationary slab projecting beneath it. Hovering should open the cover while keeping the floor visible; align and traverse it in both directions.

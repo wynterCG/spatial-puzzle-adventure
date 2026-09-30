@@ -51,6 +51,10 @@ Modules remain complete by default. A gallery opens on hover or physical interio
 
 The gallery now has framed reveals, pilasters, recessed panels and a pitched roof. Compact compound volumes replace the oversized backing slabs. The beacon sits on a low pedestal in an open destination court. The former roofed chamber and deep overlapping end slab are removed; the source floor/paving now end at the seam. Shallow floor edges expose the continuation to the goal. Existing version-3 authored path coordinates remain compatible.
 
+## Gallery cover placement correction
+
+Removed the duplicate fixed source neck and its trim. The turning gallery now carries the sole floor slab together with its walls and cover; the slab participates in camera/body collision. The headless route, camera and contextual-cutaway checks pass. Inspected the previously misleading sideways configuration through MCP Pro; see [floor and cover turning together](gallery-floor-turn.png). The fixed landing, destination terrace, connection rules and player save schema are unchanged.
+
 ## Current screenshots
 
 - [Third-person entrance control](rounded-track-control.png)
