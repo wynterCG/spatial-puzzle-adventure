@@ -7,6 +7,7 @@ const Validate = preload("res://authoring/validation.gd")
 const SpatialLinks = preload("res://core/spatial_links.gd")
 const H = preload("res://tests/test_helpers.gd")
 const FOLD := "res://monuments/the_fold.tscn"
+const STUDY := "res://monuments/link_study.tscn"
 
 static func run(g: Node3D, failures: Array[String]) -> void:
 	validation_cases(g, failures)
@@ -16,6 +17,7 @@ static func run(g: Node3D, failures: Array[String]) -> void:
 	discovery_cases(g, failures)
 	linking_cases(g, failures)
 	state_cases(g, failures)
+	study_cases(g, failures)
 	fold_cases(g, failures)
 
 ## Two 8 x 4 m decks. A stands at Near's +x edge; B at Far's -x edge (out of Far, towards -x);
@@ -309,8 +311,8 @@ static func state_cases(g: Node3D, failures: Array[String]) -> void:
 
 # --- The Fold (monuments/the_fold.tscn, tools/gen_fold.py) ---------------------------------
 
-static func load_fold(g: Node3D) -> void:
-	var scene = load(FOLD).instantiate()
+static func load_fold(g: Node3D, path := FOLD) -> void:
+	var scene = load(path).instantiate()
 	var source = scene.get_node("Level")
 	scene.remove_child(source)
 	source.owner = null
@@ -480,3 +482,33 @@ static func fold_minimum(seen: Dictionary, at: Dictionary, links_allowed: bool, 
 			for k in move[2]: next_counts[k] += move[2][k]
 			queue.append([cost + move[0], move[1], next_counts])
 	return {"cost": -1}
+
+# --- Link study (monuments/link_study.tscn, tools/gen_link_study.py) ----------------------
+## The linking UX on its own: three doorways in one space, nothing to turn, no puzzle.
+static func study_cases(g: Node3D, failures: Array[String]) -> void:
+	load_fold(g, STUDY)
+	if not Validate.validate(g.definition).errors.is_empty(): failures.append("The link study must validate: " + str(Validate.validate(g.definition).errors))
+	if not g.rigs.is_empty(): failures.append("The link study has nothing to turn")
+	var plaza: SurfacePiece = g.paths[g.definition.get_node("Plaza")]
+	g.architectural = false
+	g.walker.place(plaza, Vector3(0, plaza.half.y, -H.m(3.2)), Vector3.UP, Vector3.FORWARD)
+	look_at_point(g, g.walker.camera.global_position + Vector3(0, 50, 8))
+	g.update_link_view()
+	if g.link_source() != door(g, "A"): failures.append("Link study: standing at A makes it the source")
+	for label in ["B", "C"]:
+		if g.doorway_state(door(g, label)) != "candidate": failures.append("Link study: from A, %s is visibly a candidate" % label)
+	for label in ["B", "C"]:
+		look_at_point(g, door_centre(g, label))
+		g.update_link_view()
+		if g.aimed != door(g, label) or not g.tether.visible: failures.append("Link study: looking at %s previews the link" % label)
+	look_at_point(g, door_centre(g, "B"))
+	g.update_link_view()
+	g.use_threshold()
+	if g.link != [door(g, "A"), door(g, "B")]: failures.append("Link study: one press links A and B")
+	g.walker.forward = Vector3.FORWARD
+	g.walker.pitch = 0
+	for i in range(1200):
+		g.walker.walk(Vector2(0, -1), 1.0 / 60)
+		if not g.won and g.reached_goal(): g._process(0)
+		if g.won: break
+	if not g.won: failures.append("Link study: walking through A after linking reaches B's platform and its light")

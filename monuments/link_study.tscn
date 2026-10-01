@@ -1,0 +1,154 @@
+[gd_scene load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://runtime/monument.gd" id="1"]
+[ext_resource type="Script" path="res://authoring/level.gd" id="2"]
+[ext_resource type="Script" path="res://authoring/component.gd" id="3"]
+
+[sub_resource type="StandardMaterial3D" id="GoalLight"]
+albedo_color = Color(1, 0.93, 0.85, 1)
+emission_enabled = true
+emission = Color(1, 0.91, 0.82, 1)
+emission_energy_multiplier = 2.5
+
+[sub_resource type="BoxMesh" id="BeamMesh"]
+size = Vector3(0.64, 160, 0.64)
+
+[sub_resource type="BoxMesh" id="PlateMesh"]
+size = Vector3(4.8, 0.04, 4.8)
+
+[node name="Puzzle" type="Node3D"]
+script = ExtResource("1")
+
+[node name="Level" type="Node3D" parent="."]
+script = ExtResource("2")
+level_id = "link_study"
+revision = 1
+title = "Link study"
+question = "Stand at a doorway, look at another, and join them."
+explanation = "Standing at a doorway makes it the one you link from. Looking at another doorway shows the link before you make it; F joins them, and walking through one leads out of the other."
+overview_focus = Vector3(16, 0, -24)
+overview_size = 120
+overview_azimuth_degrees = -40
+overview_elevation_degrees = 45
+discovery_range = 160
+hints = PackedStringArray("Walk up to the doorway at the edge of the plaza.", "Look at the doorway across the gap and press F.", "Walk through the doorway you are standing at.")
+
+[node name="Plaza" type="Node3D" parent="Level"]
+script = ExtResource("3")
+kind = 0
+label = "Plaza"
+position = Vector3(0, 0, 0)
+dimensions = Vector3(32, 3.2, 32)
+end_sockets = false
+tint = Color(0.23, 0.23, 0.26, 1)
+
+[node name="PlazaPier" type="Node3D" parent="Level"]
+script = ExtResource("3")
+kind = 8
+position = Vector3(0, -103.2, 0)
+dimensions = Vector3(4.8, 200, 4.8)
+tint = Color(0.17, 0.17, 0.2, 1)
+
+[node name="PlayerStart" type="Node3D" parent="Level/Plaza"]
+script = ExtResource("3")
+kind = 4
+position = Vector3(0, 0, 10)
+forward = Vector3(0, 0, -1)
+path = NodePath("..")
+
+[node name="A" type="Node3D" parent="Level/Plaza"]
+script = ExtResource("3")
+kind = 9
+label = "A"
+position = Vector3(0, 0, -16)
+path = NodePath("..")
+travel_direction = Vector3(0, 0, -1)
+ground_normal = Vector3(0, 1, 0)
+width = 6.4
+aperture_height = 10.4
+trigger_radius = 8
+link_group = "study"
+initially_discovered = true
+tint = Color(0.55, 0.9, 1, 1)
+
+[node name="North" type="Node3D" parent="Level"]
+script = ExtResource("3")
+kind = 0
+label = "North"
+position = Vector3(0, 0, -56)
+dimensions = Vector3(24, 3.2, 24)
+end_sockets = false
+tint = Color(0.23, 0.23, 0.26, 1)
+
+[node name="NorthPier" type="Node3D" parent="Level"]
+script = ExtResource("3")
+kind = 8
+position = Vector3(0, -103.2, -56)
+dimensions = Vector3(4.8, 200, 4.8)
+tint = Color(0.17, 0.17, 0.2, 1)
+
+[node name="B" type="Node3D" parent="Level/North"]
+script = ExtResource("3")
+kind = 9
+label = "B"
+position = Vector3(0, 0, 12)
+path = NodePath("..")
+travel_direction = Vector3(0, 0, 1)
+ground_normal = Vector3(0, 1, 0)
+width = 6.4
+aperture_height = 10.4
+trigger_radius = 8
+link_group = "study"
+initially_discovered = true
+tint = Color(0.55, 0.9, 1, 1)
+
+[node name="Goal" type="Node3D" parent="Level/North"]
+script = ExtResource("3")
+kind = 5
+position = Vector3(0, 0, -6)
+path = NodePath("..")
+trigger_radius = 4.8
+tint = Color(0.55, 0.9, 1, 1)
+
+[node name="Plate" type="MeshInstance3D" parent="Level/North/Goal"]
+position = Vector3(0, 0.02, 0)
+mesh = SubResource("PlateMesh")
+material_override = SubResource("GoalLight")
+cast_shadow = 0
+
+[node name="LightShaft" type="MeshInstance3D" parent="Level/North/Goal"]
+position = Vector3(0, 90, 0)
+mesh = SubResource("BeamMesh")
+material_override = SubResource("GoalLight")
+cast_shadow = 0
+
+[node name="East" type="Node3D" parent="Level"]
+script = ExtResource("3")
+kind = 0
+label = "East"
+position = Vector3(52, 12, -16)
+dimensions = Vector3(24, 3.2, 24)
+end_sockets = false
+tint = Color(0.23, 0.23, 0.26, 1)
+
+[node name="EastPier" type="Node3D" parent="Level"]
+script = ExtResource("3")
+kind = 8
+position = Vector3(52, -91.2, -16)
+dimensions = Vector3(4.8, 200, 4.8)
+tint = Color(0.17, 0.17, 0.2, 1)
+
+[node name="C" type="Node3D" parent="Level/East"]
+script = ExtResource("3")
+kind = 9
+label = "C"
+position = Vector3(-12, 0, 0)
+path = NodePath("..")
+travel_direction = Vector3(-1, 0, 0)
+ground_normal = Vector3(0, 1, 0)
+width = 6.4
+aperture_height = 10.4
+trigger_radius = 8
+link_group = "study"
+initially_discovered = true
+tint = Color(0.55, 0.9, 1, 1)

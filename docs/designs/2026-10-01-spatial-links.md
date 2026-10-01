@@ -919,13 +919,21 @@ This is the concept worth prototyping.
 ## Decisions taken for the prototype
 
 - **No destination rendering.** A linked doorway shows a shared seam, not the place it leads to. Crossing is an instant, pose-continuous cut. True destination rendering is the next, separately controlled experiment (an A/B comparison on the same puzzle).
-- **Linking by sight (§7, §20).** Stand at a doorway and press **F** to prime it. Look at another doorway **you have seen** (a small reticle appears) and press **F** again. **F** at the primed doorway with nothing aimed cancels; walking away releases it.
+- **Linking: one step, nothing hidden (revised after the first playtest, where linking itself felt unintuitive).**
+  - Standing at a doorway makes it the **source**: its seam glows warm, a soft veil fills it, and every compatible doorway in sight is highlighted as a candidate. A reticle appears.
+  - Looking at a doorway **aims** at it. Aiming is generous (14°) and held against drift (22°), so the difficulty is choosing a doorway, not hitting one. A **tether** previews the link from source to target, and the prompt reads **"F  Link A ↔ B"** (or says why not, e.g. "B does not fit A").
+  - **F** links: the tether flares, both doorways take the link colour, and the old pair goes dark.
+  - **Visibility is the only rule:** a compatible doorway in sight can be linked; no earlier discovery is needed.
 - **One pair (§8).** A new link replaces the old one.
 - **Undo (§31).** The link is puzzle configuration: undo, restart, checkpoints and saves restore it. **Discovery is knowledge**: undo and restart never make the player forget a doorway; saves keep it; only a fresh save resets it. (Restart keeping discovery is a one-line choice to revisit after playtesting.)
-- **Discovery (§6).** A doorway is noticed when at least 2 of 4 aperture points (centre, left, right, top) are in view, within the level's `discovery_range` and in clear line of sight for **0.25 s**. A doorway's own frame and deck never hide it. The isometric view never discovers anything, and undiscovered doorways show no seam there (§21–22).
+- **Discovery (§6)** now only decides what the overview shows. A doorway is noticed when at least 2 of 4 aperture points (centre, left, right, top) are in view, within the level's `discovery_range` and in clear line of sight for **0.25 s**. A doorway's own frame and deck never hide it. The isometric view never discovers anything, and undiscovered doorways show no seam there (§21–22).
 - **Gravity (§10–11).** Crossing maps the pose through `frame(B) · half-turn · frame(A)⁻¹`: a rotation, never a reflection, so player-left stays left. The player arrives walking into B's path on B's ground, 5 cm inside, so a held key crosses exactly once.
 - **Moving thresholds (§12, §32).** Links are read from current transforms at crossing time. The isometric composition turns with the crossing.
 - **Prototype art.** `blockout_frame` adds jambs and a lintel; custom architecture can replace them. The seam (hidden, dim, primed, linked) is the behaviour's feedback.
+
+## Link study
+
+`monuments/link_study.tscn` (`tools/gen_link_study.py`) tests the interaction on its own: three doorways in one open space, nothing to turn, no puzzle. A stands at the edge of the plaza; B faces it across a gap (with the light); C faces it from a higher platform. **Play this first.** If standing at A, looking at B and pressing F is not immediately understandable and satisfying, stop polishing the UI: the remote pairing itself may be too abstract, and a more embodied verb (drawing or stitching the connection) is the next idea to test. Only if it works does The Fold test the puzzle.
 
 ## The Fold
 
