@@ -6,6 +6,7 @@ extends Node3D
 const Piece = preload("res://core/surface_piece.gd")
 const Walker = preload("res://core/surface_walker.gd")
 const HUD = preload("res://runtime/hud.gd")
+const OUTLINE = preload("res://runtime/outline.gdshader")
 # Limited zoom around the authored framing (spec §11): enough to find the avatar, never a map.
 const ZOOM_MIN := .8
 const ZOOM_MAX := 1.25
@@ -292,14 +293,15 @@ func refresh_glow() -> void:
 		for visual in rigs[k].node.find_children("*", "MeshInstance3D", true, false):
 			visual.material_overlay = overlay
 
-func glow_material(tint: Color, level: int) -> StandardMaterial3D:
+## An outline, not a fill: the structure's faces stay readable. Hover is thin and dim,
+## selection slightly thicker and brighter.
+func glow_material(tint: Color, level: int) -> ShaderMaterial:
 	var key := str(tint) + str(level)
 	if not glow_materials.has(key):
-		var mat := StandardMaterial3D.new()
-		mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-		mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-		mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
-		mat.albedo_color = Color(tint, .09 if level == 1 else .2)
+		var mat := ShaderMaterial.new()
+		mat.shader = OUTLINE
+		mat.set_shader_parameter("color", tint.darkened(.2) if level == 1 else tint.lightened(.2))
+		mat.set_shader_parameter("width", .045 if level == 1 else .085)
 		glow_materials[key] = mat
 	return glow_materials[key]
 
