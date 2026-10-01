@@ -11,6 +11,10 @@ const OUTLINE = preload("res://runtime/outline.gdshader")
 const ZOOM_MIN := .4
 const ZOOM_MAX := 1.6
 const PAN_LIMIT := .5 # fraction of the authored framing size the view may slide away
+## Farthest a turning solid may move between sweep samples. The thinnest solid at any scale
+## (a 0.26 m curve deck) can never fall between two samples.
+const SWEEP_STEP := .25
+var sweep_tolerance := .04
 var world: Node3D
 var pieces: Array[SurfacePiece] = []
 var rigs: Array[Dictionary] = []
@@ -335,8 +339,8 @@ func select_rig(index: int) -> void:
 
 func boxes_overlap(a: MeshInstance3D, b: MeshInstance3D) -> bool:
 	# Oriented-box SAT, with a small construction clearance at docking edges.
-	var ha: Vector3 = ((a.mesh as BoxMesh).size * 0.5 - Vector3.ONE * 0.04).max(Vector3.ONE * 0.01)
-	var hb: Vector3 = ((b.mesh as BoxMesh).size * 0.5 - Vector3.ONE * 0.04).max(Vector3.ONE * 0.01)
+	var ha: Vector3 = ((a.mesh as BoxMesh).size * 0.5 - Vector3.ONE * sweep_tolerance).max(Vector3.ONE * 0.01)
+	var hb: Vector3 = ((b.mesh as BoxMesh).size * 0.5 - Vector3.ONE * sweep_tolerance).max(Vector3.ONE * 0.01)
 	var separation := b.global_position - a.global_position
 	if separation.length_squared() > pow(ha.length() + hb.length(), 2):
 		return false
@@ -356,6 +360,19 @@ func boxes_overlap(a: MeshInstance3D, b: MeshInstance3D) -> bool:
 			return false
 	return true
 
+## Farthest any solid of a turning structure reaches from its pivot (box corners included).
+func sweep_reach(entry: Dictionary) -> float:
+	var pivot: Vector3 = entry.node.global_position
+	var reach := 0.0
+	for moving in entry.solids:
+		reach = maxf(reach, moving.global_position.distance_to(pivot) + (moving.mesh as BoxMesh).size.length() * .5)
+	return reach
+
+## Sweep samples by arc length: the farthest solid moves at most SWEEP_STEP between samples.
+func sweep_samples(entry: Dictionary, interval: Vector2) -> int:
+	var angle := absf(interval.y - interval.x)
+	return maxi(60, maxi(int(ceil(angle / deg_to_rad(1.5))), int(ceil(angle * sweep_reach(entry) / SWEEP_STEP))))
+
 func turn_obstruction(index: int, direction: int) -> String:
 	var entry := rigs[index]
 	if entry.get("locked", false): return "This structure is locked."
@@ -374,10 +391,7 @@ func turn_obstruction(index: int, direction: int) -> String:
 	# nearby boxes still receive every sample, and passenger clearance continues to
 	# consider the whole environment.
 	var pivot: Vector3 = entry.node.global_position
-	var sweep_radius := 0.0
-	for moving in entry.solids:
-		var radius: float = (moving.mesh as BoxMesh).size.length() * .5
-		sweep_radius = maxf(sweep_radius, moving.global_position.distance_to(pivot) + radius)
+	var sweep_radius := sweep_reach(entry)
 	var candidates: Array[MeshInstance3D] = []
 	for stationary in fixed:
 		var radius: float = (stationary.mesh as BoxMesh).size.length() * .5
@@ -385,7 +399,7 @@ func turn_obstruction(index: int, direction: int) -> String:
 			candidates.append(stationary)
 	var result := ""
 	var interval := rotation_interval(entry, direction)
-	var samples := maxi(60, int(ceil(absf(interval.y - interval.x) / deg_to_rad(1.5))))
+	var samples := sweep_samples(entry, interval)
 	for step in range(1, samples + 1):
 		entry.node.basis = rotation_basis(entry, lerpf(interval.x, interval.y, float(step) / samples))
 		for moving in entry.solids:

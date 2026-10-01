@@ -60,6 +60,7 @@ static func run(g: Node3D) -> Array[String]:
 	if not validation.errors.is_empty(): failures.append("Ring validation failed: " + str(validation.errors))
 	ring_cases(g, failures)
 	graph_cases(g, failures)
+	sweep_cases(g, failures)
 	deck_cases(g, failures)
 	Bench.run(g, failures)
 	camera_cases(g, failures)
@@ -214,6 +215,23 @@ static func selection_cases(g: Node3D, failures: Array[String]) -> void:
 	g.toggle_view()
 	if arm_core.material_overlay != null: failures.append("First person must show no selection glow")
 	g.build_level()
+
+## Monumental scale: turn sweeps stay dense and fast at any size, the tolerance is the level's,
+## and the overview camera stands clear of tall masses.
+static func sweep_cases(g: Node3D, failures: Array[String]) -> void:
+	g.build_level()
+	if not is_equal_approx(g.sweep_tolerance, g.definition.sweep_tolerance): failures.append("The runtime must use the level's sweep tolerance")
+	for entry in g.rigs:
+		for direction in [-1, 1]:
+			var interval: Vector2 = g.rotation_interval(entry, direction)
+			var samples: int = g.sweep_samples(entry, interval)
+			var step: float = g.sweep_reach(entry) * absf(interval.y - interval.x) / samples
+			if samples < 60 or step > g.SWEEP_STEP + .000001: failures.append("%s sweep moves %.3f m between samples" % [entry.node.name, step])
+		var started := Time.get_ticks_msec()
+		g.turn_obstruction(g.rigs.find(entry), 1)
+		if Time.get_ticks_msec() - started > 500: failures.append("%s sweep check took over 500 ms" % entry.node.name)
+	if g.definition.overview_local_offset().length() < g.definition.overview_distance() - .001 or g.definition.overview_distance() < g.definition.overview_size * 6 - .001: failures.append("The overview camera must stand at least 6x the framing away")
+	if g.overview.far < g.definition.overview_distance() + 2000: failures.append("The overview far plane must reach past the composition and backdrop")
 
 ## Spec §52: FOV and gravity-transition pacing are player settings; reduced motion is gentle.
 static func comfort_cases(g: Node3D, failures: Array[String]) -> void:

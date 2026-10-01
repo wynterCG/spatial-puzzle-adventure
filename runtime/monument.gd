@@ -124,6 +124,8 @@ func build_level() -> void:
 	camera_bias = Basis.IDENTITY
 	camera_frame = walker.support.global_basis * walker.support.surface_frame(walker.foot)
 	overview_local_offset = definition.overview_local_offset(); overview_zoom = 1
+	sweep_tolerance = definition.sweep_tolerance
+	overview.far = definition.overview_distance() + 3000
 	architectural = true
 	update_links(); update_camera(); select_rig(0)
 	toggle_view()
