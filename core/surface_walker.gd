@@ -43,7 +43,9 @@ signal changed_surface
 
 func _ready() -> void:
 	camera = Camera3D.new()
-	camera.near = 0.07
+	# At 0.04 the near plane's corners stay within 0.1 m of the eye even at FOV 95, so the eye
+	# may stand 0.1 m from a wall at a dead end without clipping (eye-clearance probe).
+	camera.near = 0.04
 	add_child(camera)
 	fov = profile.fov
 	turn_rate = profile.max_gravity_turn_rate

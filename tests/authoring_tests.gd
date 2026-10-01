@@ -60,6 +60,7 @@ static func run(g: Node3D) -> Array[String]:
 	if not validation.errors.is_empty(): failures.append("Ring validation failed: " + str(validation.errors))
 	ring_cases(g, failures)
 	graph_cases(g, failures)
+	deck_cases(g, failures)
 	Bench.run(g, failures)
 	camera_cases(g, failures)
 	selection_cases(g, failures)
@@ -68,7 +69,7 @@ static func run(g: Node3D) -> Array[String]:
 	interaction_cases(g, failures)
 	fixture_cases(g, failures)
 	curve_cases(g, failures)
-	print("AUTHORING CASES: ring v3 16-configuration table, dead ends, solution both ways, sweep clearance, 6-turn/16-action minimum, tower necessity, authored camera (no orbit, zoom, bounded pan, Home, Tab, legacy snapshots, turntable heading, ground follow, seam continuity), diegetic selection (pick, click, hover glow, no HUD list), carried pose, settled graph, undo, serialized saves, Play From Here, socket contract and apertures, interactions/conditions, checkpoints, two-state hinge, blocked sweep, validation, 90/180 degree curves, locomotion bench")
+	print("AUTHORING CASES: ring v3 16-configuration table, dead ends, solution both ways, sweep clearance, 6-turn/16-action minimum, tower necessity, authored camera (no orbit, zoom, bounded pan, Home, Tab, legacy snapshots, turntable heading, ground follow, seam continuity), diegetic selection (pick, click, hover glow, no HUD list), carried pose, settled graph, undo, serialized saves, Play From Here, socket contract and apertures, interactions/conditions, checkpoints, two-state hinge, blocked sweep, validation, 90/180 degree curves, visible deck = walkable region, locomotion bench")
 	finished = true
 	return failures
 
@@ -212,6 +213,48 @@ static func selection_cases(g: Node3D, failures: Array[String]) -> void:
 	g.toggle_view()
 	if arm_core.material_overlay != null: failures.append("First person must show no selection glow")
 	g.build_level()
+
+## Spec §7.2: a surface presented as walkable matches its authored walkable region. Points just
+## outside each region edge must be off the path's own deck, unless that edge is a socket.
+## Walls, trims, parapets and other GEOMETRY components are never checked.
+static func deck_cases(g: Node3D, failures: Array[String]) -> void:
+	failures.append_array(deck_problems(g))
+	# The check must be able to fail: a region narrowed on a full-width deck is an invisible wall.
+	var entry := piece(g, "Entry")
+	var regions := entry.walk_regions.duplicate()
+	entry.walk_regions.assign([Rect2(-2, -.4, 4, .8)])
+	if deck_problems(g).is_empty(): failures.append("Deck check must catch a region narrower than its deck")
+	entry.walk_regions.assign(regions)
+
+static func deck_problems(g: Node3D) -> Array[String]:
+	var failures: Array[String] = []
+	var sockets := Links.descriptors(g.definition)
+	for c in g.paths:
+		var part: SurfacePiece = g.paths[c]
+		if c.kind != C.Kind.PATH or not c.blockout or part.walk_regions.is_empty(): continue
+		var reported := false
+		for region in part.walk_regions:
+			var corners := [region.position, Vector2(region.end.x, region.position.y), region.end, Vector2(region.position.x, region.end.y)]
+			for k in range(4):
+				var a: Vector2 = corners[k]
+				var b: Vector2 = corners[(k + 1) % 4]
+				var outward := (b - a).orthogonal().normalized()
+				for i in range(1, int(a.distance_to(b) / .1)):
+					var edge := a.lerp(b, i * .1 / a.distance_to(b))
+					var outside := edge + outward * .2
+					if part.walk_regions.any(func(r: Rect2): return r.grow(.001).has_point(outside)): continue
+					var world := part.to_global(Vector3(edge.x, part.half.y, edge.y))
+					var at_socket := false
+					for s in sockets:
+						var d: Vector3 = world - s.position
+						var across: Vector3 = s.direction.cross(s.normal).normalized()
+						if s.path == c and absf(d.dot(s.direction)) < .15 and absf(d.dot(across)) <= s.width / 2 + .05: at_socket = true
+					if at_socket: continue
+					for deck in part.solid_boxes:
+						if not reported and Rect2(deck.position.x, deck.position.z, deck.size.x, deck.size.z).has_point(outside):
+							failures.append("%s: its deck looks walkable past its walkable region near %s" % [c.name, outside])
+							reported = true
+	return failures
 
 ## Minimum-solution regression on the real runtime graph: guards against shortcuts.
 static func graph_cases(g: Node3D, failures: Array[String]) -> void:
