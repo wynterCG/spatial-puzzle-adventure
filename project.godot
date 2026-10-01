@@ -12,8 +12,8 @@ config_version=5
 
 config/name="Elsewhere — An architectural journey"
 config/description="From outside, reshape the world. From inside, discover how to cross it."
-run/main_scene="res://scenes/positioning.tscn"
-config/features=PackedStringArray("4.6", "GL Compatibility")
+run/main_scene="res://monuments/the_ring.tscn"
+config/features=PackedStringArray("4.7", "GL Compatibility")
 
 [display]
 
@@ -26,6 +26,10 @@ window/stretch/mode="canvas_items"
 [dotnet]
 
 project/assembly_name="Elsewhere — An architectural journey"
+
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/elsewhere_authoring/plugin.cfg")
 
 [rendering]
 
