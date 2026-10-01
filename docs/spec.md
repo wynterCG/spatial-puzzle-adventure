@@ -1619,6 +1619,7 @@ As of 1 October 2026, on branch `feature/elsewhere-spec`. Details of how each sy
 | §33 Minimal UI | Basic: debug details hidden behind F3 |
 | §35–36 Audio and music | Not started |
 | §38 Player character | Placeholder avatar |
+| Spatial Links ([design](designs/2026-10-01-spatial-links.md)) | **Experimental prototype**: The Fold only, not in the main game; awaiting the playtest gate (§28 of that design) |
 | §23, §30 Monumental scale, atmosphere and far backdrop | Implemented: The Ring at ×4, sky/fog/mist kit, authored backdrop ([design](designs/2026-10-01-monumental-scale.md)); final background world not started |
 | §6–7 First-person locomotion (momentum, ground-frame input, eased gravity curves, sliding) | Implemented and benchmarked on The Ring's route ([locomotion pass](designs/2026-10-01-locomotion-pass.md)); not yet hand-playtested |
 | §52 Comfort: sensitivity, FOV, gravity-transition speed, reduced motion, camera reset | Implemented. Remapping UI not started |

@@ -78,6 +78,18 @@ The eye is 1.55 m above the walking surface and must stay 0.1 m clear of every w
 
 Gravity curves set walking speed: speed is capped at the comfort turn rate × radius. At Normal (110°/s) and 4.5 m/s walking, any radius ≥ 2.4 m is walked at full speed; the monument-scale rule (≥ 3 m) already covers it.
 
+## Thresholds (Spatial Links, experimental)
+
+Prototype only ([design](designs/2026-10-01-spatial-links.md)); used by The Fold, not by The Ring.
+
+- **Placement:** a `THRESHOLD` component is a doorway standing at the edge of its path, parented under that path. `travel_direction` points out through the doorway, and `ground_normal` is the path's ground.
+- **Fields:** `width` and `aperture_height` size the opening. `trigger_radius` is how close the player must stand to prime it; scale it with the monument.
+- **Link groups:** only doorways in the same `link_group` can be joined.
+- **Discovery:** `initially_discovered` marks doorways the player knows from the start; others are discovered by sight within the level's `discovery_range`.
+- **Validation** rejects a doorway away from its path's edge, one without a link group, and one on an edge that also forms an ordinary socket (turn `end_sockets` off there).
+- **Art:** `blockout_frame` adds prototype jambs and a lintel (solid). Turn it off when the architecture provides the doorway. The seam is always added.
+- **Sight lines:** design what can be seen from where (that is the puzzle) and pin it in tests, as `tests/link_tests.gd` does for The Fold. The player's eye turns with the structure it stands on, so only fixed geometry can make a view depend on a structure's state.
+
 ## Readable movable structures
 
 Players select by pointing at the structure in isometric; there is no HUD list. Give every rotator a distinct **tint**: it colours the hover and selection glow, and the monument's accent lights on that assembly should use the same colour. Put accent lights only on things that move; use warm white for information (guide lines, sightline targets) and destinations, and keep static architecture neutral. Any visible mesh under a rotator is clickable, including decorative art, so give each assembly enough visible mass to point at.
