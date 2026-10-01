@@ -5,6 +5,8 @@ const C = preload("res://authoring/component.gd")
 const Links = preload("res://authoring/connections.gd")
 const Validate = preload("res://authoring/validation.gd")
 const SpatialLinks = preload("res://core/spatial_links.gd")
+const H = preload("res://tests/test_helpers.gd")
+const FOLD := "res://monuments/the_fold.tscn"
 
 static func run(g: Node3D, failures: Array[String]) -> void:
 	validation_cases(g, failures)
@@ -14,6 +16,7 @@ static func run(g: Node3D, failures: Array[String]) -> void:
 	discovery_cases(g, failures)
 	linking_cases(g, failures)
 	state_cases(g, failures)
+	fold_cases(g, failures)
 
 ## Two 8 x 4 m decks. A stands at Near's +x edge; B at Far's -x edge (out of Far, towards -x);
 ## C, in another link group, at Far's +x edge. Far's placement varies per test.
@@ -280,3 +283,176 @@ static func state_cases(g: Node3D, failures: Array[String]) -> void:
 	if g.discovered.has(b): failures.append("A fresh level starts from authored knowledge")
 	g.apply_progress(saved)
 	if g.link != [a, b] or not g.discovered.has(b) or piece(g, "Near").remote_links.is_empty(): failures.append("Saves must restore the pair and what was discovered")
+
+# --- The Fold (monuments/the_fold.tscn, tools/gen_fold.py) ---------------------------------
+
+static func load_fold(g: Node3D) -> void:
+	var scene = load(FOLD).instantiate()
+	var source = scene.get_node("Level")
+	scene.remove_child(source)
+	source.owner = null
+	for child in source.find_children("*", "", true, false): child.owner = null
+	g.remove_child(g.data_source); g.data_source.queue_free()
+	g.add_child(source); g.data_source = source; source.hide()
+	scene.free()
+	g.build_level()
+
+static func door(g: Node3D, label: String) -> String:
+	for key in g.thresholds:
+		if g.threshold_label(key) == label: return key
+	return ""
+
+## Looks from the current pose straight at a world point, on any ground.
+static func look_at_point(g: Node3D, point: Vector3) -> void:
+	var w: SurfaceWalker = g.walker
+	w.sync_pose(1)
+	var up: Vector3 = (w.support.global_basis * w.normal).normalized()
+	var to: Vector3 = point - w.camera.global_position
+	var flat: Vector3 = to.slide(up)
+	w.forward = (w.support.global_basis.inverse() * flat.normalized()).slide(w.normal).normalized()
+	w.pitch = atan2(to.dot(up), flat.length())
+	w.sync_pose(1)
+
+static func door_centre(g: Node3D, label: String) -> Vector3:
+	return SpatialLinks.aperture_points(SpatialLinks.live(g.thresholds[door(g, label)]))[0]
+
+static func set_frame(g: Node3D, state: int) -> void:
+	var frame: Dictionary = g.rigs[0]
+	frame.state = state
+	frame.node.basis = g.rotation_basis(frame, deg_to_rad(frame.angles[state]))
+	g.update_links()
+
+## Which doorways each piece can see in each frame state: from any sampled walkable point
+## ("piece") and from inside each doorway's reach ("at"). Looking anywhere (the player can turn).
+static func sight_table(g: Node3D) -> Dictionary:
+	var table := {}
+	for state in range(g.rigs[0].angles.size()):
+		set_frame(g, state)
+		for name in ["Entry", "Frame/FrameDeck", "GoalWall"]:
+			var part: SurfacePiece = g.paths[g.definition.get_node(name)]
+			for region in part.walk_regions:
+				for ix in range(int(region.size.x / 2.0) + 1):
+					for iz in range(int(region.size.y / 2.0) + 1):
+						g.walker.place(part, Vector3(region.position.x + ix * 2.0, part.half.y, region.position.y + iz * 2.0), Vector3.UP, Vector3.RIGHT)
+						g.walker.sync_pose(1)
+						var reach: String = g.threshold_in_reach()
+						for id in g.thresholds:
+							if not g.threshold_seen(id, false): continue
+							table["%d %s %s" % [state, name.get_file(), g.threshold_label(id)]] = true
+							if reach != "": table["%d at %s %s" % [state, g.threshold_label(reach), g.threshold_label(id)]] = true
+	set_frame(g, 0)
+	return table
+
+static func fold_cases(g: Node3D, failures: Array[String]) -> void:
+	load_fold(g)
+	if not Validate.validate(g.definition).errors.is_empty(): failures.append("The Fold must validate: " + str(Validate.validate(g.definition).errors))
+	var seen := sight_table(g)
+	for state in range(4):
+		if seen.has("%d Entry B" % state) != (state == 0): failures.append("The Fold: B is seen from the entry only in frame state 0 (state %d)" % state)
+		if seen.has("%d FrameDeck C" % state) != (state == 1): failures.append("The Fold: C is seen from the frame deck only in state 1 (state %d)" % state)
+		if seen.has("%d Entry C" % state): failures.append("The Fold: C is never seen from the entry (state %d)" % state)
+	if not seen.has("0 at A B") or not seen.has("1 at B C"): failures.append("The Fold: B must be aimable from A (state 0) and C from B (state 1)")
+	for part in g.pieces:
+		if not part.neighbours.is_empty(): failures.append("The Fold: no ordinary path joins its pieces")
+	fold_solution(g, failures)
+	fold_dead_end(g, failures)
+	fold_solver(g, seen, failures)
+
+## The intended solution, played through the runtime.
+static func fold_solution(g: Node3D, failures: Array[String]) -> void:
+	load_fold(g)
+	var a := door(g, "A"); var b := door(g, "B"); var c := door(g, "C")
+	var entry: SurfacePiece = g.paths[g.definition.get_node("Entry")]
+	g.architectural = false
+	g.walker.place(entry, Vector3(H.m(1.5), entry.half.y, 0), Vector3.UP, Vector3.RIGHT)
+	look_at_point(g, door_centre(g, "B"))
+	for i in range(3): g.update_discovery(.1)
+	g.use_threshold(); g.use_threshold()
+	if g.link != [a, b]: failures.append("The Fold: from A, aiming at B must link A<->B")
+	H.turn(g, 0, 1, failures)
+	g.architectural = false
+	g.walker.place(entry, Vector3(H.m(1.5), entry.half.y, 0), Vector3.UP, Vector3.RIGHT)
+	var deck: SurfacePiece = g.paths[g.definition.get_node("Frame/FrameDeck")]
+	for i in range(240):
+		g.walker.walk(Vector2(0, -1), 1.0 / 60)
+		if g.walker.support == deck: break
+	if g.walker.support != deck: failures.append("The Fold: after turning the frame, A must still lead to B")
+	elif (deck.global_basis * g.walker.normal).normalized().dot(Vector3.BACK) < .99: failures.append("The Fold: arriving through B in state 1 the deck must be a wall (ground +z)")
+	look_at_point(g, door_centre(g, "C"))
+	for i in range(3): g.update_discovery(.1)
+	if not g.discovered.has(c): failures.append("The Fold: looking back out through B, C must be discovered")
+	g.use_threshold(); g.use_threshold()
+	if g.link != [b, c]: failures.append("The Fold: from B, aiming at C must link B<->C, replacing A<->B")
+	g.walker.forward = Vector3.RIGHT
+	g.walker.pitch = 0
+	var goal_wall: SurfacePiece = g.paths[g.definition.get_node("GoalWall")]
+	for i in range(1200):
+		g.walker.walk(Vector2(0, -1), 1.0 / 60)
+		if not g.won and g.reached_goal(): g._process(0)
+		if g.won: break
+	if g.walker.support != goal_wall or not g.won: failures.append("The Fold: B<->C must lead onto the goal wall and to the goal")
+
+## Turning the frame before linking hides B: a recoverable dead end.
+static func fold_dead_end(g: Node3D, failures: Array[String]) -> void:
+	load_fold(g)
+	H.turn(g, 0, 1, failures)
+	var entry: SurfacePiece = g.paths[g.definition.get_node("Entry")]
+	g.architectural = false
+	g.walker.place(entry, Vector3(H.m(1.5), entry.half.y, 0), Vector3.UP, Vector3.RIGHT)
+	look_at_point(g, door_centre(g, "B"))
+	for i in range(5): g.update_discovery(.1)
+	g.use_threshold()
+	if g.discovered.has(door(g, "B")) or g.aim_target() != "": failures.append("The Fold: with the frame turned, B must be out of sight from A")
+	H.turn(g, 0, -1, failures)
+	g.architectural = false
+	look_at_point(g, door_centre(g, "B"))
+	for i in range(3): g.update_discovery(.1)
+	if not g.discovered.has(door(g, "B")): failures.append("The Fold: turning back must bring B into sight again")
+
+## Minimum solution over authored positions: a piece, or standing at one of its doorways.
+## Actions cost 1 (turn, link, cross); walking and looking are free. Discovery comes from any
+## sampled point of the piece; link targets only from the primed doorway's reach.
+static func fold_solver(g: Node3D, seen: Dictionary, failures: Array[String]) -> void:
+	var at := {"A": "Entry", "B": "FrameDeck", "C": "GoalWall"}
+	var full := fold_minimum(seen, at, true, true)
+	if full.cost != 5 or full.turns != 1 or full.links != 2 or full.crosses != 2: failures.append("The Fold minimum must be 2 links, 1 turn, 2 crossings: " + str(full))
+	if fold_minimum(seen, at, false, true).cost != -1: failures.append("The Fold must be unsolvable without links")
+	if fold_minimum(seen, at, true, false).cost != -1: failures.append("The Fold must be unsolvable without turning the frame")
+
+static func fold_minimum(seen: Dictionary, at: Dictionary, links_allowed: bool, turns_allowed: bool) -> Dictionary:
+	# State: [frame state, piece, doorway stood at ("" or label), link "XY" or "", discovered "ABC" subset]
+	var start := [0, "Entry", "", "", "A"]
+	var best := {}
+	var queue: Array = [[0, start, {"turns": 0, "links": 0, "crosses": 0}]]
+	while not queue.is_empty():
+		queue.sort_custom(func(x, y): return x[0] < y[0])
+		var item: Array = queue.pop_front()
+		var cost: int = item[0]
+		var state: Array = item[1]
+		var key := str(state)
+		if best.has(key): continue
+		best[key] = true
+		var counts: Dictionary = item[2]
+		# Discovery is free wherever the player stands.
+		var known: String = state[4]
+		for label in ["A", "B", "C"]:
+			if not label in known and seen.has("%d %s %s" % [state[0], state[1], label]): known += label
+		if state[1] == "GoalWall": return {"cost": cost, "turns": counts.turns, "links": counts.links, "crosses": counts.crosses}
+		var moves: Array = []
+		for label in at:
+			if at[label] == state[1]: moves.append([0, [state[0], state[1], label, state[3], known], {}])
+		if turns_allowed:
+			for d in [1, 3]:
+				moves.append([1, [(state[0] + d) % 4, state[1], state[2], state[3], known], {"turns": 1}])
+		if links_allowed and state[2] != "":
+			for target in ["A", "B", "C"]:
+				if target != state[2] and target in known and seen.has("%d at %s %s" % [state[0], state[2], target]):
+					moves.append([1, [state[0], state[1], state[2], state[2] + target, known], {"links": 1}])
+		if state[2] != "" and state[3].contains(state[2]):
+			var other: String = state[3].replace(state[2], "")
+			moves.append([1, [state[0], at[other], other, state[3], known], {"crosses": 1}])
+		for move in moves:
+			var next_counts: Dictionary = counts.duplicate()
+			for k in move[2]: next_counts[k] += move[2][k]
+			queue.append([cost + move[0], move[1], next_counts])
+	return {"cost": -1}
