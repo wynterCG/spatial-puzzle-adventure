@@ -7,6 +7,7 @@ const Links = preload("res://authoring/connections.gd")
 const Validate = preload("res://authoring/validation.gd")
 const H = preload("res://tests/test_helpers.gd")
 const Graph = preload("res://tests/state_graph.gd")
+const Bench = preload("res://tests/locomotion_bench.gd")
 static var finished := false
 
 static func load_level(g: Node3D, scene_path: String) -> void:
@@ -53,6 +54,7 @@ static func run(g: Node3D) -> Array[String]:
 	if not validation.errors.is_empty(): failures.append("Ring validation failed: " + str(validation.errors))
 	ring_cases(g, failures)
 	graph_cases(g, failures)
+	Bench.run(g, failures)
 	camera_cases(g, failures)
 	selection_cases(g, failures)
 	runtime_cases(g, failures)
@@ -60,7 +62,7 @@ static func run(g: Node3D) -> Array[String]:
 	interaction_cases(g, failures)
 	fixture_cases(g, failures)
 	curve_cases(g, failures)
-	print("AUTHORING CASES: ring v3 16-configuration table, dead ends, solution both ways, sweep clearance, 6-turn/16-action minimum, tower necessity, authored camera (no orbit, zoom, bounded pan, Home, Tab, legacy snapshots, turntable heading, ground follow, seam continuity), diegetic selection (pick, click, hover glow, no HUD list), carried pose, settled graph, undo, serialized saves, Play From Here, socket contract and apertures, interactions/conditions, checkpoints, two-state hinge, blocked sweep, validation, 90/180 degree curves")
+	print("AUTHORING CASES: ring v3 16-configuration table, dead ends, solution both ways, sweep clearance, 6-turn/16-action minimum, tower necessity, authored camera (no orbit, zoom, bounded pan, Home, Tab, legacy snapshots, turntable heading, ground follow, seam continuity), diegetic selection (pick, click, hover glow, no HUD list), carried pose, settled graph, undo, serialized saves, Play From Here, socket contract and apertures, interactions/conditions, checkpoints, two-state hinge, blocked sweep, validation, 90/180 degree curves, locomotion bench")
 	finished = true
 	return failures
 
