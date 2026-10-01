@@ -1,10 +1,12 @@
 # Elsewhere ? positioning prototype specification
 
-Revision 10, 1 October 2026.
+Revision 11, 1 October 2026.
 
 ## Separate architectural study: The turning frame
 
 The user endorsed the single-object direction. The destination is now a projecting balcony on a slender fixed pier with a suspended lantern, and low raised kerbs define both moving passages. This replaces the generic destination arch/beacon and preserves the existing positional dependency, walking regions and configurations. Arrival remains integrated into the fixed rounded end. Readability of the refined silhouette is not yet human-validated.
+
+The overview's fixed focus and scale include that taller destination when either passage is occupied in all four orientations. This fixes cropping during the wrong-path half-roll without changing camera B's transport. The existing wrong-path dependency is now documented with rendered evidence and a focused blind playtest; a later second function for the frame remains a proposal.
 
 [The turning frame](monument-study.md) is available from the menu or `scenes/monument.tscn`. It consolidates Study 1's positional choice into one substantial frame with a fixed rounded end, two separate moving passages and an offset lantern destination. The upper passage never reaches the goal; the longer underside ledge reaches it after a half-roll. Turning before boarding removes access from the fixed end. Either roll direction works, and wrong choices remain recoverable through normal movement and turns.
 

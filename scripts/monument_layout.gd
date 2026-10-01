@@ -13,8 +13,9 @@ static func solid(g: Node3D, parent: Node3D, at: Vector3, size: Vector3, tint: S
 	return part
 
 static func build(g: Node3D) -> void:
-	g.focus = Vector3(-.5, 0, 0)
-	g.overview_size = 25.0
+	# Include the tall fixed lantern when camera B follows either passage.
+	g.focus = Vector3(0, 1.5, 0)
+	g.overview_size = 29.5
 	g.message = "Reach the lantern. Tab: inspect the frame. Q / E: turn it. H: optional hint."
 	# The left end is a continuous architectural return, not an attached track.
 	g.start = g.slab("Upper_threshold", g.world, Vector3(-5, 2.6, -2), Vector3(2, .8, 2), Color("687c91"))

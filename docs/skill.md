@@ -24,6 +24,8 @@ Godot 4.6.1, GDScript, Compatibility renderer. F5 runs `scenes/positioning.tscn`
 
 The monument uses layout index 5, `monument_layout.gd`, `monument_tests.gd` and `scenes/monument.tscn`. Keep its `monument-frame.save` and completion flag isolated. Verify all four arrangements, wrong-path and remote-turn counterexamples, recovery, both solving rolls, reverse travel, first-person input, save/reload and undo. Headless Godot cannot capture a mouse; test its look handler there and verify actual event dispatch in a live MCP session.
 
+Keep the full lantern and frame visible in the default overview from both moving passages through all four orientations, including a wrong-path half-roll. `check_overview` projects actual visible mesh bounds into the usable viewport; do not solve cropping by changing camera B's ground transport. The monument-first protocol in `playtest.md` must precede Study 1 when assessing unaided path-choice reasoning.
+
 1. Only marked regions accept flat contact. Ordinary edges stop movement. Never infer a gravity change from proximity, camera direction or an unmarked face.
 2. CurvedTrack is an explicit analytic ribbon. Its radius-3 half-circle transports contact normal, heading and orbit continuously. Its tail is configurable; match the endpoint to the receiving edge without overlapping paving. General concave/spline navigation is not implemented.
 3. Study links require matching world endpoints and normals. The walker additionally validates actual contact against the receiving path. Do not gate these links with progress flags.

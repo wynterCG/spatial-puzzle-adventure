@@ -24,6 +24,12 @@ Turning the empty frame toward the destination also removes both connections to 
 
 This deliberately reuses Study 1's path-choice dependency in consolidated architecture. It tests whether a simpler form communicates the existing reasoning better; it does not claim a new puzzle mechanic or the depth of a whole chapter.
 
+The wrong-path condition is playable now, not a proposed extension: the frame can connect to the destination while the player occupies its other passage. The same frame has not yet been given a second, later bridge-making role. Judge the current positional insight with the [focused blind playtest](playtest.md#turning-frame-first-when-assessing-the-monument) before expanding it.
+
+![Correct frame configuration, player on the wrong passage](monument-wrong-passage.png)
+
+The default overview now includes the full destination even when the occupied ground is inverted. Framing checks cover both passages through all four orientations; camera B still follows the ground and manual orbit remains separate.
+
 <details>
 <summary>Solution and recovery</summary>
 

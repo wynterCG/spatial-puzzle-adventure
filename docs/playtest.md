@@ -2,7 +2,20 @@
 
 Allow 15?25 minutes. Use a fresh study from Escape. Do not explain the solution or read the specification's solution paragraphs to the player. Explain only movement, Tab, structure selection, Q/E and undo.
 
-## Connected chapter first
+## Turning frame first when assessing the monument
+
+Use **The turning frame** before Study 1 or The Lantern Fold: those puzzles teach the same path-choice dependency. Give only the controls and let the player explore in first person and isometric view. Keep H and the completion explanation optional.
+
+- At arrival, ask them to point to their starting location and intended destination. Record whether the suspended lantern reads as the goal.
+- Before turning, ask which surfaces they expect to connect and whether the player will be able to use that connection.
+- If they board the upper passage, let the failed attempt happen. Ask what prevents crossing and where they think the useful path is. Do not name the underside route for them.
+- If they align the empty frame first, observe whether they recognize the lost boarding connection and can recover by turning it back.
+- After exploring below, ask them to identify that same passage in the overview. Record whether its hidden paving caused confusion.
+- Before revealing the explanation, ask: **Could the frame be correctly aligned while you were in the wrong place? Why did you need to change paths before turning?**
+
+Treat this as one positional insight. Success is a causal prediction and an understandable recovery, not just completion. A second role for the frame remains a possible later experiment; do not count extra turns as extra reasoning. Record first-person presence and camera comfort separately from solution understanding.
+
+## Connected chapter comparison
 
 Use **Chapter 1 / The far light** before the isolated studies. Follow the [courtyard observation protocol](first-chapter-plan.md#playtest-and-decision-record). Check the three assembly colours, architecture in both views, visible clearance obstruction, position before withdrawal, far-gallery ordering, recovery and landmark recognition. Ask for causal explanations before revealing the solution. These human outcomes are not yet validated.
 
