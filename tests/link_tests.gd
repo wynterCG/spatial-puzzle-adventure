@@ -6,6 +6,7 @@ const Links = preload("res://authoring/connections.gd")
 const Validate = preload("res://authoring/validation.gd")
 const SpatialLinks = preload("res://core/spatial_links.gd")
 const H = preload("res://tests/test_helpers.gd")
+const LinkSolver = preload("res://tests/link_solver.gd")
 const FOLD := "res://monuments/the_fold.tscn"
 const STUDY := "res://monuments/link_study.tscn"
 
@@ -393,7 +394,7 @@ static func fold_cases(g: Node3D, failures: Array[String]) -> void:
 		if not part.neighbours.is_empty(): failures.append("The Fold: no ordinary path joins its pieces")
 	fold_solution(g, failures)
 	fold_dead_end(g, failures)
-	fold_solver(g, seen, failures)
+	fold_solver(g, failures)
 
 ## The intended solution, played through the runtime.
 static func fold_solution(g: Node3D, failures: Array[String]) -> void:
@@ -446,54 +447,16 @@ static func fold_dead_end(g: Node3D, failures: Array[String]) -> void:
 	g.update_link_view()
 	if g.aimed != door(g, "B"): failures.append("The Fold: turning back must bring B into sight again")
 
-## Minimum solution over authored positions: a piece, or standing at one of its doorways.
-## Actions cost 1 (turn, link, cross); walking and looking are free. Discovery comes from any
-## sampled point of the piece (it only drives the overview); link targets only need to be
-## visible from the source doorway's reach.
-static func fold_solver(g: Node3D, seen: Dictionary, failures: Array[String]) -> void:
-	var at := {"A": "Entry", "B": "FrameDeck", "C": "GoalWall"}
-	var full := fold_minimum(seen, at, true, true)
+## The minimum over the real runtime (tests/link_solver.gd): links only from real link poses.
+static func fold_solver(g: Node3D, failures: Array[String]) -> void:
+	load_fold(g)
+	var sight := LinkSolver.survey(g, failures)
+	var entry: SurfacePiece = g.paths[g.definition.get_node("Entry")]
+	var goal: SurfacePiece = g.paths[g.definition.get_node("GoalWall")]
+	var full := LinkSolver.minimum(g, sight, entry, goal)
 	if full.cost != 5 or full.turns != 1 or full.links != 2 or full.crosses != 2: failures.append("The Fold minimum must be 2 links, 1 turn, 2 crossings: " + str(full))
-	if fold_minimum(seen, at, false, true).cost != -1: failures.append("The Fold must be unsolvable without links")
-	if fold_minimum(seen, at, true, false).cost != -1: failures.append("The Fold must be unsolvable without turning the frame")
-
-static func fold_minimum(seen: Dictionary, at: Dictionary, links_allowed: bool, turns_allowed: bool) -> Dictionary:
-	# State: [frame state, piece, doorway stood at ("" or label), link "XY" or "", discovered "ABC" subset]
-	var start := [0, "Entry", "", "", "A"]
-	var best := {}
-	var queue: Array = [[0, start, {"turns": 0, "links": 0, "crosses": 0}]]
-	while not queue.is_empty():
-		queue.sort_custom(func(x, y): return x[0] < y[0])
-		var item: Array = queue.pop_front()
-		var cost: int = item[0]
-		var state: Array = item[1]
-		var key := str(state)
-		if best.has(key): continue
-		best[key] = true
-		var counts: Dictionary = item[2]
-		# Discovery is free wherever the player stands.
-		var known: String = state[4]
-		for label in ["A", "B", "C"]:
-			if not label in known and seen.has("%d %s %s" % [state[0], state[1], label]): known += label
-		if state[1] == "GoalWall": return {"cost": cost, "turns": counts.turns, "links": counts.links, "crosses": counts.crosses}
-		var moves: Array = []
-		for label in at:
-			if at[label] == state[1]: moves.append([0, [state[0], state[1], label, state[3], known], {}])
-		if turns_allowed:
-			for d in [1, 3]:
-				moves.append([1, [(state[0] + d) % 4, state[1], state[2], state[3], known], {"turns": 1}])
-		if links_allowed and state[2] != "":
-			for target in ["A", "B", "C"]:
-				if target != state[2] and seen.has("%d at %s %s" % [state[0], state[2], target]):
-					moves.append([1, [state[0], state[1], state[2], state[2] + target, known], {"links": 1}])
-		if state[2] != "" and state[3].contains(state[2]):
-			var other: String = state[3].replace(state[2], "")
-			moves.append([1, [state[0], at[other], other, state[3], known], {"crosses": 1}])
-		for move in moves:
-			var next_counts: Dictionary = counts.duplicate()
-			for k in move[2]: next_counts[k] += move[2][k]
-			queue.append([cost + move[0], move[1], next_counts])
-	return {"cost": -1}
+	if LinkSolver.minimum(g, sight, entry, goal, false, true).cost != -1: failures.append("The Fold must be unsolvable without links")
+	if LinkSolver.minimum(g, sight, entry, goal, true, false).cost != -1: failures.append("The Fold must be unsolvable without turning the frame")
 
 # --- Link study (monuments/link_study.tscn, tools/gen_link_study.py) ----------------------
 ## The linking UX on its own: three doorways in one space, nothing to turn, no puzzle.
