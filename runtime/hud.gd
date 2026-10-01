@@ -218,7 +218,10 @@ func refresh() -> void:
 	feedback.visible = not game.paused and not game.blocks_play()
 	prompt.text = game.interaction_prompt()
 	prompt.visible = not prompt.text.is_empty()
-	reticle.visible = game.reticle_visible() and not game.paused
+	var aim: String = game.reticle_state()
+	reticle.visible = aim != "" and not game.paused
+	reticle.text = "( + )" if aim == "aimed" else "+"
+	reticle.modulate = Color(.8, 1, 1, .95) if aim == "aimed" else Color(1, 1, 1, .7)
 	controls.text = game.key_name("view") + "  Change view  /  "
 	if game.architectural:
 		controls.text += "Click  Select  /  " + game.key_name("rotate_left") + " · " + game.key_name("rotate_right") + "  Turn  /  Wheel  Zoom  /  Right-drag · WASD  Pan  /  " + game.key_name("reset_view") + "  Reset view  /  "

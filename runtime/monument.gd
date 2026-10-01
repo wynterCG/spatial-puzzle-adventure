@@ -8,8 +8,12 @@ const Validate = preload("res://authoring/validation.gd")
 const SpatialLinks = preload("res://core/spatial_links.gd")
 ## A doorway must stay in view this long to be noticed (a one-frame glimpse is not enough).
 const DISCOVERY_SECONDS := .25
-## How close to the centre of the view a doorway must be to aim at it.
-const AIM_DEGREES := 6.0
+## Aiming is generous: a doorway within AIM_DEGREES of the centre of view is aimed at, and an
+## aimed doorway stays aimed until the view drifts past AIM_KEEP_DEGREES (no flicker).
+const AIM_DEGREES := 14.0
+const AIM_KEEP_DEGREES := 22.0
+## How long the tether flares after a link is made, seconds.
+const TETHER_FLASH := .8
 var data_source: ElsewhereLevel
 var definition: ElsewhereLevel
 var paths: Dictionary = {}
@@ -21,14 +25,20 @@ var launch_data: Dictionary = {}
 var authored_completed := false
 var goal_marker: Node3D
 var start_marker: Node3D
-## Spatial Links (experimental): threshold id -> component; the one active pair; the primed
-## threshold; what the player has seen. Discovery is knowledge: never part of undo snapshots.
+## Spatial Links (experimental): threshold id -> component; the one active pair; the doorway
+## being aimed at; what the overview may show. Standing at a doorway makes it the source.
+## Discovery is knowledge (never part of undo) and only decides what the overview shows.
 var thresholds: Dictionary = {}
 var link: Array = []
-var primed := ""
+var aimed := ""
 var discovered: Dictionary = {}
-const SEAM_COLOURS := {"discovered": Color(.62, .68, .82), "primed": Color(1, .93, .78), "linked": Color(.55, .9, 1)}
+const SEAM_COLOURS := {"discovered": Color(.62, .68, .82), "candidate": Color(.45, .7, .9), "source": Color(1, .93, .78), "aimed": Color(.8, 1, 1), "linked": Color(.55, .9, 1)}
+const VEIL_ALPHA := {"source": .1, "aimed": .18, "linked": .07}
 var seam_materials: Dictionary = {}
+var veil_materials: Dictionary = {}
+## The preview connection while aiming; flares when the link is made.
+var tether: MeshInstance3D
+var tether_flash := 0.0
 var discovery_time: Dictionary = {}
 
 func _ready() -> void:
@@ -67,7 +77,17 @@ func build_level() -> void:
 		world.add_child(backdrop)
 	definition.show()
 	pieces.clear(); rigs.clear(); ports.clear(); obstacles.clear(); paths.clear()
-	thresholds.clear(); discovered.clear(); link.clear(); primed = ""; discovery_time.clear()
+	thresholds.clear(); discovered.clear(); link.clear(); aimed = ""; discovery_time.clear()
+	tether = MeshInstance3D.new()
+	tether.name = "Tether"
+	tether.mesh = BoxMesh.new()
+	tether.material_override = StandardMaterial3D.new()
+	tether.material_override.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	tether.material_override.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	tether.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	tether.visible = false
+	tether_flash = 0.0
+	world.add_child(tether)
 	history.clear(); interaction_values.clear(); checkpoint.clear()
 	checkpoint_id = ""
 	selected = 0
@@ -186,6 +206,12 @@ func build_threshold_art(c: Node3D) -> void:
 	for side in [-1.0, 1.0]:
 		Piece.box(seam, Vector3(side * w / 2, h / 2, 0), Vector3(s, h, s), null)
 	Piece.box(seam, Vector3(0, h, 0), Vector3(w, s, s), null)
+	# A soft light filling the opening: the source, the aimed doorway and the linked pair.
+	var veil := Piece.box(seam, Vector3(0, h / 2, 0), Vector3(w, h, .02), null)
+	veil.name = "Veil"
+	veil.reparent(c, false)
+	veil.transform = seam.transform * veil.transform
+	veil.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	refresh_threshold(c)
 
 func seam_material(state: String) -> StandardMaterial3D:
@@ -196,18 +222,37 @@ func seam_material(state: String) -> StandardMaterial3D:
 		seam_materials[state] = mat
 	return seam_materials[state]
 
-## Seam state: hidden until discovered (the overview never reveals a doorway), then dim; the
-## linked pair shares one accent; a primed doorway is brighter, in first person only.
+func veil_material(state: String) -> StandardMaterial3D:
+	if not veil_materials.has(state):
+		var mat := StandardMaterial3D.new()
+		mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		mat.albedo_color = Color(SEAM_COLOURS[state], VEIL_ALPHA[state])
+		veil_materials[state] = mat
+	return veil_materials[state]
+
+## What a doorway shows right now: the linked pair, the source you stand at, the doorway you
+## aim at, compatible doorways you could join (candidates), seen doorways, or nothing.
+func doorway_state(id: String) -> String:
+	if id in link: return "linked"
+	var source := link_source()
+	if id == source: return "source"
+	if source != "" and id == aimed: return "aimed"
+	if source != "" and compatible(source, id) and threshold_seen(id, false): return "candidate"
+	return "discovered" if discovered.has(id) else "hidden"
+
 func refresh_threshold(c: Node3D) -> void:
 	var id := str(definition.get_path_to(c))
 	var seam: Node3D = c.get_node_or_null("Seam")
 	if seam == null: return
-	seam.visible = discovered.has(id)
-	var state := "discovered"
-	if id in link: state = "linked"
-	if id == primed and not architectural: state = "primed"
+	var state := doorway_state(id)
+	seam.visible = state != "hidden"
 	for mesh in seam.get_children():
-		mesh.material_override = seam_material(state)
+		mesh.material_override = seam_material(state if state != "hidden" else "discovered")
+	var veil: MeshInstance3D = c.get_node_or_null("Veil")
+	if veil:
+		veil.visible = VEIL_ALPHA.has(state)
+		if veil.visible: veil.material_override = veil_material(state)
 
 func refresh_thresholds() -> void:
 	for c in thresholds.values(): refresh_threshold(c)
@@ -253,9 +298,11 @@ func _process(delta: float) -> void:
 	super._process(delta)
 	if busy or paused or architectural or blocks_play(): return
 	update_discovery(delta)
-	if primed != "" and threshold_in_reach() != primed:
-		primed = ""
-		refresh_thresholds()
+	update_link_view()
+	if tether_flash > 0:
+		tether_flash = maxf(0, tether_flash - delta)
+		tether.material_override.albedo_color.a = tether_flash / TETHER_FLASH
+		if tether_flash == 0: tether.visible = false
 	for c in definition.components():
 		if c.kind == C.Kind.CHECKPOINT and c.active and paths.get(c.get_node(c.path)) == walker.support and walker.support.to_global(walker.foot).distance_to(c.global_position) < c.trigger_radius:
 			var id := str(definition.get_path_to(c))
@@ -286,12 +333,12 @@ func interaction_in_range() -> Node3D:
 
 func interaction_prompt() -> String:
 	if architectural or paused or busy or blocks_play(): return ""
-	if primed != "":
-		var target := aim_target()
-		if target != "": return "F  Link to " + threshold_label(target)
-		return "F  Cancel" if threshold_in_reach() == primed else ""
-	var doorway := threshold_in_reach()
-	if doorway != "": return "F  Prime " + threshold_label(doorway)
+	var source := link_source()
+	if source != "":
+		if aimed == "": return "Look at another doorway"
+		if not compatible(source, aimed): return "%s does not fit %s" % [threshold_label(aimed), threshold_label(source)]
+		if linked_pair(source, aimed): return "%s ↔ %s" % [threshold_label(source), threshold_label(aimed)]
+		return "F  Link %s ↔ %s" % [threshold_label(source), threshold_label(aimed)]
 	var nearby := interaction_in_range()
 	if nearby == null: return ""
 	return "F  " + (nearby.label if not nearby.label.is_empty() else "Use")
@@ -323,6 +370,7 @@ func threshold_exclusions(id: String) -> Array:
 	for art in ["Frame", "Seam"]:
 		var holder: Node3D = c.get_node_or_null(art)
 		if holder: exclude.append_array(holder.get_children())
+	if c.get_node_or_null("Veil"): exclude.append(c.get_node("Veil"))
 	exclude.append_array(paths[c.get_node(c.path)].solid_meshes)
 	return exclude
 
@@ -333,7 +381,8 @@ func threshold_seen(id: String, require_view := true) -> bool:
 	var doorway := SpatialLinks.live(thresholds[id])
 	if eye.distance_to(doorway.position) > definition.discovery_range: return false
 	var exclude: Array = threshold_exclusions(id) + walker.support.solid_meshes
-	if primed != "" and primed != id: exclude += threshold_exclusions(primed)
+	var source := link_source()
+	if source != "" and source != id: exclude += threshold_exclusions(source)
 	var solids: Array = obstacles.duplicate()
 	for part in pieces: solids.append_array(part.solid_meshes)
 	var seen := 0
@@ -355,64 +404,96 @@ func update_discovery(delta: float) -> void:
 		else:
 			discovery_time.erase(id)
 
-## The discovered doorway nearest the centre of the view, within AIM_DEGREES and in sight.
-func aim_target() -> String:
-	var eye := walker.camera.global_position
-	var look := -walker.camera.global_basis.z
-	var best := ""
-	var best_angle := deg_to_rad(AIM_DEGREES)
-	for id in discovered:
-		if id == primed or not thresholds.has(id): continue
-		var centre: Vector3 = SpatialLinks.aperture_points(SpatialLinks.live(thresholds[id]))[0]
-		var angle := look.angle_to(centre - eye)
-		if angle <= best_angle and threshold_seen(id, false):
-			best = id
-			best_angle = angle
-	return best
+## The doorway the player stands at, in first person: the source of any link they make.
+func link_source() -> String:
+	if architectural or walker == null or walker.support == null: return ""
+	return threshold_in_reach()
 
-## Links the primed doorway to `target`, replacing any pair. Returns why not, or "".
-func try_link(target: String) -> String:
-	if primed == "": return "Stand at a doorway and press F first."
-	if target == primed: return "A doorway cannot lead to itself."
-	if not thresholds.has(target) or not discovered.has(target): return "You have not seen that doorway."
-	if thresholds[target].link_group != thresholds[primed].link_group: return "These doorways do not fit together."
+func compatible(a: String, b: String) -> bool:
+	return thresholds[a].link_group == thresholds[b].link_group
+
+func linked_pair(a: String, b: String) -> bool:
+	return link.size() == 2 and a in link and b in link
+
+func doorway_centre(id: String) -> Vector3:
+	return SpatialLinks.aperture_points(SpatialLinks.live(thresholds[id]))[0]
+
+## Recomputes the aim (generous, held against drift), what is seen, the doorway highlights and
+## the preview tether. Visibility is the only rule for linking: no prior discovery is needed.
+func update_link_view() -> void:
+	var source := link_source()
+	if source == "":
+		aimed = ""
+	else:
+		var eye := walker.camera.global_position
+		var look := -walker.camera.global_basis.z
+		var held := aimed != "" and aimed != source and thresholds.has(aimed) and look.angle_to(doorway_centre(aimed) - eye) <= deg_to_rad(AIM_KEEP_DEGREES) and threshold_seen(aimed, false)
+		if not held:
+			aimed = ""
+			var best := deg_to_rad(AIM_DEGREES)
+			for id in thresholds:
+				if id == source: continue
+				var angle := look.angle_to(doorway_centre(id) - eye)
+				if angle <= best and threshold_seen(id, false):
+					aimed = id
+					best = angle
+		discovered[source] = true
+		if aimed != "": discovered[aimed] = true
+	refresh_thresholds()
+	if tether_flash > 0: return
+	tether.visible = source != "" and aimed != "" and compatible(source, aimed) and not linked_pair(source, aimed)
+	if tether.visible: place_tether(doorway_centre(source), doorway_centre(aimed), .35)
+
+func place_tether(from: Vector3, to: Vector3, alpha: float) -> void:
+	var span := to - from
+	var side := Vector3.UP if absf(span.normalized().y) < .99 else Vector3.RIGHT
+	var look := Basis.looking_at(span, side)
+	var thick := .12
+	tether.global_transform = Transform3D(Basis(look.x * thick, look.y * thick, look.z * span.length()), (from + to) / 2)
+	tether.material_override.albedo_color = Color(SEAM_COLOURS.linked, alpha)
+
+## Joins two doorways, replacing the one active pair. Returns why not, or "".
+func link_doorways(source: String, target: String) -> String:
+	if not thresholds.has(source) or not thresholds.has(target) or source == target: return "A doorway cannot lead to itself."
+	if not compatible(source, target): return "%s does not fit %s" % [threshold_label(target), threshold_label(source)]
+	if linked_pair(source, target): return "These doorways are already joined."
 	history.append(snapshot())
-	link = [primed, target]
-	primed = ""
+	link = [source, target]
+	aimed = ""
+	discovered[source] = true
+	discovered[target] = true
 	update_links()
 	refresh_thresholds()
-	message = "The two doorways now open onto each other."
+	place_tether(doorway_centre(source), doorway_centre(target), 1.0)
+	tether.visible = true
+	tether_flash = TETHER_FLASH
+	message = "%s and %s now open onto each other." % [threshold_label(source), threshold_label(target)]
 	save_progress()
 	return ""
 
-## F in first person: prime the doorway in reach, link to the one aimed at, or cancel.
+## F in first person, standing at a doorway: join it to the doorway you are looking at.
 func use_threshold() -> bool:
-	if primed != "":
-		var target := aim_target()
-		if target != "":
-			var reason := try_link(target)
-			if reason != "": message = reason
-		elif threshold_in_reach() == primed:
-			primed = ""
-			refresh_thresholds()
-			message = "Doorway released."
-		else:
-			message = "Look at a doorway you have seen, then press F."
+	var source := link_source()
+	if source == "": return false
+	update_link_view()
+	if aimed == "":
+		message = "Look at another doorway to join it to %s." % threshold_label(source)
 		return true
-	var doorway := threshold_in_reach()
-	if doorway == "": return false
-	primed = doorway
-	refresh_thresholds()
-	message = "Look at another doorway you have seen and press F to join them."
+	var reason := link_doorways(source, aimed)
+	if reason != "": message = reason
 	return true
 
-func reticle_visible() -> bool:
-	return primed != "" and not architectural
+func reticle_state() -> String:
+	var source := link_source()
+	if source == "": return ""
+	return "aimed" if aimed != "" and compatible(source, aimed) else "idle"
 
 func connection_text() -> String:
 	var text := super.connection_text()
 	if thresholds.is_empty(): return text
-	text += "\nLink: " + (" <-> ".join(link.map(threshold_label)) if not link.is_empty() else "none") + ("  (primed " + threshold_label(primed) + ")" if primed != "" else "")
+	text += "\nLink: " + (" <-> ".join(link.map(threshold_label)) if not link.is_empty() else "none")
+	var source := link_source()
+	if source != "": text += "  (source " + threshold_label(source) + (", aiming " + threshold_label(aimed) if aimed != "" else "") + ")"
 	for id in link:
 		var c: Node3D = thresholds[id]
 		var doorway := SpatialLinks.live(c)
@@ -470,7 +551,7 @@ func restore(data: Dictionary) -> void:
 	interaction_values = data.interactions.duplicate(true)
 	# The link is puzzle configuration; what was discovered is knowledge and stays.
 	link = data.get("link", []).duplicate()
-	primed = ""
+	aimed = ""
 	super.restore(data)
 	refresh_thresholds()
 

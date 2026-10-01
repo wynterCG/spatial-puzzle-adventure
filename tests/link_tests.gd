@@ -223,43 +223,67 @@ static func discovery_cases(g: Node3D, failures: Array[String]) -> void:
 	if not far.get_node("Frame").get_children().all(func(mesh): return mesh in exclude): failures.append("Line of sight must ignore the doorway's own frame")
 	if not piece(g, "Far").solid_meshes.all(func(mesh): return mesh in exclude): failures.append("Line of sight must ignore the doorway's own deck")
 
-## Prime at the doorway you stand at, then link to a seen, compatible doorway you aim at.
+## Looks at a point turned `degrees` sideways (about the ground normal) from B's centre.
+static func look_off_b(g: Node3D, degrees: float) -> void:
+	var eye: Vector3 = g.walker.camera.global_position
+	var to := b_centre(g) - eye
+	stand_at_a(g, eye + to.rotated(Vector3.UP, deg_to_rad(degrees)))
+
+## One step, nothing hidden: standing at a doorway makes it the source (visibly); looking at a
+## visible compatible doorway previews the link; F joins them.
 static func linking_cases(g: Node3D, failures: Array[String]) -> void:
 	build(g, Vector3(14, 0, 0), Basis.IDENTITY, true)
 	var a := id(g, "Near/A")
 	var b := id(g, "Far/B")
+	var c := id(g, "Far/C")
 	var d := id(g, "Near/D")
 	g.architectural = false
 	g.walker.place(piece(g, "Near"), Vector3(0, piece(g, "Near").half.y, 0), Vector3.UP, Vector3.RIGHT)
-	if g.threshold_in_reach() != "" or g.use_threshold() or g.primed != "": failures.append("Priming needs the player within reach of a doorway")
+	g.update_link_view()
+	if g.link_source() != "" or g.use_threshold() or g.reticle_state() != "": failures.append("Away from doorways there is no source, no reticle and F does nothing")
+	stand_at_a(g, b_centre(g) + Vector3(0, 30, 0))
+	g.update_link_view()
+	if g.link_source() != a or g.doorway_state(a) != "source" or not g.definition.get_node("Near/A/Veil").visible: failures.append("Standing at A must visibly make it the source")
+	if g.reticle_state() != "idle": failures.append("At a source the reticle appears")
+	if g.doorway_state(b) != "candidate": failures.append("A visible compatible doorway is highlighted as a candidate, even never seen before: " + g.doorway_state(b))
+	if g.doorway_state(c) == "candidate": failures.append("An incompatible doorway is not a candidate")
+	if g.tether.visible: failures.append("No preview until a doorway is aimed at")
 	stand_at_a(g, b_centre(g))
-	if g.interaction_prompt() != "F  Prime A": failures.append("At a doorway the prompt must offer to prime it, got '%s'" % g.interaction_prompt())
+	g.update_link_view()
+	if g.aimed != b or g.doorway_state(b) != "aimed" or g.reticle_state() != "aimed": failures.append("Looking at B aims at it")
+	if not g.tether.visible or g.tether.global_position.distance_to((g.thresholds[a].global_position + g.thresholds[b].global_position) / 2) > 3.0: failures.append("Aiming previews the link as a tether from A to B")
+	if g.interaction_prompt() != "F  Link A ↔ B": failures.append("The prompt names both doorways: '%s'" % g.interaction_prompt())
+	# Generous aim with hysteresis: 10 deg off still aims; a held target survives 18 deg; a fresh one does not.
+	look_off_b(g, 10); g.update_link_view()
+	if g.aimed != b: failures.append("Aiming is generous (10 deg off still aims)")
+	look_off_b(g, 18); g.update_link_view()
+	if g.aimed != b: failures.append("A held target survives small drift (18 deg)")
+	g.aimed = ""
+	g.update_link_view()
+	if g.aimed != "": failures.append("A fresh target needs to be near the centre of view")
+	# Incompatible: aiming says why, F changes nothing (C, behind B, never takes the aim from it).
+	g.thresholds[b].link_group = "g2"
+	stand_at_a(g, b_centre(g)); g.update_link_view()
+	if g.aimed != b or g.interaction_prompt() != "B does not fit A" or g.tether.visible or g.reticle_state() != "idle": failures.append("Aiming at an incompatible doorway says so: '%s'" % g.interaction_prompt())
 	g.use_threshold()
-	if g.primed != a: failures.append("F at a doorway must prime it")
-	if not g.reticle_visible(): failures.append("A primed doorway shows the aiming reticle")
-	if g.aim_target() != "": failures.append("An undiscovered doorway must not be a link target")
-	if g.try_link(b) == "" or not g.link.is_empty(): failures.append("Linking to an undiscovered doorway must change nothing")
-	for i in range(3): g.update_discovery(.1)
-	if g.aim_target() != b or g.interaction_prompt() != "F  Link to B": failures.append("Aiming at a discovered doorway must target it, prompt '%s'" % g.interaction_prompt())
+	if not g.link.is_empty(): failures.append("Incompatible doorways must not link")
+	g.thresholds[b].link_group = "g"
+	stand_at_a(g, b_centre(g)); g.update_link_view()
 	var before: int = g.history.size()
-	g.use_threshold()
-	if g.link != [a, b] or g.primed != "" or g.history.size() != before + 1: failures.append("Linking must create the pair, clear priming and be undoable")
+	if not g.use_threshold() or g.link != [a, b] or g.history.size() != before + 1: failures.append("One F press links A and B (undoable)")
+	if g.doorway_state(a) != "linked" or g.doorway_state(b) != "linked": failures.append("Both doorways show the link")
 	if piece(g, "Near").remote_links.size() != 1 or piece(g, "Far").remote_links.size() != 1: failures.append("The active pair must be crossable both ways")
-	if not g.definition.get_node("Near/A/Seam").visible or g.definition.get_node("Near/A/Seam").get_child(0).material_override != g.seam_material("linked"): failures.append("Linked doorways share the linked seam")
-	# Invalid pairings change nothing.
-	g.discovered[id(g, "Far/C")] = true
-	g.primed = a
-	if g.try_link(id(g, "Far/C")) == "" or g.link != [a, b]: failures.append("Incompatible link groups must not link")
-	if g.try_link(a) == "" or g.link != [a, b]: failures.append("A doorway must not link to itself")
-	# Replacement: one pair only.
-	g.primed = d
-	if g.try_link(b) != "" or g.link != [d, b] or not piece(g, "Near").remote_links.all(func(r): return r.node == g.thresholds[d]): failures.append("A new pair must replace the old one")
-	# Cancel at the primed doorway itself.
-	stand_at_a(g, b_centre(g) + Vector3(0, 40, 0))
+	# Replacement: one pair only, from another source.
+	var near := piece(g, "Near")
+	g.walker.place(near, Vector3(-2.5, near.half.y, 0), Vector3.UP, Vector3.RIGHT)
+	g.walker.sync_pose(1)
+	look_at_point(g, b_centre(g))
+	g.aimed = ""
+	g.update_link_view()
+	if g.link_source() != d or g.aimed != b: failures.append("From D, B can be aimed at")
 	g.use_threshold()
-	if g.primed != a: failures.append("Re-priming must work after linking")
-	g.use_threshold()
-	if g.primed != "": failures.append("F at the primed doorway without a target must cancel")
+	if g.link != [d, b] or not near.remote_links.all(func(r): return r.node == g.thresholds[d]): failures.append("A new pair must replace the old one")
+	if g.doorway_state(a) == "linked": failures.append("The old pair goes dark")
 
 ## Undo rewinds the pair, never knowledge; saves keep both.
 static func state_cases(g: Node3D, failures: Array[String]) -> void:
@@ -267,17 +291,16 @@ static func state_cases(g: Node3D, failures: Array[String]) -> void:
 	var a := id(g, "Near/A")
 	var b := id(g, "Far/B")
 	stand_at_a(g, b_centre(g))
-	for i in range(3): g.update_discovery(.1)
-	g.use_threshold(); g.use_threshold()
+	g.update_link_view()
+	g.use_threshold()
 	if g.link != [a, b]: failures.append("State cases need a link")
+	for i in range(3): g.update_discovery(.1)
 	g.undo()
 	if not g.link.is_empty() or not g.discovered.has(b): failures.append("Undo must rewind the link but keep what was discovered")
-	g.primed = a
-	g.try_link(b)
+	g.link_doorways(a, b)
 	g.restart()
 	if not g.link.is_empty() or not g.discovered.has(b): failures.append("Restart must clear the link but keep what was discovered")
-	g.primed = a
-	g.try_link(b)
+	g.link_doorways(a, b)
 	var saved: Dictionary = bytes_to_var(var_to_bytes(g.progress_data()))
 	g.build_level()
 	if g.discovered.has(b): failures.append("A fresh level starts from authored knowledge")
@@ -366,8 +389,8 @@ static func fold_solution(g: Node3D, failures: Array[String]) -> void:
 	g.architectural = false
 	g.walker.place(entry, Vector3(H.m(1.5), entry.half.y, 0), Vector3.UP, Vector3.RIGHT)
 	look_at_point(g, door_centre(g, "B"))
-	for i in range(3): g.update_discovery(.1)
-	g.use_threshold(); g.use_threshold()
+	g.update_link_view()
+	g.use_threshold()
 	if g.link != [a, b]: failures.append("The Fold: from A, aiming at B must link A<->B")
 	H.turn(g, 0, 1, failures)
 	g.architectural = false
@@ -379,9 +402,9 @@ static func fold_solution(g: Node3D, failures: Array[String]) -> void:
 	if g.walker.support != deck: failures.append("The Fold: after turning the frame, A must still lead to B")
 	elif (deck.global_basis * g.walker.normal).normalized().dot(Vector3.BACK) < .99: failures.append("The Fold: arriving through B in state 1 the deck must be a wall (ground +z)")
 	look_at_point(g, door_centre(g, "C"))
-	for i in range(3): g.update_discovery(.1)
-	if not g.discovered.has(c): failures.append("The Fold: looking back out through B, C must be discovered")
-	g.use_threshold(); g.use_threshold()
+	g.update_link_view()
+	if g.aimed != c: failures.append("The Fold: looking back out through B, C must be aimable")
+	g.use_threshold()
 	if g.link != [b, c]: failures.append("The Fold: from B, aiming at C must link B<->C, replacing A<->B")
 	g.walker.forward = Vector3.RIGHT
 	g.walker.pitch = 0
@@ -400,18 +423,19 @@ static func fold_dead_end(g: Node3D, failures: Array[String]) -> void:
 	g.architectural = false
 	g.walker.place(entry, Vector3(H.m(1.5), entry.half.y, 0), Vector3.UP, Vector3.RIGHT)
 	look_at_point(g, door_centre(g, "B"))
-	for i in range(5): g.update_discovery(.1)
+	g.update_link_view()
 	g.use_threshold()
-	if g.discovered.has(door(g, "B")) or g.aim_target() != "": failures.append("The Fold: with the frame turned, B must be out of sight from A")
+	if g.aimed != "" or not g.link.is_empty(): failures.append("The Fold: with the frame turned, B must be out of sight from A")
 	H.turn(g, 0, -1, failures)
 	g.architectural = false
 	look_at_point(g, door_centre(g, "B"))
-	for i in range(3): g.update_discovery(.1)
-	if not g.discovered.has(door(g, "B")): failures.append("The Fold: turning back must bring B into sight again")
+	g.update_link_view()
+	if g.aimed != door(g, "B"): failures.append("The Fold: turning back must bring B into sight again")
 
 ## Minimum solution over authored positions: a piece, or standing at one of its doorways.
 ## Actions cost 1 (turn, link, cross); walking and looking are free. Discovery comes from any
-## sampled point of the piece; link targets only from the primed doorway's reach.
+## sampled point of the piece (it only drives the overview); link targets only need to be
+## visible from the source doorway's reach.
 static func fold_solver(g: Node3D, seen: Dictionary, failures: Array[String]) -> void:
 	var at := {"A": "Entry", "B": "FrameDeck", "C": "GoalWall"}
 	var full := fold_minimum(seen, at, true, true)
@@ -446,7 +470,7 @@ static func fold_minimum(seen: Dictionary, at: Dictionary, links_allowed: bool, 
 				moves.append([1, [(state[0] + d) % 4, state[1], state[2], state[3], known], {"turns": 1}])
 		if links_allowed and state[2] != "":
 			for target in ["A", "B", "C"]:
-				if target != state[2] and target in known and seen.has("%d at %s %s" % [state[0], state[2], target]):
+				if target != state[2] and seen.has("%d at %s %s" % [state[0], state[2], target]):
 					moves.append([1, [state[0], state[1], state[2], state[2] + target, known], {"links": 1}])
 		if state[2] != "" and state[3].contains(state[2]):
 			var other: String = state[3].replace(state[2], "")
