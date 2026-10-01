@@ -33,6 +33,7 @@ static func run(g: Node3D, failures: Array[String]) -> Dictionary:
 		var over: bool = value > THRESHOLDS[key]
 		line += " %s=%.3f%s" % [key, value, "!" if over else ""]
 		if over and key in ASSERTED: failures.append("Locomotion %s %.3f exceeds %.3f" % [key, value, THRESHOLDS[key]])
+	line += " route_seconds=%.1f" % m.get("route_seconds", 0.0)
 	print(line)
 	g.build_level()
 	return m
@@ -46,7 +47,7 @@ static func ground_up(g: Node3D) -> Vector3:
 
 ## Holds one input until the player stops moving (or reaches the goal), measuring every frame.
 ## Returns the name of the piece the player ends on, or `until` as soon as it is reached.
-static func hold(g: Node3D, input: Vector2, m: Dictionary, max_seconds := 20.0, until := "") -> String:
+static func hold(g: Node3D, input: Vector2, m: Dictionary, max_seconds := 60.0, until := "", timed := false) -> String:
 	g.architectural = false
 	var w: SurfaceWalker = g.walker
 	var travel: Array[float] = []
@@ -60,6 +61,7 @@ static func hold(g: Node3D, input: Vector2, m: Dictionary, max_seconds := 20.0, 
 		w.sync_pose(DT)
 		g.update_camera(DT)
 		var moved: float = before.distance_to(w.support.to_global(w.foot))
+		if timed: m.route_seconds = m.get("route_seconds", 0.0) + DT
 		travel.append(moved)
 		where.append(str(w.support.get_parent().name))
 		m.overshoot = maxf(m.overshoot, moved - w.speed * DT * 1.0001)
@@ -104,16 +106,16 @@ static func route(g: Node3D, m: Dictionary) -> void:
 	g.walker.forward = Vector3.RIGHT
 	back_to_first_person(g)
 	# Entry -> ring arm -> inner arm -> upper door -> curl -> upside down at the lower door.
-	expect(g, m, hold(g, Vector2(0, -1), m), "TowerUnder")
+	expect(g, m, hold(g, Vector2(0, -1), m, 60.0, "", true), "TowerUnder")
 	H.turn(g, inner, 1, failures); H.turn(g, inner, 1, failures)
 	back_to_first_person(g)
 	# Out of the lower door onto the underside arm, then the ring's underside.
-	expect(g, m, hold(g, Vector2(0, -1), m), "RingUnder")
+	expect(g, m, hold(g, Vector2(0, -1), m, 60.0, "", true), "RingUnder")
 	H.turn(g, ring, 1, failures); H.turn(g, ring, 1, failures)
 	g.walker.forward = Vector3.RIGHT
 	back_to_first_person(g)
 	# Balcony underside -> terrace curve -> terrace.
-	expect(g, m, hold(g, Vector2(0, -1), m), "Terrace")
+	expect(g, m, hold(g, Vector2(0, -1), m, 60.0, "", true), "Terrace")
 	if not g.won: m.route += 1
 	m.route += failures.size()
 
@@ -164,7 +166,7 @@ static func carried_drift(g: Node3D) -> float:
 	g.restart()
 	w.forward = Vector3.RIGHT
 	var scratch := {"route": 0.0, "rate": 0.0, "rate_accel": 0.0, "roll": 0.0, "stalls": 0.0, "overshoot": 0.0}
-	hold(g, Vector2(0, -1), scratch, 5.0, "RingTop")
+	hold(g, Vector2(0, -1), scratch, 20.0, "RingTop")
 	hold(g, Vector2(0, -1), scratch, .4)
 	for i in range(60): w.sync_pose(DT)
 	var before: Transform3D = w.support.global_transform.affine_inverse() * w.camera.global_transform
@@ -180,6 +182,6 @@ static func neck_approach(g: Node3D, m: Dictionary) -> void:
 	g.restart()
 	H.turn(g, inner, 1, failures); H.turn(g, inner, 1, failures)
 	var arm := piece(g, "InnerWheel/InnerTop")
-	g.walker.place(arm, Vector3(.2, arm.half.y, .6), Vector3.UP, Vector3(-1, 0, -.35).normalized())
-	expect(g, m, hold(g, Vector2(0, -1), m, 3.0, "TowerTop"), "TowerTop")
+	g.walker.place(arm, Vector3(H.m(.2), arm.half.y, H.m(.6)), Vector3.UP, Vector3(-1, 0, -.35).normalized())
+	expect(g, m, hold(g, Vector2(0, -1), m, 12.0, "TowerTop"), "TowerTop")
 	m.route += failures.size()

@@ -59,20 +59,39 @@ static func run(g: Node3D) -> Array[String]:
 	var validation := Validate.validate(g.data_source)
 	if not validation.errors.is_empty(): failures.append("Ring validation failed: " + str(validation.errors))
 	ring_cases(g, failures)
+	goal_reach_cases(g, failures)
 	graph_cases(g, failures)
+	sweep_cases(g, failures)
 	deck_cases(g, failures)
 	Bench.run(g, failures)
 	camera_cases(g, failures)
 	comfort_cases(g, failures)
+	atmosphere_cases(g, failures)
 	selection_cases(g, failures)
 	runtime_cases(g, failures)
 	socket_cases(g, failures)
 	interaction_cases(g, failures)
 	fixture_cases(g, failures)
 	curve_cases(g, failures)
+	seam_cases(g, failures)
 	print("AUTHORING CASES: ring v3 16-configuration table, dead ends, solution both ways, sweep clearance, 6-turn/16-action minimum, tower necessity, authored camera (no orbit, zoom, bounded pan, Home, Tab, legacy snapshots, turntable heading, ground follow, seam continuity), diegetic selection (pick, click, hover glow, no HUD list), carried pose, settled graph, undo, serialized saves, Play From Here, socket contract and apertures, interactions/conditions, checkpoints, two-state hinge, blocked sweep, validation, 90/180 degree curves, visible deck = walkable region, comfort settings, locomotion bench")
 	finished = true
 	return failures
+
+## On a wide terrace the light completes the monument from anywhere across the deck.
+static func goal_reach_cases(g: Node3D, failures: Array[String]) -> void:
+	for across in [-1.0, -.75, 0.0, .75, 1.0]:
+		g.build_level()
+		# build_level replaces every piece, so look the terrace up after it.
+		var terrace := piece(g, "Terrace")
+		var half_width: float = terrace.half.z
+		g.architectural = false
+		# Start 4 m (x1: 1 m) short of the light, clear of the planter beside the +z edge.
+		var goal_x: float = terrace.to_local(g.goal_marker.global_position).x
+		g.walker.place(terrace, Vector3(goal_x + H.m(1), terrace.half.y, across * half_width), Vector3.UP, Vector3.LEFT)
+		walk(g, Vector3.LEFT, terrace.half.x * 2)
+		if not g.won: failures.append("Walking the terrace at %.0f%% of its half-width must reach the light" % (across * 100))
+	g.build_level()
 
 ## Index of a rotator by node name, so tests never depend on scene order.
 static func rig_index(g: Node3D, name: String) -> int:
@@ -118,38 +137,38 @@ static func ring_cases(g: Node3D, failures: Array[String]) -> void:
 	# Dead end: turning the ring from the entry removes the only boarding.
 	g.restart()
 	H.turn(g, ring, -1, failures)
-	walk(g, Vector3.RIGHT, 6)
+	walk(g, Vector3.RIGHT, H.m(6))
 	if name_of(g) != "Entry": failures.append("A ring turned from the entry must not be boardable")
 	H.turn(g, ring, 1, failures)
-	walk(g, Vector3.RIGHT, 5)
+	walk(g, Vector3.RIGHT, H.m(5))
 	if name_of(g) != "RingTop": failures.append("Turning the ring back must restore boarding")
 	# Dead end: without the inner wheel aligned, the ring arm top leads nowhere inward.
 	g.restart()
-	walk(g, Vector3.RIGHT, 9)
+	walk(g, Vector3.RIGHT, H.m(9))
 	if name_of(g) != "RingTop": failures.append("Ring arm top must end at the gap before the inner wheel is aligned: " + name_of(g))
 	# Dead end: riding the ring arm top east does not lead to the exit.
 	H.turn(g, ring, -1, failures); H.turn(g, ring, -1, failures)
-	walk(g, Vector3.RIGHT, 8)
+	walk(g, Vector3.RIGHT, H.m(8))
 	if g.won: failures.append("Riding the ring arm top east must not solve")
 	# Dead end, then recovery: leaving the tower before the underside arm arrives.
 	g.restart()
 	H.turn(g, inner, 1, failures); H.turn(g, inner, 1, failures)
-	walk(g, Vector3.RIGHT, 20)
+	walk(g, Vector3.RIGHT, H.m(20))
 	if name_of(g) != "TowerUnder": failures.append("The tower floor must curl to its lower door: " + name_of(g))
-	walk_on(g, 3)
+	walk_on(g, H.m(3))
 	if name_of(g) != "TowerUnder": failures.append("The lower door must lead nowhere until the underside arm arrives")
 	# Solution, turning each rotor in either direction.
 	for direction in [-1, 1]:
 		g.restart()
 		H.turn(g, inner, direction, failures); H.turn(g, inner, direction, failures)
-		walk(g, Vector3.RIGHT, 20)
+		walk(g, Vector3.RIGHT, H.m(20))
 		H.turn(g, inner, direction, failures); H.turn(g, inner, direction, failures)
-		walk_on(g, 6)
+		walk_on(g, H.m(6))
 		if name_of(g) != "RingUnder": failures.append("Leaving the tower must lead under the same ring arm (%s): %s" % [direction, name_of(g)])
 		var hanging: Dictionary = g.snapshot()
 		H.turn(g, ring, direction, failures); H.turn(g, ring, direction, failures)
 		if name_of(g) != "RingUnder" or g.walker.foot != hanging.player.foot: failures.append("The ring must carry the player underneath in local pose")
-		walk(g, Vector3.RIGHT, 16)
+		walk(g, Vector3.RIGHT, H.m(16))
 		if not g.won: failures.append("Ring v3 route must complete turning %s: %s %s" % [direction, name_of(g), g.walker.foot])
 	# No structural sweep blocks any turn in any configuration (narrow necks, r = 5 joint).
 	g.restart()
@@ -169,11 +188,11 @@ static func solve_ring(g: Node3D, failures: Array[String]) -> void:
 	var ring := rig_index(g, "Ring")
 	g.restart()
 	H.turn(g, inner, 1, failures); H.turn(g, inner, 1, failures)
-	walk(g, Vector3.RIGHT, 20)
+	walk(g, Vector3.RIGHT, H.m(20))
 	H.turn(g, inner, 1, failures); H.turn(g, inner, 1, failures)
-	walk_on(g, 6)
+	walk_on(g, H.m(6))
 	H.turn(g, ring, 1, failures); H.turn(g, ring, 1, failures)
-	walk(g, Vector3.RIGHT, 16)
+	walk(g, Vector3.RIGHT, H.m(16))
 
 ## Diegetic selection: point at a movable structure in the isometric view; no HUD list.
 static func selection_cases(g: Node3D, failures: Array[String]) -> void:
@@ -208,6 +227,7 @@ static func selection_cases(g: Node3D, failures: Array[String]) -> void:
 	var arm_core: MeshInstance3D = g.definition.get_node("InnerWheel/InnerTopTip")
 	if g.hovered != ring or band_mesh.material_overlay == null: failures.append("Hovering the ring must make it glow")
 	if arm_core.material_overlay == null or arm_core.material_overlay == band_mesh.material_overlay: failures.append("The selected structure must glow distinctly from the hovered one")
+	elif not is_equal_approx(arm_core.material_overlay.get_shader_parameter("width"), .085 * maxf(1.0, g.overview.size / g.MARKER_REFERENCE)): failures.append("The selection outline must keep its on-screen width at any framing")
 	hover.position = screen.call(entry)
 	g._unhandled_input(hover)
 	if g.hovered != -1 or band_mesh.material_overlay != null: failures.append("Leaving the ring must clear its hover glow")
@@ -215,23 +235,111 @@ static func selection_cases(g: Node3D, failures: Array[String]) -> void:
 	if arm_core.material_overlay != null: failures.append("First person must show no selection glow")
 	g.build_level()
 
+## Monumental scale: turn sweeps stay dense and fast at any size, the tolerance is the level's,
+## and the overview camera stands clear of tall masses.
+static func sweep_cases(g: Node3D, failures: Array[String]) -> void:
+	g.build_level()
+	if not is_equal_approx(g.sweep_tolerance, g.definition.sweep_tolerance): failures.append("The runtime must use the level's sweep tolerance")
+	for entry in g.rigs:
+		for direction in [-1, 1]:
+			var interval: Vector2 = g.rotation_interval(entry, direction)
+			var samples: int = g.sweep_samples(entry, interval)
+			var step: float = g.sweep_reach(entry) * absf(interval.y - interval.x) / samples
+			if samples < 60 or step > g.SWEEP_STEP + .000001: failures.append("%s sweep moves %.3f m between samples" % [entry.node.name, step])
+		var started := Time.get_ticks_msec()
+		g.turn_obstruction(g.rigs.find(entry), 1)
+		if Time.get_ticks_msec() - started > 500: failures.append("%s sweep check took over 500 ms" % entry.node.name)
+	if g.definition.overview_local_offset().length() < g.definition.overview_distance() - .001 or g.definition.overview_distance() < g.definition.overview_size * 3 - .001: failures.append("The overview camera must stand at least 3x the framing away")
+	if g.overview.far < g.definition.overview_distance() + 2000: failures.append("The overview far plane must reach past the composition and backdrop")
+
+## A seam the sockets accept (within position tolerance) is always crossable: a deck 1 cm out of
+## level must not trap the player at its end.
+static func seam_cases(g: Node3D, failures: Array[String]) -> void:
+	var fixture := ElsewhereLevel.new()
+	fixture.name = "Level"; fixture.level_id = "offset_seam_test"
+	var near = C.new()
+	near.name = "Near"; near.dimensions = Vector3(4, .4, 2)
+	fixture.add_child(near)
+	var start_marker = C.new()
+	start_marker.kind = C.Kind.START; start_marker.name = "Start"; start_marker.path = NodePath("..")
+	start_marker.position.x = -1.5
+	near.add_child(start_marker)
+	var far = C.new()
+	far.name = "Far"; far.dimensions = Vector3(4, .4, 2)
+	far.position = Vector3(4, .01, 0)
+	fixture.add_child(far)
+	var goal_marker = C.new()
+	goal_marker.kind = C.Kind.GOAL; goal_marker.name = "Goal"; goal_marker.path = NodePath("..")
+	goal_marker.position.x = 1
+	far.add_child(goal_marker)
+	g.remove_child(g.data_source); g.data_source.queue_free()
+	g.add_child(fixture); g.data_source = fixture; fixture.hide(); g.build_level()
+	walk(g, Vector3.RIGHT, 8)
+	if not g.won: failures.append("A seam 1 cm out of level must be crossable: stopped on " + name_of(g))
+
 ## Spec §52: FOV and gravity-transition pacing are player settings; reduced motion is gentle.
 static func comfort_cases(g: Node3D, failures: Array[String]) -> void:
 	var w: SurfaceWalker = g.walker
 	var curl := piece(g, "TowerCurl")
 	w.place(curl, curl.point_at(.5), curl.surface_frame(curl.point_at(.5)).y, -curl.surface_frame(curl.point_at(.5)).z)
+	# Raise walking speed so the comfort cap, not the walk speed, is what binds.
+	var walk_speed := w.profile.walk_speed
+	w.profile.walk_speed = 100.0
 	for rate in w.TURN_RATES.values():
 		w.turn_rate = rate
-		if not is_equal_approx(w.speed_limit(), deg_to_rad(rate) * 1.0): failures.append("Curve speed must follow the %d deg/s setting" % rate)
+		if not is_equal_approx(w.speed_limit(), deg_to_rad(rate) * curl.radius): failures.append("Curve speed must follow the %d deg/s setting" % rate)
 	w.turn_rate = w.TURN_RATES.Brisk
 	w.reduced_motion = true
-	if not is_equal_approx(w.speed_limit(), deg_to_rad(w.TURN_RATES.Gentle)): failures.append("Reduced motion must use gentle gravity curves")
+	if not is_equal_approx(w.speed_limit(), deg_to_rad(w.TURN_RATES.Gentle) * curl.radius): failures.append("Reduced motion must use gentle gravity curves")
 	w.reduced_motion = false
 	w.turn_rate = w.profile.max_gravity_turn_rate
-	if not is_inf(piece(g, "Entry").curvature_radius(Vector3.ZERO)) or not is_equal_approx(w.speed_limit(), deg_to_rad(w.turn_rate)): failures.append("Only curves limit walking speed")
+	w.profile.walk_speed = walk_speed
+	if not is_inf(piece(g, "Entry").curvature_radius(Vector3.ZERO)): failures.append("Only curves limit walking speed")
+	if curl.radius * deg_to_rad(w.turn_rate) < w.speed: failures.append("The Ring's curves must be walkable at full speed (radius >= speed / turn rate)")
 	w.fov = 90
 	if not is_equal_approx(w.camera.fov, 90): failures.append("The FOV setting must reach the camera")
 	w.fov = w.profile.fov
+	g.build_level()
+
+## Atmosphere kit: sky, depth fog and mist; a crisp overview; a far backdrop that is scenery only.
+static func atmosphere_cases(g: Node3D, failures: Array[String]) -> void:
+	g.build_level()
+	var env: Environment = g.environment
+	if env == null or not env.fog_enabled or env.background_mode != Environment.BG_SKY: failures.append("The world needs sky and fog")
+	if g.overview.environment == null or g.overview.environment == env or g.overview.environment.fog_depth_begin <= g.definition.overview_distance(): failures.append("The overview must keep haze beyond its composition")
+	var backdrop: Node3D = g.world.get_node_or_null("Backdrop")
+	if backdrop == null or backdrop.get_child_count() < 20: failures.append("Every level must instance its backdrop")
+	else:
+		for mass in backdrop.get_children():
+			if Vector2(mass.global_position.x, mass.global_position.z).length() < 550: failures.append("Backdrop masses stay at least 550 m away")
+			if mass in g.obstacles: failures.append("Backdrop must never be an obstacle")
+		# The overview camera, upright or upside down, never stands inside a mass or sees the
+		# monument through one.
+		for frame in [Basis.IDENTITY, Basis(Vector3.RIGHT, PI)]:
+			var focus: Vector3 = g.definition.overview_focus
+			var camera: Vector3 = focus + frame * g.definition.overview_local_offset()
+			for mass in backdrop.get_children():
+				var bounds := AABB(-mass.mesh.size * .5, mass.mesh.size).grow(5)
+				if bounds.has_point(mass.to_local(camera)) or bounds.intersects_segment(mass.to_local(camera), mass.to_local(focus)) != null:
+					failures.append("Backdrop %s blocks the overview camera" % mass.name)
+		var screen: Vector2 = g.overview.unproject_position(backdrop.get_child(0).global_position)
+		if not g.architectural: g.toggle_view()
+		if g.pick_rig(screen) != -1: failures.append("Backdrop must never be pickable")
+	if not is_equal_approx(g.walker.profile.fov, 60.0): failures.append("Default FOV is 60")
+	# Preference migration: a pre-v2 saved FOV (written whenever any setting changed) is ignored.
+	var old := ConfigFile.new()
+	old.set_value("comfort", "fov", 72.0)
+	g.apply_preferences(old)
+	if not is_equal_approx(g.walker.fov, 60.0): failures.append("An FOV saved before v2 must not override the new default")
+	var deliberate := ConfigFile.new()
+	deliberate.set_value("comfort", "fov", 90.0)
+	g.apply_preferences(deliberate)
+	if not is_equal_approx(g.walker.fov, 90.0): failures.append("A pre-v2 FOV other than the old default was a choice and must be kept")
+	var chosen := ConfigFile.new()
+	chosen.set_value("comfort", "version", g.PREFERENCES_VERSION); chosen.set_value("comfort", "fov", 80.0)
+	g.apply_preferences(chosen)
+	if not is_equal_approx(g.walker.fov, 80.0): failures.append("A chosen FOV must be kept")
+	g.apply_preferences(ConfigFile.new())
 	g.build_level()
 
 ## Spec §7.2: a surface presented as walkable matches its authored walkable region. Points just
@@ -329,9 +437,9 @@ static func camera_cases(g: Node3D, failures: Array[String]) -> void:
 	if not is_equal_approx(g.overview_zoom, g.ZOOM_MAX) or not g.overview_local_offset.is_equal_approx(g.definition.overview_local_offset()): failures.append("Old orbit snapshots must restore within the authored composition")
 	# Seam between pieces with different local axes: Entry -> ring arm (local +X is world -X).
 	g.restart()
-	walk(g, Vector3.RIGHT, 1.0)
+	walk(g, Vector3.RIGHT, H.m(1.0))
 	var seam_before: Basis = g.camera_frame
-	walk(g, Vector3.RIGHT, 2.5)
+	walk(g, Vector3.RIGHT, H.m(2.5))
 	if name_of(g) != "RingTop" or not g.camera_frame.is_equal_approx(seam_before): failures.append("Crossing onto the ring arm must not flip the camera heading")
 	# Turntable: turning the occupied ring about the ground normal keeps the camera heading.
 	var turn_before: Basis = g.camera_frame
@@ -351,7 +459,7 @@ static func camera_cases(g: Node3D, failures: Array[String]) -> void:
 	var seam_checked := false
 	var previous_name := name_of(g)
 	var previous_frame: Basis = g.camera_frame
-	for step in range(int(ceil(20 / (2.0 / 60)))):
+	for step in range(int(ceil(H.m(20) / (2.0 / 60)))):
 		g.walker.walk(Vector2(0, -1), 1.0 / 60)
 		g.walker.sync_pose(1.0 / 60)
 		g.update_camera(1.0 / 60)
@@ -372,13 +480,22 @@ static func camera_cases(g: Node3D, failures: Array[String]) -> void:
 		previous_frame = g.camera_frame
 	if not seam_checked: failures.append("Camera seam check did not reach the tower")
 	if name_of(g) != "TowerUnder" or g.camera_frame.y.dot(Vector3.DOWN) < .999: failures.append("After the curl the camera must be upside down with the player")
+	# The isometric marker keeps its on-screen size at any framing; first person is unscaled.
+	g.restart()
+	if not g.architectural: g.toggle_view()
+	g.zoom_overview(-20)
+	g.update_marker_scale(); g.walker.sync_pose(1)
+	var expected_scale := maxf(1.0, g.overview.size / g.MARKER_REFERENCE)
+	if not is_equal_approx(g.walker.avatar.global_basis.get_scale().x, expected_scale): failures.append("Isometric marker must scale with the framing")
+	g.toggle_view()
+	if not is_equal_approx(g.walker.avatar.global_basis.get_scale().x, 1.0): failures.append("First person must use an unscaled avatar")
 	g.build_level()
 
 ## Generic runtime behaviour, exercised on The Ring.
 static func runtime_cases(g: Node3D, failures: Array[String]) -> void:
 	# Turns disable every connection until settled and carry the player in local pose.
 	g.restart()
-	walk(g, Vector3.RIGHT, 5)
+	walk(g, Vector3.RIGHT, H.m(5))
 	g.architectural = true
 	g.select_rig(rig_index(g, "Ring"))
 	var aboard: Dictionary = g.snapshot()
@@ -398,6 +515,13 @@ static func runtime_cases(g: Node3D, failures: Array[String]) -> void:
 	var saved: Dictionary = bytes_to_var(var_to_bytes(g.progress_data()))
 	g.build_level(); g.apply_progress(saved)
 	if not g.won or g.walker.support != g.goal: failures.append("Completion save did not restore")
+	var old_revision: Dictionary = saved.duplicate(true)
+	old_revision.revision = g.data_source.revision - 1
+	g.build_level()
+	var fresh: Dictionary = g.snapshot()
+	g.apply_progress(old_revision)
+	if g.won or g.snapshot() != fresh: failures.append("A save from an older revision must be ignored")
+	g.apply_progress(saved)
 	var before_bad: Dictionary = g.snapshot()
 	var bad: Dictionary = saved.duplicate(true)
 	bad.revision += 1
@@ -449,7 +573,7 @@ static func interaction_cases(g: Node3D, failures: Array[String]) -> void:
 	var brake = C.new()
 	brake.name = "Brake"; brake.kind = C.Kind.INTERACTION
 	brake.effect = 1; brake.target = NodePath("../Ring")
-	brake.position = Vector3(-11.2, 1, 0)
+	brake.position = Vector3(H.m(-11.2), H.m(1), 0)
 	g.data_source.add_child(brake)
 	var gate = C.new()
 	gate.name = "Gate"; gate.kind = C.Kind.INTERACTION
@@ -461,9 +585,9 @@ static func interaction_cases(g: Node3D, failures: Array[String]) -> void:
 	g.architectural = true
 	if g.interaction_prompt() != "": failures.append("The isometric view must show no interaction prompt")
 	g.architectural = false
-	brake.position.x += 3
+	brake.position.x += H.m(3)
 	if g.interaction_prompt() != "": failures.append("An interaction out of reach must show no prompt")
-	brake.position.x -= 3
+	brake.position.x -= H.m(3)
 	var before_interaction: Dictionary = g.snapshot()
 	var press := InputEventKey.new()
 	press.physical_keycode = KEY_F; press.pressed = true

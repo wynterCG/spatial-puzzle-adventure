@@ -53,11 +53,30 @@ Use custom MeshInstance3D nodes or imported scene geometry alongside behaviour n
 
 Walkable surfaces render as a light inlay inside a dark rim (`SurfacePiece.PAVING_RIM`, 0.12 m) across their width; the rim is still walkable, so keep it narrow. Joined passages stay continuous along their length.
 
+## Monument scale
+
+Monuments are authored at monumental scale ([design](designs/2026-10-01-monumental-scale.md)): the player is small against wide decks and big masses. Uniform scale alone does not create size; the contrast between the player and the masses does.
+
+- Walkable decks are **≥ 6 m** wide unless a narrow passage is the point. Then make it visibly a passage between large masses.
+- Structural masses (towers, rings, frames) are **many times the player**: tens of metres. A mass the player can see past at a glance is too small.
+- Doorways are portals sized to the masses, not human doors.
+- Gravity curves have radius **≥ 3 m**, so they are walked at full speed.
+- Masses continue beyond the playable band (into haze above and below) wherever they do not obscure the isometric composition.
+- Author a new monument at this scale from the start; never scale one up afterwards. Generate regular geometry from a script in `tools/` (see `tools/gen_ring.py`, which has one `SCALE`).
+
+Level fields that follow scale:
+
+- **`sweep_tolerance`**: construction clearance for turn sweeps. Use 0.04 m at player scale and scale it with the monument (The Ring at ×4: 0.16 m).
+- **`trigger_radius`** on the goal and on checkpoints must cover the deck's width, so arriving off-centre still counts.
+- **`backdrop`**: the far scenery scene (default `world/backdrop.tscn`, from `tools/gen_backdrop.py`). It is never gameplay.
+
+Player size, eye height, body padding, eye clearance and the camera's near plane never scale.
+
 ## First-person clearance
 
 The eye is 1.55 m above the walking surface and must stay 0.1 m clear of every wall at every reachable spot, in every rotor configuration. Make doorways at least 0.4 m wider than the path through them, and keep jambs and door glows outside that width. When a path ends at a wall, end the walk region at least 0.1 m short of it. After any geometry change, run `tests/eye_clearance_probe.gd` (see [skill.md](skill.md)); it lists every clipping place.
 
-Gravity curves set walking speed: speed is capped at the comfort turn rate × radius (Normal: 110°/s, so a 1 m curve is walked at about 1.9 m/s and a 2 m curve at full speed). Use radius ≥ 2 m where a curve should not slow the player.
+Gravity curves set walking speed: speed is capped at the comfort turn rate × radius. At Normal (110°/s) and 4.5 m/s walking, any radius ≥ 2.4 m is walked at full speed; the monument-scale rule (≥ 3 m) already covers it.
 
 ## Readable movable structures
 

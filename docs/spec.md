@@ -679,6 +679,8 @@ The monument becomes environmental atmosphere.
 
 The player may no longer recognize the whole object.
 
+Monuments are authored at monumental scale: the player is small against wide decks and masses many times their size (see the [monumental scale design](designs/2026-10-01-monumental-scale.md)).
+
 Instead they experience:
 
 - material;
@@ -1612,10 +1614,11 @@ As of 1 October 2026, on branch `feature/elsewhere-spec`. Details of how each sy
 | §48 Socket snapping | Not started |
 | §49 Later tools (reachability, sweep visualization, snapshots) | Not started; validation reports structural errors only |
 | §42 Turning Frame | Prototype conversion archived in `legacy/monuments/`; a fresh Turning Frame is not started |
-| §54 Phase 1: 2–3 further monuments with *different* spatial concepts | 1 in progress: **The Ring v3** (two independent rotors, a hollow tower hiding a side-changer, first-person sightline clue; minimum 6 turns pinned by tests). Blockout tested mechanically and checked against an information-design checklist; not playtested. Bell Cradle and Folded Observatory are now test fixtures only |
+| §54 Phase 1: 2–3 further monuments with *different* spatial concepts | 1 in progress: **The Ring v3**, at ×4 monumental scale (two independent rotors, a hollow tower hiding a side-changer, first-person sightline clue; minimum 6 turns pinned by tests). Blockout tested mechanically and checked against an information-design checklist; not playtested. Bell Cradle and Folded Observatory are now test fixtures only |
 | §24–32 Art direction, materials, emissive accents, background world | Not started (blockout colours only) |
 | §33 Minimal UI | Basic: debug details hidden behind F3 |
 | §35–36 Audio and music | Not started |
 | §38 Player character | Placeholder avatar |
+| §23, §30 Monumental scale, atmosphere and far backdrop | Implemented: The Ring at ×4, sky/fog/mist kit, authored backdrop ([design](designs/2026-10-01-monumental-scale.md)); final background world not started |
 | §6–7 First-person locomotion (momentum, ground-frame input, eased gravity curves, sliding) | Implemented and benchmarked on The Ring's route ([locomotion pass](designs/2026-10-01-locomotion-pass.md)); not yet hand-playtested |
 | §52 Comfort: sensitivity, FOV, gravity-transition speed, reduced motion, camera reset | Implemented. Remapping UI not started |

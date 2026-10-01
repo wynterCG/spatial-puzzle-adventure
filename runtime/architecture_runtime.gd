@@ -7,16 +7,26 @@ const Piece = preload("res://core/surface_piece.gd")
 const Walker = preload("res://core/surface_walker.gd")
 const HUD = preload("res://runtime/hud.gd")
 const OUTLINE = preload("res://runtime/outline.gdshader")
+const Atmosphere = preload("res://runtime/atmosphere.gd")
+## Settings written before v2 saved the FOV on every change, so an old value is not a choice.
+const PREFERENCES_VERSION := 2
 # Zoom and pan around the authored framing (spec §11). Neither ever rotates the view.
 const ZOOM_MIN := .4
 const ZOOM_MAX := 1.6
 const PAN_LIMIT := .5 # fraction of the authored framing size the view may slide away
+## Farthest a turning solid may move between sweep samples. The thinnest solid at any scale
+## (a 0.26 m curve deck) can never fall between two samples.
+const SWEEP_STEP := .25
+var sweep_tolerance := .04
+## Framing size at which the traveller is drawn life-size in the isometric view.
+const MARKER_REFERENCE := 36.0
 var world: Node3D
 var pieces: Array[SurfacePiece] = []
 var rigs: Array[Dictionary] = []
 var ports: Array[Dictionary] = []
 var obstacles: Array[MeshInstance3D] = []
 var walker: SurfaceWalker
+var environment: Environment
 var overview: Camera3D
 var hud: CanvasLayer
 var start: SurfacePiece
@@ -49,15 +59,10 @@ var input_bindings := {"forward": KEY_W, "back": KEY_S, "left": KEY_A, "right": 
 
 func _ready() -> void:
 	configure_input()
-	var environment := WorldEnvironment.new()
-	var env := Environment.new()
-	env.background_mode = Environment.BG_COLOR
-	env.background_color = Color("10182f")
-	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	env.ambient_light_color = Color("a5b8ef")
-	env.ambient_light_energy = 0.55
-	environment.environment = env
-	add_child(environment)
+	var world_environment := WorldEnvironment.new()
+	environment = Atmosphere.world_environment()
+	world_environment.environment = environment
+	add_child(world_environment)
 	for data in [[Vector3(-48, -32, 0), Color("ffe5bf"), 0.75], [Vector3(35, 125, 0), Color("899adb"), 0.25]]:
 		var light := DirectionalLight3D.new()
 		light.rotation_degrees = data[0]
@@ -158,11 +163,15 @@ func update_camera(_delta := 0.0) -> void:
 	# Pan slides the camera parallel to the screen, so the authored angle never changes.
 	overview.position += overview.global_basis.x * overview_pan.x + overview.global_basis.y * overview_pan.y
 
+func update_marker_scale() -> void:
+	walker.marker_scale = maxf(1.0, overview.size / MARKER_REFERENCE) if architectural else 1.0
+
 func zoom_overview(steps: float) -> void:
 	if not architectural or paused or busy or blocks_play():
 		return
 	overview_zoom = clampf(overview_zoom * exp(-steps * .12), ZOOM_MIN, ZOOM_MAX)
 	update_camera()
+	refresh_glow()
 
 func pan_overview(amount: Vector2) -> void:
 	if not architectural or paused or blocks_play():
@@ -195,6 +204,7 @@ func _process(delta: float) -> void:
 			message = "Connection reached. What needed to happen first?"
 			Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 			save_progress()
+	update_marker_scale()
 	walker.sync_pose(delta)
 	walker.avatar.visible = architectural
 	update_camera(delta)
@@ -253,6 +263,7 @@ func _notification(what: int) -> void:
 func toggle_view() -> void:
 	architectural = not architectural
 	walker.moving = false
+	update_marker_scale()
 	walker.sync_pose(1)
 	update_camera()
 	if architectural:
@@ -315,15 +326,16 @@ func refresh_glow() -> void:
 			visual.material_overlay = overlay
 
 ## An outline, not a fill: the structure's faces stay readable. Hover is thin and dim,
-## selection slightly thicker and brighter.
+## selection slightly thicker and brighter. The width follows the framing, like the marker, so
+## the outline keeps its on-screen size on monumental compositions.
 func glow_material(tint: Color, level: int) -> ShaderMaterial:
 	var key := str(tint) + str(level)
 	if not glow_materials.has(key):
 		var mat := ShaderMaterial.new()
 		mat.shader = OUTLINE
 		mat.set_shader_parameter("color", tint.darkened(.2) if level == 1 else tint.lightened(.2))
-		mat.set_shader_parameter("width", .045 if level == 1 else .085)
 		glow_materials[key] = mat
+	glow_materials[key].set_shader_parameter("width", (.045 if level == 1 else .085) * maxf(1.0, overview.size / MARKER_REFERENCE))
 	return glow_materials[key]
 
 # --- Structure turns ------------------------------------------------------------------------
@@ -335,8 +347,8 @@ func select_rig(index: int) -> void:
 
 func boxes_overlap(a: MeshInstance3D, b: MeshInstance3D) -> bool:
 	# Oriented-box SAT, with a small construction clearance at docking edges.
-	var ha: Vector3 = ((a.mesh as BoxMesh).size * 0.5 - Vector3.ONE * 0.04).max(Vector3.ONE * 0.01)
-	var hb: Vector3 = ((b.mesh as BoxMesh).size * 0.5 - Vector3.ONE * 0.04).max(Vector3.ONE * 0.01)
+	var ha: Vector3 = ((a.mesh as BoxMesh).size * 0.5 - Vector3.ONE * sweep_tolerance).max(Vector3.ONE * 0.01)
+	var hb: Vector3 = ((b.mesh as BoxMesh).size * 0.5 - Vector3.ONE * sweep_tolerance).max(Vector3.ONE * 0.01)
 	var separation := b.global_position - a.global_position
 	if separation.length_squared() > pow(ha.length() + hb.length(), 2):
 		return false
@@ -356,6 +368,19 @@ func boxes_overlap(a: MeshInstance3D, b: MeshInstance3D) -> bool:
 			return false
 	return true
 
+## Farthest any solid of a turning structure reaches from its pivot (box corners included).
+func sweep_reach(entry: Dictionary) -> float:
+	var pivot: Vector3 = entry.node.global_position
+	var reach := 0.0
+	for moving in entry.solids:
+		reach = maxf(reach, moving.global_position.distance_to(pivot) + (moving.mesh as BoxMesh).size.length() * .5)
+	return reach
+
+## Sweep samples by arc length: the farthest solid moves at most SWEEP_STEP between samples.
+func sweep_samples(entry: Dictionary, interval: Vector2) -> int:
+	var angle := absf(interval.y - interval.x)
+	return maxi(60, maxi(int(ceil(angle / deg_to_rad(1.5))), int(ceil(angle * sweep_reach(entry) / SWEEP_STEP))))
+
 func turn_obstruction(index: int, direction: int) -> String:
 	var entry := rigs[index]
 	if entry.get("locked", false): return "This structure is locked."
@@ -374,10 +399,7 @@ func turn_obstruction(index: int, direction: int) -> String:
 	# nearby boxes still receive every sample, and passenger clearance continues to
 	# consider the whole environment.
 	var pivot: Vector3 = entry.node.global_position
-	var sweep_radius := 0.0
-	for moving in entry.solids:
-		var radius: float = (moving.mesh as BoxMesh).size.length() * .5
-		sweep_radius = maxf(sweep_radius, moving.global_position.distance_to(pivot) + radius)
+	var sweep_radius := sweep_reach(entry)
 	var candidates: Array[MeshInstance3D] = []
 	for stationary in fixed:
 		var radius: float = (stationary.mesh as BoxMesh).size.length() * .5
@@ -385,7 +407,7 @@ func turn_obstruction(index: int, direction: int) -> String:
 			candidates.append(stationary)
 	var result := ""
 	var interval := rotation_interval(entry, direction)
-	var samples := maxi(60, int(ceil(absf(interval.y - interval.x) / deg_to_rad(1.5))))
+	var samples := sweep_samples(entry, interval)
 	for step in range(1, samples + 1):
 		entry.node.basis = rotation_basis(entry, lerpf(interval.x, interval.y, float(step) / samples))
 		for moving in entry.solids:
@@ -534,9 +556,15 @@ func connection_text() -> String:
 func load_preferences() -> void:
 	var settings := ConfigFile.new()
 	settings.load("user://settings.cfg")
+	apply_preferences(settings)
+
+func apply_preferences(settings: ConfigFile) -> void:
 	walker.reduced_motion = settings.get_value("comfort", "reduced_motion", false)
 	walker.sensitivity = settings.get_value("comfort", "sensitivity", 0.0022)
-	walker.fov = clampf(settings.get_value("comfort", "fov", walker.profile.fov), 60, 95)
+	# Before v2 the old 72 default was saved on every change; any other value was chosen.
+	var saved_fov: float = settings.get_value("comfort", "fov", walker.profile.fov)
+	var chosen_fov: bool = settings.get_value("comfort", "version", 1) >= PREFERENCES_VERSION or not is_equal_approx(saved_fov, 72.0)
+	walker.fov = clampf(saved_fov, 60, 95) if chosen_fov else walker.profile.fov
 	walker.turn_rate = settings.get_value("comfort", "turn_rate", walker.profile.max_gravity_turn_rate)
 	walker.sync_pose(1)
 	hud.sync_preferences()
@@ -546,6 +574,7 @@ func save_preferences() -> void:
 	settings.load("user://settings.cfg")
 	for key in ["reduced_motion", "sensitivity", "fov", "turn_rate"]:
 		settings.set_value("comfort", key, walker.get(key))
+	settings.set_value("comfort", "version", PREFERENCES_VERSION)
 	settings.save("user://settings.cfg")
 
 func save_progress() -> void:

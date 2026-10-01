@@ -1,0 +1,241 @@
+[gd_scene load_steps=28 format=3]
+
+[sub_resource type="StandardMaterial3D" id="Stone"]
+albedo_color = Color(0.2, 0.21, 0.25, 1)
+roughness = 0.9
+
+[sub_resource type="BoxMesh" id="Mass00"]
+size = Vector3(118.112, 297.084, 110.539)
+
+[sub_resource type="BoxMesh" id="Mass01"]
+size = Vector3(92.0375, 295.406, 45.164)
+
+[sub_resource type="BoxMesh" id="Mass02"]
+size = Vector3(115.292, 866.011, 112.652)
+
+[sub_resource type="BoxMesh" id="Mass03"]
+size = Vector3(74.7531, 343.766, 38.7066)
+
+[sub_resource type="BoxMesh" id="Mass04"]
+size = Vector3(116.67, 492.058, 110.573)
+
+[sub_resource type="BoxMesh" id="Mass05"]
+size = Vector3(91.3111, 454.196, 89.9927)
+
+[sub_resource type="BoxMesh" id="Mass06"]
+size = Vector3(69.2916, 623.375, 64.1083)
+
+[sub_resource type="BoxMesh" id="Mass07"]
+size = Vector3(54.1679, 521.78, 62.6799)
+
+[sub_resource type="BoxMesh" id="Mass08"]
+size = Vector3(131.749, 622.467, 168.042)
+
+[sub_resource type="BoxMesh" id="Mass09"]
+size = Vector3(94.7446, 795.979, 127.401)
+
+[sub_resource type="BoxMesh" id="Mass10"]
+size = Vector3(117.655, 895.512, 143.766)
+
+[sub_resource type="BoxMesh" id="Mass11"]
+size = Vector3(95.4034, 359.231, 49.3327)
+
+[sub_resource type="BoxMesh" id="Mass12"]
+size = Vector3(86.914, 816.424, 41.7692)
+
+[sub_resource type="BoxMesh" id="Mass13"]
+size = Vector3(143.678, 430.974, 117.14)
+
+[sub_resource type="BoxMesh" id="Mass14"]
+size = Vector3(61.1461, 400.772, 38.726)
+
+[sub_resource type="BoxMesh" id="Mass15"]
+size = Vector3(90.2736, 490.015, 87.2351)
+
+[sub_resource type="BoxMesh" id="Mass16"]
+size = Vector3(121.144, 285.095, 157.431)
+
+[sub_resource type="BoxMesh" id="Mass17"]
+size = Vector3(87.8775, 317.299, 90.8907)
+
+[sub_resource type="BoxMesh" id="Mass18"]
+size = Vector3(80.8064, 284.174, 32.3414)
+
+[sub_resource type="BoxMesh" id="Mass19"]
+size = Vector3(144.92, 649.145, 79.4959)
+
+[sub_resource type="BoxMesh" id="Mass20"]
+size = Vector3(141.872, 895.517, 122.86)
+
+[sub_resource type="BoxMesh" id="Mass21"]
+size = Vector3(71.7708, 788.756, 40.2949)
+
+[sub_resource type="BoxMesh" id="Mass22"]
+size = Vector3(105.181, 267.578, 97.6192)
+
+[sub_resource type="BoxMesh" id="Mass23"]
+size = Vector3(84.004, 358.577, 98.4474)
+
+[sub_resource type="BoxMesh" id="Mass24"]
+size = Vector3(137.381, 890.202, 172.088)
+
+[sub_resource type="BoxMesh" id="Mass25"]
+size = Vector3(102.117, 481.116, 43.806)
+
+[node name="Backdrop" type="Node3D"]
+
+[node name="Mass00" type="MeshInstance3D" parent="."]
+transform = Transform3D(0.983446, 0, -0.181202, 0, 1, 0, 0.181202, 0, 0.983446, -349.462, -174.596, 698.475)
+mesh = SubResource("Mass00")
+material_override = SubResource("Stone")
+cast_shadow = 0
+
+[node name="Mass01" type="MeshInstance3D" parent="."]
+transform = Transform3D(-0.855666, 0, -0.517529, 0, 1, 0, 0.517529, 0, -0.855666, -644.291, -187.201, -30.1233)
+mesh = SubResource("Mass01")
+material_override = SubResource("Stone")
+cast_shadow = 0
+
+[node name="Mass02" type="MeshInstance3D" parent="."]
+transform = Transform3D(-0.997219, 0, -0.0745276, 0, 1, 0, 0.0745276, 0, -0.997219, 618.291, 103.669, 609.052)
+mesh = SubResource("Mass02")
+material_override = SubResource("Stone")
+cast_shadow = 0
+
+[node name="Mass03" type="MeshInstance3D" parent="."]
+transform = Transform3D(-0.837745, 0, -0.546062, 0, 1, 0, 0.546062, 0, -0.837745, 1560.83, -139.813, 470.345)
+mesh = SubResource("Mass03")
+material_override = SubResource("Stone")
+cast_shadow = 0
+
+[node name="Mass04" type="MeshInstance3D" parent="."]
+transform = Transform3D(0.982521, 0, -0.18615, 0, 1, 0, 0.18615, 0, 0.982521, 547.262, -16.5286, 1176.9)
+mesh = SubResource("Mass04")
+material_override = SubResource("Stone")
+cast_shadow = 0
+
+[node name="Mass05" type="MeshInstance3D" parent="."]
+transform = Transform3D(0.588377, 0, -0.808587, 0, 1, 0, 0.808587, 0, 0.588377, 386.984, -113.539, 1362.59)
+mesh = SubResource("Mass05")
+material_override = SubResource("Stone")
+cast_shadow = 0
+
+[node name="Mass06" type="MeshInstance3D" parent="."]
+transform = Transform3D(-0.660004, 0, -0.751262, 0, 1, 0, 0.751262, 0, -0.660004, 396.021, -113.34, -1383.22)
+mesh = SubResource("Mass06")
+material_override = SubResource("Stone")
+cast_shadow = 0
+
+[node name="Mass07" type="MeshInstance3D" parent="."]
+transform = Transform3D(0.0346665, 0, -0.999399, 0, 1, 0, 0.999399, 0, 0.0346665, -419.397, -19.507, 1725.99)
+mesh = SubResource("Mass07")
+material_override = SubResource("Stone")
+cast_shadow = 0
+
+[node name="Mass08" type="MeshInstance3D" parent="."]
+transform = Transform3D(-0.575764, 0, -0.817616, 0, 1, 0, 0.817616, 0, -0.575764, 1359.54, -1.51607, 341.861)
+mesh = SubResource("Mass08")
+material_override = SubResource("Stone")
+cast_shadow = 0
+
+[node name="Mass09" type="MeshInstance3D" parent="."]
+transform = Transform3D(-0.493143, 0, -0.869948, 0, 1, 0, 0.869948, 0, -0.493143, -1074.67, 53.1699, -724.14)
+mesh = SubResource("Mass09")
+material_override = SubResource("Stone")
+cast_shadow = 0
+
+[node name="Mass10" type="MeshInstance3D" parent="."]
+transform = Transform3D(0.351148, 0, -0.93632, 0, 1, 0, 0.93632, 0, 0.351148, 1338.3, 140.837, 536.392)
+mesh = SubResource("Mass10")
+material_override = SubResource("Stone")
+cast_shadow = 0
+
+[node name="Mass11" type="MeshInstance3D" parent="."]
+transform = Transform3D(-0.746428, 0, -0.665466, 0, 1, 0, 0.665466, 0, -0.746428, -306.737, -82.1752, -546.933)
+mesh = SubResource("Mass11")
+material_override = SubResource("Stone")
+cast_shadow = 0
+
+[node name="Mass12" type="MeshInstance3D" parent="."]
+transform = Transform3D(-0.154696, 0, -0.987962, 0, 1, 0, 0.987962, 0, -0.154696, 616.839, 68.3747, 651.434)
+mesh = SubResource("Mass12")
+material_override = SubResource("Stone")
+cast_shadow = 0
+
+[node name="Mass13" type="MeshInstance3D" parent="."]
+transform = Transform3D(-0.934545, 0, -0.355846, 0, 1, 0, 0.355846, 0, -0.934545, 1176.84, -106.267, -1058.95)
+mesh = SubResource("Mass13")
+material_override = SubResource("Stone")
+cast_shadow = 0
+
+[node name="Mass14" type="MeshInstance3D" parent="."]
+transform = Transform3D(-0.276346, 0, -0.961058, 0, 1, 0, 0.961058, 0, -0.276346, 753.719, -146.607, -205.018)
+mesh = SubResource("Mass14")
+material_override = SubResource("Stone")
+cast_shadow = 0
+
+[node name="Mass15" type="MeshInstance3D" parent="."]
+transform = Transform3D(-0.563365, 0, -0.826208, 0, 1, 0, 0.826208, 0, -0.563365, -48.3953, -195.612, 602.973)
+mesh = SubResource("Mass15")
+material_override = SubResource("Stone")
+cast_shadow = 0
+
+[node name="Mass16" type="MeshInstance3D" parent="."]
+transform = Transform3D(-0.923293, 0, -0.384096, 0, 1, 0, 0.384096, 0, -0.923293, -1334.76, -263.446, -130.332)
+mesh = SubResource("Mass16")
+material_override = SubResource("Stone")
+cast_shadow = 0
+
+[node name="Mass17" type="MeshInstance3D" parent="."]
+transform = Transform3D(0.977701, 0, -0.210004, 0, 1, 0, 0.210004, 0, 0.977701, 317.273, -103.8, -1022.77)
+mesh = SubResource("Mass17")
+material_override = SubResource("Stone")
+cast_shadow = 0
+
+[node name="Mass18" type="MeshInstance3D" parent="."]
+transform = Transform3D(0.949625, 0, -0.313389, 0, 1, 0, 0.313389, 0, 0.949625, 203.626, -138.166, 768.236)
+mesh = SubResource("Mass18")
+material_override = SubResource("Stone")
+cast_shadow = 0
+
+[node name="Mass19" type="MeshInstance3D" parent="."]
+transform = Transform3D(0.461282, 0, -0.887253, 0, 1, 0, 0.887253, 0, 0.461282, -412.877, 24.1209, 476.645)
+mesh = SubResource("Mass19")
+material_override = SubResource("Stone")
+cast_shadow = 0
+
+[node name="Mass20" type="MeshInstance3D" parent="."]
+transform = Transform3D(0.96382, 0, -0.266553, 0, 1, 0, 0.266553, 0, 0.96382, -491.318, 100.991, 563.231)
+mesh = SubResource("Mass20")
+material_override = SubResource("Stone")
+cast_shadow = 0
+
+[node name="Mass21" type="MeshInstance3D" parent="."]
+transform = Transform3D(-0.988168, 0, -0.153376, 0, 1, 0, 0.153376, 0, -0.988168, 809.802, 139.759, 605.534)
+mesh = SubResource("Mass21")
+material_override = SubResource("Stone")
+cast_shadow = 0
+
+[node name="Mass22" type="MeshInstance3D" parent="."]
+transform = Transform3D(-0.909225, 0, -0.416305, 0, 1, 0, 0.416305, 0, -0.909225, -763.726, -311.911, -137.04)
+mesh = SubResource("Mass22")
+material_override = SubResource("Stone")
+cast_shadow = 0
+
+[node name="Mass23" type="MeshInstance3D" parent="."]
+transform = Transform3D(-0.768617, 0, -0.639709, 0, 1, 0, 0.639709, 0, -0.768617, -302.912, -177.23, -861.645)
+mesh = SubResource("Mass23")
+material_override = SubResource("Stone")
+cast_shadow = 0
+
+[node name="Mass24" type="MeshInstance3D" parent="."]
+transform = Transform3D(-0.84151, 0, -0.540241, 0, 1, 0, 0.540241, 0, -0.84151, -416.392, 33.8852, 761.206)
+mesh = SubResource("Mass24")
+material_override = SubResource("Stone")
+cast_shadow = 0
+
+[node name="Mass25" type="MeshInstance3D" parent="."]
+transform = Transform3D(0.63883, 0, -0.769348, 0, 1, 0, 0.769348, 0, 0.63883, -55.4532, -15.0296, -870.323)
+mesh = SubResource("Mass25")
+material_override = SubResource("Stone")
+cast_shadow = 0

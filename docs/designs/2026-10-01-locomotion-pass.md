@@ -1,6 +1,6 @@
 # First-person locomotion pass
 
-Design and results, 1 October 2026. Status: **implemented, benchmarked; not yet hand-playtested.** Branch `feature/locomotion`.
+Design and results, 1 October 2026. Status: **implemented, benchmarked; not yet hand-playtested.** Branch `feature/locomotion`. Since the [monumental scale](2026-10-01-monumental-scale.md) pass: walk speed 4.5 m/s, decel 0.08 s, default FOV 60°; the bench runs at ×4.
 
 ## Why
 

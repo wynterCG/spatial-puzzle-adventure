@@ -4,11 +4,11 @@ extends Resource
 ## Edit core/locomotion.tres in the inspector between runs; comfort settings override some fields.
 
 ## Walking speed on straight ground, metres per second.
-@export_range(1.0, 6.0, .1) var walk_speed := 3.2
+@export_range(1.0, 6.0, .1) var walk_speed := 4.5
 ## Seconds from standing to full speed.
 @export_range(0.0, .6, .01) var accel_time := .18
 ## Seconds from full speed to standing after release.
-@export_range(0.0, .6, .01) var decel_time := .1
+@export_range(0.0, .6, .01) var decel_time := .08
 ## Fastest the ground may turn the view on a gravity curve (Normal comfort setting), degrees
 ## per second. Walking speed on a curve is capped at this rate times the curve's radius.
 @export_range(30.0, 360.0, 1.0) var max_gravity_turn_rate := 110.0
@@ -17,7 +17,7 @@ extends Resource
 ## Eye height above the walking surface, metres.
 @export_range(1.0, 2.0, .01) var eye_height := 1.55
 ## Vertical field of view, degrees (the comfort setting overrides it).
-@export_range(50.0, 100.0, 1.0) var fov := 72.0
+@export_range(50.0, 100.0, 1.0) var fov := 60.0
 ## Vertical head bob amplitude at full speed, metres. Zero on curves and with reduced motion; never roll.
 @export_range(0.0, .05, .001) var head_bob := .01
 ## Distance of one footstep, metres: one bob cycle.

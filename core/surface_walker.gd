@@ -30,6 +30,8 @@ var bob_phase := 0.0
 ## Debug readouts (F3): current speed cap and the view's rotation rate, deg/s.
 var speed_cap := 0.0
 var view_rate := 0.0
+## Isometric-only size of the traveller (the runtime sets it from the framing); 1 in first person.
+var marker_scale := 1.0
 var speed: float:
 	get: return profile.walk_speed
 var camera: Camera3D
@@ -206,6 +208,12 @@ func advance(local_direction: Vector3, distance: float) -> float:
 		var up := (other.global_basis.inverse() * world_normal).normalized()
 		if not other.allows_point(local, up) or not pose_is_clear(other, local, up):
 			continue
+		# Contact tolerance accepts a point a little short of the seam; snapping it onto the
+		# neighbour would hop further forward than asked. Stop at this deck's end instead and
+		# cross on the next sub-step. Measured along travel, so a seam slightly out of level
+		# (within socket tolerance) still crosses.
+		if (other.to_global(other.constrain_to_path(local)) - start).dot((support.global_basis * direction).normalized()) > distance + .0001:
+			continue
 		var to_other := other.global_basis.inverse() * support.global_basis
 		forward = to_other * forward
 		view_ground = (to_other * view_ground).orthonormalized()
@@ -278,7 +286,8 @@ func sync_pose(delta: float) -> void:
 		view_ground = view_ground.slerp(target, 1.0 - exp(-delta * profile.view_ease_rate)).orthonormalized()
 	var up := (support.global_basis * normal).normalized()
 	var contact := support.to_global(foot)
-	avatar.global_transform = Transform3D(support.global_basis * target, contact)
+	# The isometric marker is drawn larger on big compositions; first person keeps it at 1.
+	avatar.global_transform = Transform3D((support.global_basis * target).scaled(Vector3.ONE * marker_scale), contact)
 	camera.cull_mask = 19
 	var bob := 0.0
 	if not reduced_motion and not support.transports_controls():

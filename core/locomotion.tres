@@ -4,12 +4,12 @@
 
 [resource]
 script = ExtResource("1")
-walk_speed = 3.2
+walk_speed = 4.5
 accel_time = 0.18
-decel_time = 0.1
+decel_time = 0.08
 max_gravity_turn_rate = 110.0
 view_ease_rate = 14.0
 eye_height = 1.55
-fov = 72.0
+fov = 60.0
 head_bob = 0.01
 step_length = 0.75
