@@ -9,9 +9,9 @@ var tail_length := 0.0
 var colour := Color("879bad")
 var enabled := true
 var sections: Array[Node3D] = []
-var faded_materials: Dictionary = {}
 
 func transports_controls() -> bool: return true
+func curvature_radius(point: Vector3) -> float: return radius if distance_at(point) < arc * radius - .001 else INF
 func length() -> float: return radius * arc + tail_length
 func point_at(distance: float, across := 0.0) -> Vector3:
 	var angle := clampf(distance / radius, 0, arc)
@@ -50,18 +50,3 @@ func build() -> void:
 		var span := length() / steps + .015
 		solid_meshes.append(box(section, Vector3(0, -thickness / 2, 0), Vector3(path_width, thickness, span), material(colour)))
 		box(section, Vector3(0, .014, 0), Vector3(maxf(path_width - 2 * SurfacePiece.PAVING_RIM, path_width * .5), .025, span), material(Color("dfceb0")))
-		for visual in section.get_children():
-			var original: StandardMaterial3D = visual.material_override
-			visual.set_meta("opaque_material", original)
-			var faded: StandardMaterial3D = original.duplicate()
-			faded.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-			faded.albedo_color.a = .12
-			faded_materials[original] = faded
-
-func update_camera_cutaway(view: Camera3D, target: Vector3, active: bool) -> void:
-	for i in range(sections.size()):
-		var solid := solid_meshes[i]
-		var obscures: bool = active and solid.get_aabb().grow(.9).intersects_segment(solid.to_local(view.global_position), solid.to_local(target)) != null
-		for visual in sections[i].get_children():
-			var original: StandardMaterial3D = visual.get_meta("opaque_material")
-			visual.material_override = faded_materials[original] if obscures else original

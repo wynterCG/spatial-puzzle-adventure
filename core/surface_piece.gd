@@ -35,6 +35,10 @@ func surface_frame(_point: Vector3) -> Basis:
 func transports_controls() -> bool:
 	return false
 
+## Radius of the ground's curvature at a point; flat ground never turns the view.
+func curvature_radius(_point: Vector3) -> float:
+	return INF
+
 func step_contact(point: Vector3, direction: Vector3, distance: float) -> Vector3:
 	return constrain_to_path(point + direction * distance)
 

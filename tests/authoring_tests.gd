@@ -7,6 +7,7 @@ const Links = preload("res://authoring/connections.gd")
 const Validate = preload("res://authoring/validation.gd")
 const H = preload("res://tests/test_helpers.gd")
 const Graph = preload("res://tests/state_graph.gd")
+const Bench = preload("res://tests/locomotion_bench.gd")
 static var finished := false
 
 static func load_level(g: Node3D, scene_path: String) -> void:
@@ -27,13 +28,19 @@ static func load_level(g: Node3D, scene_path: String) -> void:
 static func walk(g: Node3D, direction: Vector3, distance: float) -> void:
 	g.architectural = false
 	g.walker.forward = direction
-	for i in range(int(ceil(distance / (3.5 / 60)))):
-		g.walker.walk(Vector2(0, -1), 1.0 / 60)
+	# Walk until the distance is covered or the player has stopped (a path end).
+	var covered := 0.0
+	var still := 0
+	for i in range(int(distance / .5 * 60) + 120):
+		var moved: float = g.walker.walk(Vector2(0, -1), 1.0 / 60)
+		covered += moved
+		still = still + 1 if moved < .0001 else 0
 		g.walker.sync_pose(1.0 / 60)
 		g.update_camera(1.0 / 60)
 		if not g.won and g.reached_goal():
 			g._process(0)
 			break
+		if covered >= distance or still >= 10: break
 
 ## Keeps walking in the current (transported) direction, e.g. after waiting at a path end.
 static func walk_on(g: Node3D, distance: float) -> void:
@@ -45,7 +52,6 @@ static func run(g: Node3D) -> Array[String]:
 	if g.walker.support == null:
 		failures.append("Authored scene did not build a valid start")
 		return failures
-	g.walker.set_third_person(false)
 	g.walker.reduced_motion = false
 	if g.data_source.level_id != "the_ring":
 		failures.append("Self-test must be launched from monuments/the_ring.tscn")
@@ -54,14 +60,17 @@ static func run(g: Node3D) -> Array[String]:
 	if not validation.errors.is_empty(): failures.append("Ring validation failed: " + str(validation.errors))
 	ring_cases(g, failures)
 	graph_cases(g, failures)
+	deck_cases(g, failures)
+	Bench.run(g, failures)
 	camera_cases(g, failures)
+	comfort_cases(g, failures)
 	selection_cases(g, failures)
 	runtime_cases(g, failures)
 	socket_cases(g, failures)
 	interaction_cases(g, failures)
 	fixture_cases(g, failures)
 	curve_cases(g, failures)
-	print("AUTHORING CASES: ring v3 16-configuration table, dead ends, solution both ways, sweep clearance, 6-turn/16-action minimum, tower necessity, authored camera (no orbit, zoom, bounded pan, Home, Tab, legacy snapshots, turntable heading, ground follow, seam continuity), diegetic selection (pick, click, hover glow, no HUD list), carried pose, settled graph, undo, serialized saves, Play From Here, socket contract and apertures, interactions/conditions, checkpoints, two-state hinge, blocked sweep, validation, 90/180 degree curves")
+	print("AUTHORING CASES: ring v3 16-configuration table, dead ends, solution both ways, sweep clearance, 6-turn/16-action minimum, tower necessity, authored camera (no orbit, zoom, bounded pan, Home, Tab, legacy snapshots, turntable heading, ground follow, seam continuity), diegetic selection (pick, click, hover glow, no HUD list), carried pose, settled graph, undo, serialized saves, Play From Here, socket contract and apertures, interactions/conditions, checkpoints, two-state hinge, blocked sweep, validation, 90/180 degree curves, visible deck = walkable region, comfort settings, locomotion bench")
 	finished = true
 	return failures
 
@@ -206,6 +215,67 @@ static func selection_cases(g: Node3D, failures: Array[String]) -> void:
 	if arm_core.material_overlay != null: failures.append("First person must show no selection glow")
 	g.build_level()
 
+## Spec §52: FOV and gravity-transition pacing are player settings; reduced motion is gentle.
+static func comfort_cases(g: Node3D, failures: Array[String]) -> void:
+	var w: SurfaceWalker = g.walker
+	var curl := piece(g, "TowerCurl")
+	w.place(curl, curl.point_at(.5), curl.surface_frame(curl.point_at(.5)).y, -curl.surface_frame(curl.point_at(.5)).z)
+	for rate in w.TURN_RATES.values():
+		w.turn_rate = rate
+		if not is_equal_approx(w.speed_limit(), deg_to_rad(rate) * 1.0): failures.append("Curve speed must follow the %d deg/s setting" % rate)
+	w.turn_rate = w.TURN_RATES.Brisk
+	w.reduced_motion = true
+	if not is_equal_approx(w.speed_limit(), deg_to_rad(w.TURN_RATES.Gentle)): failures.append("Reduced motion must use gentle gravity curves")
+	w.reduced_motion = false
+	w.turn_rate = w.profile.max_gravity_turn_rate
+	if not is_inf(piece(g, "Entry").curvature_radius(Vector3.ZERO)) or not is_equal_approx(w.speed_limit(), deg_to_rad(w.turn_rate)): failures.append("Only curves limit walking speed")
+	w.fov = 90
+	if not is_equal_approx(w.camera.fov, 90): failures.append("The FOV setting must reach the camera")
+	w.fov = w.profile.fov
+	g.build_level()
+
+## Spec §7.2: a surface presented as walkable matches its authored walkable region. Points just
+## outside each region edge must be off the path's own deck, unless that edge is a socket.
+## Walls, trims, parapets and other GEOMETRY components are never checked.
+static func deck_cases(g: Node3D, failures: Array[String]) -> void:
+	failures.append_array(deck_problems(g))
+	# The check must be able to fail: a region narrowed on a full-width deck is an invisible wall.
+	var entry := piece(g, "Entry")
+	var regions := entry.walk_regions.duplicate()
+	entry.walk_regions.assign([Rect2(-2, -.4, 4, .8)])
+	if deck_problems(g).is_empty(): failures.append("Deck check must catch a region narrower than its deck")
+	entry.walk_regions.assign(regions)
+
+static func deck_problems(g: Node3D) -> Array[String]:
+	var failures: Array[String] = []
+	var sockets := Links.descriptors(g.definition)
+	for c in g.paths:
+		var part: SurfacePiece = g.paths[c]
+		if c.kind != C.Kind.PATH or not c.blockout or part.walk_regions.is_empty(): continue
+		var reported := false
+		for region in part.walk_regions:
+			var corners := [region.position, Vector2(region.end.x, region.position.y), region.end, Vector2(region.position.x, region.end.y)]
+			for k in range(4):
+				var a: Vector2 = corners[k]
+				var b: Vector2 = corners[(k + 1) % 4]
+				var outward := (b - a).orthogonal().normalized()
+				for i in range(1, int(a.distance_to(b) / .1)):
+					var edge := a.lerp(b, i * .1 / a.distance_to(b))
+					var outside := edge + outward * .2
+					if part.walk_regions.any(func(r: Rect2): return r.grow(.001).has_point(outside)): continue
+					var world := part.to_global(Vector3(edge.x, part.half.y, edge.y))
+					var at_socket := false
+					for s in sockets:
+						var d: Vector3 = world - s.position
+						var across: Vector3 = s.direction.cross(s.normal).normalized()
+						if s.path == c and absf(d.dot(s.direction)) < .15 and absf(d.dot(across)) <= s.width / 2 + .05: at_socket = true
+					if at_socket: continue
+					for deck in part.solid_boxes:
+						if not reported and Rect2(deck.position.x, deck.position.z, deck.size.x, deck.size.z).has_point(outside):
+							failures.append("%s: its deck looks walkable past its walkable region near %s" % [c.name, outside])
+							reported = true
+	return failures
+
 ## Minimum-solution regression on the real runtime graph: guards against shortcuts.
 static func graph_cases(g: Node3D, failures: Array[String]) -> void:
 	g.build_level()
@@ -281,7 +351,7 @@ static func camera_cases(g: Node3D, failures: Array[String]) -> void:
 	var seam_checked := false
 	var previous_name := name_of(g)
 	var previous_frame: Basis = g.camera_frame
-	for step in range(int(ceil(20 / (3.5 / 60)))):
+	for step in range(int(ceil(20 / (2.0 / 60)))):
 		g.walker.walk(Vector2(0, -1), 1.0 / 60)
 		g.walker.sync_pose(1.0 / 60)
 		g.update_camera(1.0 / 60)
@@ -386,6 +456,14 @@ static func interaction_cases(g: Node3D, failures: Array[String]) -> void:
 	gate.target = NodePath("../Balcony")
 	g.data_source.add_child(gate)
 	g.build_level()
+	brake = g.definition.get_node("Brake")
+	if g.interaction_prompt() != "F  Use": failures.append("A usable interaction in reach must show its F prompt, got '%s'" % g.interaction_prompt())
+	g.architectural = true
+	if g.interaction_prompt() != "": failures.append("The isometric view must show no interaction prompt")
+	g.architectural = false
+	brake.position.x += 3
+	if g.interaction_prompt() != "": failures.append("An interaction out of reach must show no prompt")
+	brake.position.x -= 3
 	var before_interaction: Dictionary = g.snapshot()
 	var press := InputEventKey.new()
 	press.physical_keycode = KEY_F; press.pressed = true

@@ -12,11 +12,11 @@ Current phase: spec §54 **Phase 1 — Prove Puzzle Depth**. The only monument i
 
 | Folder | Responsibility |
 |---|---|
-| `core/` | Authored-surface traversal: `surface_piece.gd` (walk regions, contacts, solids; `class_name SurfacePiece`), `surface_walker.gd` (player, first-person camera; `SurfaceWalker`), `curved_track.gd` and `gravity_path.gd` (analytic gravity curves) |
+| `core/` | Authored-surface traversal: `surface_piece.gd` (walk regions, contacts, solids; `class_name SurfacePiece`), `surface_walker.gd` (player, locomotion, first-person camera; `SurfaceWalker`), `locomotion_profile.gd` + `locomotion.tres` (movement feel, tunable in the inspector), `gravity_path.gd` (analytic gravity curves) |
 | `authoring/` | Scene-level data: `component.gd` (`ElsewhereComponent`, every §46 behaviour selected by `kind`), `level.gd` (`ElsewhereLevel`), `connections.gd` (socket descriptors and compatibility), `validation.gd`; `components/*.tscn` are the drag-in §46 blockout pieces |
 | `runtime/` | `architecture_runtime.gd`: generic runtime (camera B, turns and sweep clearance, snapshots/undo, input, preferences, save hooks). `monument.gd`: builds an `ElsewhereLevel` into a playable monument (paths, sockets, interactions, checkpoints, goal, per-level saves, Play From Here). `hud.gd`: minimal HUD |
 | `monuments/` | One scene per monument: root `Puzzle` node with `runtime/monument.gd`, plus a `Level` child holding the authored data. Main scene: `the_ring.tscn`. Every scene here appears in the in-game menu |
-| `tests/` | `authoring_tests.gd` (headless self-test, launched from The Ring), `test_helpers.gd`, `fixtures/` (Bell Cradle and Folded Observatory scenes kept only to cover checkpoints, two-state hinges and blocked sweeps; they are test data, not monuments) |
+| `tests/` | `authoring_tests.gd` (headless self-test, launched from The Ring), `locomotion_bench.gd` (first-person feel measured on The Ring's route, part of the self-test), `eye_clearance_probe.gd` (separate run), `state_graph.gd`, `test_helpers.gd`, `fixtures/` (Bell Cradle and Folded Observatory scenes kept only to cover checkpoints, two-state hinges and blocked sweeps; they are test data, not monuments) |
 | `addons/elsewhere_authoring/` | First-party editor plugin: state preview, socket/normal display, validation, Play From Here (§48) |
 | `docs/` | `spec.md`, this guide, `authoring.md` (component reference), `authoring-friction.md`, `concept/`, `images/`. Has a `.gdignore` |
 | `legacy/` | Frozen archive with a `.gdignore`; Godot never loads it |
@@ -42,17 +42,19 @@ The [concept board](concept/elsewhere-concept-board.png) (spec Appendix A) sets 
 These are proven behaviours; break them only with an explicit spec change.
 
 1. **Authored contact only.** Only marked walk regions accept contact; ordinary edges block. Never infer gravity from proximity, camera direction or an unmarked face.
-2. **Analytic curves.** Gravity curves are explicit arcs (90°/180°, optional tail) that transport normal, heading and orbit continuously. There is no general spline or arbitrary-edge wrapping.
+2. **Analytic curves.** Gravity curves are explicit arcs (90°/180°, optional tail) that transport normal and heading continuously. There is no general spline or arbitrary-edge wrapping.
 3. **Sockets.** A link needs compatible type and width, opposite travel directions, matching normals, coincident positions within tolerance, an active path, and an actual crossing inside the socket aperture and receiving region. Never gate links with progress flags.
 4. **Carried pose.** Moving supports preserve the player's support-local pose. Separate paths on one structure stay separate; never silently transfer the player to a more useful path.
 5. **Turns.** Links are disabled while turning and only form at settled authored states. Every turn samples the sweep at ≤1.5° (minimum 60 samples) against other structures and player clearance. Construction tolerance is for docking edges, not for hiding overlaps. `carries_player=false` structures refuse to move while occupied.
 6. **Rejected turns** change nothing: no state, no snapshot, no undo entry. Recovery by withdrawing or undoing must always be possible.
 7. **Snapshots.** Undo, checkpoints and saves restore structure states, occupied path, local pose, both camera layers, path activity, locks and interactions. Saves are per level (`user://authored-<level_id>.save`) and guarded by level id + revision + contact validity.
 8. **Camera B (§9–11).** Transport the previous camera frame by the shortest change in ground normal; never rebuild heading from support axes or inherit yaw about an unchanged normal (turntable turns do not orbit the view). The composition (focus, size, azimuth, elevation) is authored per monument and expressed in the ground frame; there is **no orbit layer**. Zoom stays within 0.4–1.6 and pan within half the framing size; both keep the authored angle. Tab never resets them; Home resets both. Character look never affects the isometric view.
+9. **Controls.** Input is read in the ground frame: forward is the player's heading, carried through seams and curves by the minimal rotation, so a held W crosses floor → curve → underside without relearning. Velocity is heading-relative and carried the same way.
+10. **Play From Here** never loads or writes normal progress, and editor preview never mutates authored transforms.
 11. **Diegetic selection.** The HUD never lists movable structures. In isometric the player points at a structure: `pick_rig` ray-tests only movable assemblies' own meshes (boxes exactly, rings as flat annuli), so static architecture never steals a click and hidden interiors are never pickable. Hover and selection draw an outline in the structure's own accent (rotator `tint`, `runtime/outline.gdshader`), never a fill that hides geometry, and only in isometric.
 12. **Colour language.** An accent light means *this moves*, and each moving assembly has one accent (its rotator `tint`). Warm white is information and destination. Static architecture is neutral and never carries a mover's accent. Fix unreadable relationships with composition, fades or framing, not camera freedom.
-9. **Controls.** On ordinary ground, fresh movement input follows the projected camera; transported controls apply only on the authored curve during a held gesture. Mouse look alone never turns the avatar.
-10. **Play From Here** never loads or writes normal progress, and editor preview never mutates authored transforms.
+13. **Locomotion comfort.** Mouse look is applied 1:1 in the same frame and never smoothed. Only the ground's orientation is eased (`view_ground`, stored in the support's space so rotors carry it); the eye position is rigid. On a gravity curve, speed is capped at turn rate × radius from the first frame, so the view never turns faster than the comfort setting (Gentle/Normal/Brisk; reduced motion means Gentle). Blocked steps slide, never further than asked. `tests/locomotion_bench.gd` asserts all of this on The Ring's route; tune feel in `core/locomotion.tres` and keep the bench green.
+14. **Visible deck = walkable region** (§7.2). A path's own deck never extends past its walk regions except at sockets (`deck_cases`). Walking eyes stay 0.1 m clear of all art in every rotor configuration (`tests/eye_clearance_probe.gd`); fix failures with proportions (door widths, jamb spacing), not by hiding geometry.
 
 ## Verification
 
@@ -61,10 +63,11 @@ Godot 4.7.2 (Steam build, no console executable; capture output with `--log-file
 ```bash
 G="/c/Program Files (x86)/Steam/steamapps/common/Godot Engine/godot.windows.opt.tools.64.exe"
 "$G" --headless --path . --import --log-file import.log
-"$G" --headless --path . monuments/the_ring.tscn --quit-after 600 --log-file test.log -- --self-test  # --quit-after stops a hang if a script fails to compile
+"$G" --headless --path . monuments/the_ring.tscn --quit-after 900 --log-file test.log -- --self-test  # --quit-after stops a hang if a script fails to compile
+"$G" --headless --path . -s res://tests/eye_clearance_probe.gd --log-file eye.log -- res://monuments/the_ring.tscn  # after geometry changes; exit 0 = no clipping
 ```
 
-Require exit 0, the literal `AUTHORING SELF TEST PASS` line and no `SCRIPT ERROR` in the log. Close the editor before moving or renaming files; an open editor can re-save stale buffers to old paths. For gameplay or visual changes, also check live (Godot MCP Pro below): walking, Tab, 1–9 selection, Q/E, Z, wheel/Home zoom, upside-down traversal, the finish panel, and the editor dock (preview immutability, Play From Here). When a monument's solution is settled, pin its minimum with `tests/state_graph.gd` (turns and actions) so a socket or geometry change cannot add a shortcut. Tests prove mechanics, not comprehension; do not claim players understand a puzzle until an unaided playtest shows it (§51).
+Require exit 0, the literal `AUTHORING SELF TEST PASS` line and no `SCRIPT ERROR` in the log. The `LOCOMOTION BENCH:` line prints the measured feel; a value marked `!` is over its threshold. Close the editor before moving or renaming files; an open editor can re-save stale buffers to old paths. For gameplay or visual changes, also check live (Godot MCP Pro below): walking, Tab, 1–9 selection, Q/E, Z, wheel/Home zoom, upside-down traversal, the finish panel, and the editor dock (preview immutability, Play From Here). When a monument's solution is settled, pin its minimum with `tests/state_graph.gd` (turns and actions) so a socket or geometry change cannot add a shortcut. Tests prove mechanics, not comprehension; do not claim players understand a puzzle until an unaided playtest shows it (§51).
 
 ## Godot MCP Pro
 

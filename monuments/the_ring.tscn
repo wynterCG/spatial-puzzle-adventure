@@ -99,7 +99,7 @@ size = Vector3(1.2, 31, 1.2)
 size = Vector3(0.14, 3.4, 0.03)
 
 [sub_resource type="BoxMesh" id="LintelGlowMesh"]
-size = Vector3(0.14, 0.03, 1.8)
+size = Vector3(0.14, 0.03, 2)
 
 [sub_resource type="BoxMesh" id="GuideMesh"]
 size = Vector3(1.8, 0.02, 0.06)
@@ -140,14 +140,14 @@ path = NodePath("..")
 [node name="EntryJambL" type="Node3D" parent="Level"]
 script = ExtResource("3")
 kind = 8
-position = Vector3(-11.75, 2.3, -1.05)
+position = Vector3(-11.75, 2.3, -1.15)
 dimensions = Vector3(0.4, 4.2, 0.3)
 tint = Color(0.17, 0.17, 0.2, 1)
 
 [node name="EntryJambR" type="Node3D" parent="Level"]
 script = ExtResource("3")
 kind = 8
-position = Vector3(-11.75, 2.3, 1.05)
+position = Vector3(-11.75, 2.3, 1.15)
 dimensions = Vector3(0.4, 4.2, 0.3)
 tint = Color(0.17, 0.17, 0.2, 1)
 
@@ -155,7 +155,7 @@ tint = Color(0.17, 0.17, 0.2, 1)
 script = ExtResource("3")
 kind = 8
 position = Vector3(-11.75, 4.6, 0)
-dimensions = Vector3(0.4, 0.4, 2.4)
+dimensions = Vector3(0.4, 0.4, 2.6)
 tint = Color(0.17, 0.17, 0.2, 1)
 
 [node name="TowerShell" type="CSGCylinder3D" parent="Level"]
@@ -173,12 +173,12 @@ size = Vector3(4.2, 6.8, 1.2)
 [node name="UpperDoor" type="CSGBox3D" parent="Level/TowerShell"]
 position = Vector3(-2.3, -0.2, 0)
 operation = 2
-size = Vector3(0.8, 3.2, 0.8)
+size = Vector3(0.8, 3.2, 1.2)
 
 [node name="LowerDoor" type="CSGBox3D" parent="Level/TowerShell"]
 position = Vector3(-2.3, -3.8, 0)
 operation = 2
-size = Vector3(0.8, 3.2, 0.8)
+size = Vector3(0.8, 3.2, 1.2)
 
 [node name="EastSlot" type="CSGBox3D" parent="Level/TowerShell"]
 position = Vector3(2.3, -4.05, 0)
@@ -609,14 +609,14 @@ cast_shadow = 0
 [node name="TerraceJambL" type="Node3D" parent="Level"]
 script = ExtResource("3")
 kind = 8
-position = Vector3(8.25, 4.3, -1.05)
+position = Vector3(8.25, 4.3, -1.15)
 dimensions = Vector3(0.4, 4.2, 0.3)
 tint = Color(0.17, 0.17, 0.2, 1)
 
 [node name="TerraceJambR" type="Node3D" parent="Level"]
 script = ExtResource("3")
 kind = 8
-position = Vector3(8.25, 4.3, 1.05)
+position = Vector3(8.25, 4.3, 1.15)
 dimensions = Vector3(0.4, 4.2, 0.3)
 tint = Color(0.17, 0.17, 0.2, 1)
 
@@ -624,7 +624,7 @@ tint = Color(0.17, 0.17, 0.2, 1)
 script = ExtResource("3")
 kind = 8
 position = Vector3(8.25, 6.6, 0)
-dimensions = Vector3(0.4, 0.4, 2.4)
+dimensions = Vector3(0.4, 0.4, 2.6)
 tint = Color(0.17, 0.17, 0.2, 1)
 
 [node name="Planter" type="Node3D" parent="Level"]
@@ -670,12 +670,12 @@ mesh = SubResource("EntryPierMesh")
 material_override = SubResource("RingMaterial")
 
 [node name="DoorGlowL" type="MeshInstance3D" parent="Level/Structure"]
-position = Vector3(8.25, 4.7, -0.89)
+position = Vector3(8.25, 4.7, -0.99)
 mesh = SubResource("JambGlowMesh")
 material_override = SubResource("WarmLine")
 
 [node name="DoorGlowR" type="MeshInstance3D" parent="Level/Structure"]
-position = Vector3(8.25, 4.7, 0.89)
+position = Vector3(8.25, 4.7, 0.99)
 mesh = SubResource("JambGlowMesh")
 material_override = SubResource("WarmLine")
 

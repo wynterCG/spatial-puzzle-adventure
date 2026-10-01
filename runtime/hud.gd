@@ -11,6 +11,7 @@ var question: Label
 var status: Label
 var controls: Label
 var feedback: Label
+var prompt: Label
 var menu: PanelContainer
 var finish: PanelContainer
 var finish_title: Label
@@ -19,6 +20,9 @@ var reflection: Label
 var reflection_button: Button
 var reduced: CheckButton
 var sensitivity: HSlider
+var fov: HSlider
+var fov_value: Label
+var transitions: OptionButton
 
 func _ready() -> void:
 	root = Control.new()
@@ -53,6 +57,16 @@ func _ready() -> void:
 	feedback.offset_top = -130
 	feedback.offset_bottom = -86
 	feedback.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	# Contextual and quiet: shown only while something usable is within reach (spec §33).
+	prompt = label("", 16)
+	root.add_child(prompt)
+	prompt.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	prompt.offset_left = -200
+	prompt.offset_right = 200
+	prompt.offset_top = 70
+	prompt.offset_bottom = 100
+	prompt.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	prompt.modulate = Color(1, 1, 1, .85)
 	var bottom := panel(Vector2(38, -65), Vector2(1364, 40), Control.PRESET_BOTTOM_LEFT)
 	controls = label("", 14)
 	bottom.add_child(controls)
@@ -73,7 +87,7 @@ func _ready() -> void:
 	column.add_child(button("Reset view", func(): game.reset_overview()))
 	column.add_child(label("Comfort", 15))
 	reduced = CheckButton.new()
-	reduced.text = "Reduced motion"
+	reduced.text = "Reduced motion (gentle gravity curves, no head bob, instant turns)"
 	reduced.toggled.connect(func(value): game.walker.reduced_motion = value; game.save_preferences())
 	column.add_child(reduced)
 	column.add_child(label("Look sensitivity", 15))
@@ -83,6 +97,21 @@ func _ready() -> void:
 	sensitivity.step = 0.0001
 	sensitivity.value_changed.connect(func(value): game.walker.sensitivity = value; game.save_preferences())
 	column.add_child(sensitivity)
+	fov_value = label("", 15)
+	column.add_child(fov_value)
+	fov = HSlider.new()
+	fov.min_value = 60
+	fov.max_value = 95
+	fov.step = 1
+	fov.value_changed.connect(func(value): game.walker.fov = value; fov_value.text = "Field of view  %d°" % value; game.save_preferences())
+	column.add_child(fov)
+	column.add_child(label("Gravity transitions", 15))
+	transitions = OptionButton.new()
+	transitions.focus_mode = Control.FOCUS_NONE
+	for name in game.walker.TURN_RATES:
+		transitions.add_item("%s  (%d°/s)" % [name, game.walker.TURN_RATES[name]])
+	transitions.item_selected.connect(func(index): game.walker.turn_rate = game.walker.TURN_RATES.values()[index]; game.save_preferences())
+	column.add_child(transitions)
 	column.add_child(button("Restart this monument", func(): game.restart(); game.set_pause(false)))
 	reflection_button = button("View puzzle reflection", func(): game.show_reflection())
 	column.add_child(reflection_button)
@@ -150,6 +179,13 @@ func button(text: String, action: Callable) -> Button:
 func sync_preferences() -> void:
 	reduced.set_pressed_no_signal(game.walker.reduced_motion)
 	sensitivity.set_value_no_signal(game.walker.sensitivity)
+	fov.set_value_no_signal(game.walker.fov)
+	fov_value.text = "Field of view  %d°" % game.walker.fov
+	var rates: Array = game.walker.TURN_RATES.values()
+	var nearest := 0
+	for i in range(rates.size()):
+		if absf(rates[i] - game.walker.turn_rate) < absf(rates[nearest] - game.walker.turn_rate): nearest = i
+	transitions.select(nearest)
 
 func refresh() -> void:
 	if game.walker.support == null:
@@ -158,7 +194,7 @@ func refresh() -> void:
 	mode.text = "ARCHITECT  /  arrange the space" if game.architectural else "INHABITANT  /  first person"
 	question.text = game.puzzle_question()
 	status.visible = debug
-	status.text = game.connection_text() if debug else ""
+	status.text = (game.connection_text() + "\nspeed %.2f / cap %.2f m/s  ·  view turning %.0f°/s" % [game.walker.velocity.length(), game.walker.speed_cap, game.walker.view_rate]) if debug else ""
 	menu.visible = game.paused
 	if game.won and not finish.visible:
 		explanation.visible = false
@@ -169,6 +205,8 @@ func refresh() -> void:
 	explanation.text = game.puzzle_reason()
 	feedback.text = game.message
 	feedback.visible = not game.paused and not game.blocks_play()
+	prompt.text = game.interaction_prompt()
+	prompt.visible = not prompt.text.is_empty()
 	controls.text = game.key_name("view") + "  Change view  /  "
 	if game.architectural:
 		controls.text += "Click  Select  /  " + game.key_name("rotate_left") + " · " + game.key_name("rotate_right") + "  Turn  /  Wheel  Zoom  /  Right-drag · WASD  Pan  /  " + game.key_name("reset_view") + "  Reset view  /  "
