@@ -1,6 +1,12 @@
 # Elsewhere ? positioning prototype specification
 
-Revision 11, 1 October 2026.
+Revision 12, 1 October 2026.
+
+## Scene-authoring foundation
+
+Phase 0/1 of the [level-authoring proposal](level-authoring-proposal.md) is implemented through [scene components and small Godot editor helpers](level-authoring.md). Three authored scenes share paths, gravity curves, sockets, discrete-state rotations/carriers, interactions, start/goal markers, checkpoints and persistence. The original procedural puzzles remain available. The new authoring layer separates custom art from gameplay data and includes a temporary component/blockout library.
+
+The first-party Elsewhere dock provides an isolated state preview, socket/normal displays, validation and Play From Here. The mature editor, snapping, designer snapshots, reachability/sweep overlays, public editor and production asset library remain later phases. Human playtesting, not the number of authored examples alone, must establish the construction grammar.
 
 ## Separate architectural study: The turning frame
 

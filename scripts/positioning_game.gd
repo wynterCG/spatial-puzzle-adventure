@@ -59,6 +59,9 @@ var clearance_contact_point := Vector3.ZERO
 var input_bindings := {"forward": KEY_W, "back": KEY_S, "left": KEY_A, "right": KEY_D, "view": KEY_TAB, "rotate_left": KEY_Q, "rotate_right": KEY_E, "undo": KEY_Z, "reset": KEY_R, "hint": KEY_H, "reset_view": KEY_HOME}
 
 func _ready() -> void:
+	if get_tree().has_meta("elsewhere_trial"):
+		initial_trial = get_tree().get_meta("elsewhere_trial")
+		get_tree().remove_meta("elsewhere_trial")
 	configure_input()
 	var environment := WorldEnvironment.new()
 	var env := Environment.new()
@@ -107,6 +110,20 @@ func configure_input() -> void:
 
 func key_name(action: String) -> String:
 	return OS.get_keycode_string(input_bindings[action])
+
+func puzzle_title() -> String: return TITLES[trial]
+func puzzle_question() -> String: return QUESTIONS[trial]
+func puzzle_reason() -> String: return REASONS[trial]
+func reached_goal() -> bool:
+	return walker.support == goal and Vector2(walker.foot.x, walker.foot.z).length() < 1.2
+func record_completion() -> void:
+	if trial == 4: chapter_completed = true
+	elif trial == 5: monument_completed = true
+	else: completed[trial] = true
+func open_authored(scene_path: String) -> void:
+	save_progress()
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	get_tree().change_scene_to_file(scene_path)
 
 func load_trial(index: int) -> void:
 	clear_turn_preview()
@@ -432,12 +449,10 @@ func _process(delta: float) -> void:
 		var movement := Input.get_vector("left", "right", "forward", "back")
 		walker.align_movement_to_camera(movement)
 		walker.walk(movement, minf(delta, 0.1))
-		if not won and walker.support == goal and Vector2(walker.foot.x, walker.foot.z).length() < 1.2:
+		if not won and reached_goal():
 			won = true
 			finish_open = true
-			if trial == 4: chapter_completed = true
-			elif trial == 5: monument_completed = true
-			else: completed[trial] = true
+			record_completion()
 			message = "Connection reached. What needed to happen first?"
 			Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 			save_progress()
@@ -480,7 +495,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			rotate_selected(-1)
 		elif event.is_action_pressed("rotate_right"):
 			rotate_selected(1)
-		elif event is InputEventKey and event.pressed and event.keycode in [KEY_1, KEY_2, KEY_3]:
+		elif event is InputEventKey and event.pressed and event.keycode >= KEY_1 and event.keycode <= KEY_9:
 			select_rig(event.keycode - KEY_1)
 	elif event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
 		walker.look(event.relative)
@@ -506,6 +521,7 @@ func toggle_view() -> void:
 
 func select_rig(index: int) -> void:
 	clear_turn_preview()
+	if rigs.is_empty(): return
 	selected = clampi(index, 0, rigs.size() - 1)
 	for part in pieces:
 		part.highlight(rigs[selected].node.is_ancestor_of(part))
@@ -601,6 +617,9 @@ func boxes_overlap(a: MeshInstance3D, b: MeshInstance3D) -> bool:
 func turn_obstruction(index: int, direction: int) -> String:
 	turn_contact.clear()
 	var entry := rigs[index]
+	if entry.get("locked", false): return "This structure is locked."
+	if next_rotation_state(entry, direction) == entry.state: return "There is no further authored state in that direction."
+	if not entry.get("carries_player", true) and entry.node.is_ancestor_of(walker.support): return "Step onto fixed ground before moving this structure."
 	var original: Basis = entry.node.basis
 	var original_frame: Transform3D = entry.node.global_transform
 	var fixed: Array[MeshInstance3D] = []
@@ -625,12 +644,21 @@ func turn_obstruction(index: int, direction: int) -> String:
 		if stationary.global_position.distance_squared_to(pivot) <= pow(sweep_radius + radius, 2):
 			candidates.append(stationary)
 	var result := ""
-	for step in range(1, 61):
-		entry.node.basis = Basis(entry.axis, (float(entry.state) + direction * float(step) / 60.0) * PI / 2)
+	var interval := rotation_interval(entry, direction)
+	var samples := maxi(60, int(ceil(absf(interval.y - interval.x) / deg_to_rad(1.5))))
+	for step in range(1, samples + 1):
+		entry.node.basis = rotation_basis(entry, lerpf(interval.x, interval.y, float(step) / samples))
 		for moving in entry.solids:
 			for stationary in candidates:
 				if boxes_overlap(moving, stationary):
-					result = "The turn is blocked by " + str(stationary.get_parent().name).replace("_", " ") + "."
+					var blocker_label := str(stationary.get_parent().name).replace("_", " ")
+					var ancestor: Node = stationary.get_parent()
+					while ancestor != null and ancestor != world:
+						if ancestor is SurfacePiece:
+							blocker_label = ancestor.title
+							break
+						ancestor = ancestor.get_parent()
+					result = "The turn is blocked by " + blocker_label + "."
 					if trial == 4 and index == 1 and stationary.has_meta("clearance_label"):
 						result = "The ring would hit " + str(stationary.get_meta("clearance_label")) + "'s bracket. Move that gallery out of its path."
 						turn_contact = {"mesh": moving.mesh, "frame": moving.global_transform, "blocker_size": stationary.mesh.size, "blocker_frame": stationary.global_transform, "start": original_frame, "end": entry.node.global_transform, "parts": []}
@@ -646,8 +674,24 @@ func turn_obstruction(index: int, direction: int) -> String:
 	entry.node.basis = original
 	return result
 
+func rotation_basis(entry: Dictionary, angle: float) -> Basis:
+	return entry.get("base_basis", Basis.IDENTITY) * Basis(entry.axis.normalized(), angle)
+
+func rotation_interval(entry: Dictionary, direction: int) -> Vector2:
+	var angles: PackedFloat32Array = entry.get("angles", PackedFloat32Array([0, 90, 180, 270]))
+	var from := deg_to_rad(angles[entry.state])
+	var to := deg_to_rad(angles[next_rotation_state(entry, direction)])
+	if not entry.get("wrap_states", true): return Vector2(from, to)
+	if direction > 0 and to <= from: to += TAU
+	if direction < 0 and to >= from: to -= TAU
+	return Vector2(from, to)
+
+func next_rotation_state(entry: Dictionary, direction: int) -> int:
+	var count: int = entry.get("angles", [0, 90, 180, 270]).size()
+	return posmod(entry.state + direction, count) if entry.get("wrap_states", true) else clampi(entry.state + direction, 0, count - 1)
+
 func rotate_selected(direction: int) -> void:
-	if busy or paused or blocks_play() or not architectural:
+	if busy or paused or blocks_play() or not architectural or rigs.is_empty():
 		return
 	clear_turn_preview()
 	var obstruction := turn_obstruction(selected, direction)
@@ -657,13 +701,12 @@ func rotate_selected(direction: int) -> void:
 		return
 	history.append(snapshot())
 	var entry := rigs[selected]
-	var from: float = entry.state * PI / 2.0
-	var to := from + direction * PI / 2.0
-	entry.state = posmod(entry.state + direction, 4)
+	var interval := rotation_interval(entry, direction)
+	entry.state = next_rotation_state(entry, direction)
 	busy = true
 	update_links()
 	tween = create_tween().set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
-	tween.tween_method(func(angle: float): entry.node.basis = Basis(entry.axis, angle); update_camera(), from, to, 0.0 if walker.reduced_motion else 0.8)
+	tween.tween_method(func(angle: float): entry.node.basis = rotation_basis(entry, angle); update_camera(), interval.x, interval.y, 0.0 if walker.reduced_motion else entry.get("duration", .8))
 	tween.tween_callback(func():
 		busy = false
 		update_links()
@@ -692,7 +735,8 @@ func restore(data: Dictionary) -> void:
 	overview_dragging = false
 	for i in range(rigs.size()):
 		rigs[i].state = data.states[i]
-		rigs[i].node.basis = Basis(rigs[i].axis, data.states[i] * PI / 2)
+		var angles: PackedFloat32Array = rigs[i].get("angles", PackedFloat32Array([0, 90, 180, 270]))
+		rigs[i].node.basis = rotation_basis(rigs[i], deg_to_rad(angles[data.states[i]]))
 	walker.restore(data.player, world)
 	camera_bias = data.camera_bias
 	var ground := walker.support.global_basis * walker.support.surface_frame(walker.foot)
@@ -730,7 +774,7 @@ func restart() -> void:
 	restore(initial)
 	history.clear()
 	hint_level = 0
-	message = QUESTIONS[trial]
+	message = puzzle_question()
 	save_progress()
 
 func set_pause(value: bool) -> void:

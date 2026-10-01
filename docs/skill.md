@@ -4,6 +4,8 @@ This is the requested project-local guide, not an installed global assistant ski
 
 ## Current direction takes precedence
 
+Use the [scene-authoring foundation](level-authoring.md) for new levels. The user requested reusable behaviour before a visual tile kit; their complete [proposal](level-authoring-proposal.md) preserves the phased scope. New puzzles should be scene data under an ElsewhereLevel, sharing `scripts/authoring/puzzle.gd`, not new bespoke runtime builders. Keep previous procedural puzzles as regression references. Record repeated friction in [authoring-friction.md](authoring-friction.md); defer Phase 2/3 tooling until real use justifies it.
+
 The latest architectural experiment is [The turning frame](monument-study.md): one dominant form, one opening, one moving assembly and one destination. Its routes are the architecture, including the integrated rounded end. These are constraints for this study, not every future level. Preserve the courtyard and every earlier prototype. Assess consolidation before adding an enclosure, mechanisms or decoration. The study intentionally reuses the first positioning dependency; do not describe it as a new mechanic or validated puzzle depth.
 
 The current milestone is testing and revising the connected chapter in simple geometry, followed only later by a representative vertical slice. Use [game-vision.md](game-vision.md) and [first-chapter-plan.md](first-chapter-plan.md) as the planning baseline. The revised turning-courtyard blockout is implemented in `chapter_layout.gd`; [chapter-one.md](chapter-one.md) records its scope. Its human playtest is still pending. Give each puzzle an intended discovery; test progression before adding mechanics or finishing the chapter's art. Keep all existing prototypes available.
@@ -69,6 +71,8 @@ Godot may save stale open script buffers over external edits. Before restarting,
 The proprietary `addons/godot_mcp/`, `.mcp.json` and `override.cfg` remain untracked. Do not introduce addon/autoload references into the portable project. Credentials remain outside Git.
 
 ## Verification
+
+Also run `scenes/authored/turning_frame.tscn -- --self-test` and require `AUTHORING SELF TEST PASS` with no script errors. It tests the three authored monuments plus interactions, checkpoints, socket aperture enforcement, non-four-state rotation, persistence, invalid authoring and 90-degree traversal. Do not confuse the proprietary `addons/godot_mcp` (ignored) with the first-party `addons/elsewhere_authoring` (tracked). In editor checks, confirm preview never changes source transforms and Play From Here neither loads nor writes normal progress. Update local plugin overrides when necessary, keeping credentials and MCP code out of commits.
 
 Require exit 0 and the literal PASS line from both suites:
 

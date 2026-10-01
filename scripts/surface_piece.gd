@@ -1,3 +1,4 @@
+@tool
 class_name SurfacePiece
 extends Node3D
 ## Architecture and its explicitly authored local-UP walking regions.
@@ -15,6 +16,17 @@ var path_visuals: Array[MeshInstance3D] = []
 var solid_boxes: Array[AABB] = []
 var solid_meshes: Array[MeshInstance3D] = []
 var pick_body: StaticBody3D
+var strict_connections := false
+var connection_apertures: Array[Dictionary] = []
+
+func allows_connection(other: SurfacePiece, world_point: Vector3) -> bool:
+	if not strict_connections: return true
+	for aperture in connection_apertures:
+		if aperture.other != other: continue
+		var delta: Vector3 = world_point - aperture.point
+		var across: Vector3 = aperture.direction.cross(aperture.normal).normalized()
+		if absf(delta.dot(across)) <= aperture.width / 2 + .001 and absf(delta.dot(aperture.normal)) < .04 and absf(delta.dot(aperture.direction)) < .13: return true
+	return false
 
 func surface_frame(_point: Vector3) -> Basis:
 	return Basis.IDENTITY

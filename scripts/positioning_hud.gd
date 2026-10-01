@@ -25,6 +25,8 @@ var reduced: CheckButton
 var distance: HSlider
 var sensitivity: HSlider
 var selectors: Array[Button] = []
+var selector_list: VBoxContainer
+var selector_scroll: ScrollContainer
 
 func _ready() -> void:
 	root = Control.new()
@@ -61,7 +63,12 @@ func _ready() -> void:
 	selected_label = label("", 21)
 	column.add_child(selected_label)
 	var row: BoxContainer = VBoxContainer.new()
-	column.add_child(row)
+	selector_list = row
+	selector_scroll = ScrollContainer.new()
+	selector_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	column.add_child(selector_scroll)
+	selector_scroll.add_child(row)
+	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	for index in range(3):
 		var choice := button(str(index + 1), func(): game.select_rig(index))
 		selectors.append(choice)
@@ -108,6 +115,9 @@ func _ready() -> void:
 	scroll.add_child(column)
 	column.add_child(label("Take a moment", 27))
 	column.add_child(label("New monument study", 15))
+	column.add_child(button("Authored / Turning frame", func(): game.open_authored("res://scenes/authored/turning_frame.tscn")))
+	column.add_child(button("Authored / The bell cradle", func(): game.open_authored("res://scenes/authored/bell_cradle.tscn")))
+	column.add_child(button("Authored / The folded observatory", func(): game.open_authored("res://scenes/authored/folded_observatory.tscn")))
 	column.add_child(button("The turning frame", func(): game.choose_puzzle(5)))
 	column.add_child(label("Connected chapter", 15))
 	column.add_child(button("Chapter 1 / The far light", func(): game.choose_puzzle(4)))
@@ -213,13 +223,19 @@ func sync_preferences() -> void:
 	sensitivity.set_value_no_signal(game.walker.sensitivity)
 
 func refresh() -> void:
-	if game.rigs.is_empty():
+	if game.walker.support == null:
 		return
-	title.text = game.TITLES[game.trial] if game.trial >= 3 else "%02d  /  %s" % [game.trial + 1, game.TITLES[game.trial]]
+	while selectors.size() < game.rigs.size():
+		var index := selectors.size()
+		var choice := button(str(index + 1), func(): game.select_rig(index))
+		selectors.append(choice)
+		selector_list.add_child(choice)
+	selector_scroll.custom_minimum_size.y = mini(game.rigs.size(), 3) * 48
+	title.text = game.puzzle_title() if game.trial >= 3 else "%02d  /  %s" % [game.trial + 1, game.puzzle_title()]
 	mode.text = "ARCHITECT  /  arrange the space" if game.architectural else ("INHABITANT  /  third person" if game.walker.third_person else "INHABITANT  /  first person")
-	question.text = game.chapter_zones[game.chapter_zone].question if game.trial == 4 else game.QUESTIONS[game.trial]
+	question.text = game.chapter_zones[game.chapter_zone].question if game.trial == 4 else game.puzzle_question()
 	status.text = game.connection_text()
-	selected_label.text = game.rigs[game.selected].label
+	selected_label.text = game.rigs[game.selected].label if not game.rigs.is_empty() else "No moving structure"
 	clearance_label.visible = is_instance_valid(game.clearance_preview) and game.architectural
 	clearance_marker.visible = clearance_label.visible and not game.paused and not game.blocks_play()
 	clearance_leader.visible = clearance_marker.visible
@@ -236,7 +252,7 @@ func refresh() -> void:
 		var edge_x := 0.0 if clearance_marker.position.x > contact.x else clearance_marker.size.x
 		var target: Vector2 = clearance_marker.position + Vector2(edge_x, clearance_marker.size.y * .5)
 		clearance_leader.points = PackedVector2Array([contact, contact + Vector2(18, -22), target])
-	selected_label.add_theme_color_override("font_color", game.rigs[game.selected].get("tint", Color("e4dfd6")))
+	selected_label.add_theme_color_override("font_color", game.rigs[game.selected].get("tint", Color("e4dfd6")) if not game.rigs.is_empty() else Color("e4dfd6"))
 	for i in range(selectors.size()):
 		selectors[i].visible = i < game.rigs.size()
 		if i < game.rigs.size():
@@ -248,7 +264,7 @@ func refresh() -> void:
 	sidebar.anchor_bottom = sidebar.anchor_top
 	sidebar.offset_top = 160 if game.trial >= 4 else -306
 	sidebar.offset_bottom = 320 if game.trial == 5 else 420 if game.trial >= 4 else -90
-	sidebar.visible = game.architectural and not game.paused and not game.blocks_play()
+	sidebar.visible = game.architectural and not game.paused and not game.blocks_play() and not game.rigs.is_empty()
 	menu.visible = game.paused
 	if game.won and not finish.visible:
 		explanation.visible = false
@@ -256,8 +272,9 @@ func refresh() -> void:
 	explore_button.visible = game.trial >= 4
 	reflection_button.visible = game.trial >= 4 and game.won
 	finish_title.text = "The turning frame" if game.trial == 5 else "The far light" if game.trial == 4 else ("Lantern reached" if game.trial == 3 else "Connection reached")
-	reflection.text = "Before continuing: " + game.QUESTIONS[game.trial]
-	explanation.text = game.REASONS[game.trial]
+	if game.trial == 6: finish_title.text = game.puzzle_title()
+	reflection.text = "Before continuing: " + game.puzzle_question()
+	explanation.text = game.puzzle_reason()
 	feedback.text = game.message
 	feedback.visible = not game.paused and not game.blocks_play()
 	controls.text = game.key_name("view") + "  Change view  /  "

@@ -2,6 +2,8 @@
 
 **Where do I need to be before I transform the space?**
 
+**Scene authoring is now available.** Open `scenes/authored/turning_frame.tscn` in Godot, edit the Level's gameplay components, and use the **Elsewhere** dock for state preview, socket/ground visualization, validation and Play From Here. Two additional authored blockouts—the Bell Cradle and Folded Observatory—use the same runtime. [Authoring guide](docs/level-authoring.md).
+
 **The turning frame** is a new, separate architectural study: one rounded frame, one moving assembly and one lantern. Choose the passage that must carry you before turning the frame. Open **Escape > The turning frame**, or run `scenes/monument.tscn`. All earlier puzzles remain available. [Study and visual review](docs/monument-study.md).
 
 **Chapter 1 / The far light** is now a playable blockout: a compact turning courtyard where the gallery used to enter becomes the obstruction that must be withdrawn. Three distinctly coloured assemblies share one architectural space, ending at the light seen from the start. It uses first person and isometric camera B. [Chapter details](docs/chapter-one.md).

@@ -1,5 +1,21 @@
 # Positioning studies - validation
 
+## Scene authoring foundation — 1 October 2026
+
+The [authoring workflow](level-authoring.md) implements the proposal's Phase 0/1 scope. Three editable scenes share the same runtime: Turning Frame, Bell Cradle and Folded Observatory. Earlier procedural puzzles remain available. The new examples reuse established positioning dependencies; they do not establish new mechanics, finished architecture or a mature level grammar.
+
+A clean staged checkout, with the first-party authoring plugin and without MCP or local overrides, imported successfully. All three suites passed with exit 0, explicit PASS markers and empty stderr on **Godot 4.6.1 Mono and 4.7.2 Steam**:
+
+- `POSITIONING SELF TEST PASS`, including the chapter, Lantern Fold, monument and camera regressions.
+- Original-gallery `SELF TEST PASS`.
+- `AUTHORING SELF TEST PASS`: three complete routes and important counterexamples, both frame rolls, passenger local pose, settled-only connections, socket compatibility and aperture enforcement, two-state receiver, interaction conditions and locks, occupied-path protection, checkpoints, serialized save/reload/undo, level/revision isolation, invalid authoring, Play From Here, and real 90-degree curve-to-wall traversal and return.
+
+Godot MCP Pro editor checks used an isolated project and user-data directory. State preview changed only the preview copy. Play From Here launched on the selected inner passage in preview state 2 with matching ground orientation; debug progress writes were suppressed. The payload cleared after launch and a subsequent ordinary scene run used normal startup. The final editor-launch check on 4.7.2 produced no errors. A live held-forward run reached the authored Turning Frame goal and triggered completion.
+
+Rendered checks covered the [state preview](authoring-state-preview.png), [Bell Cradle overview](authoring-bell-cradle.png), [Folded Observatory overview](authoring-observatory.png), first-person observatory arrival and first-person Bell Cradle underside. The latter reached InnerArm with world-down ground. These are selected visual and mechanical checks, not a blind playtest or evidence of human comfort. No new Jev test was run for this authoring milestone.
+
+The user's existing editor/game, saves and pre-existing project feature-version change were preserved. Runtime sweep clearance remains sampled; editor validation does not prove solvability. Socket snapping, reachable-path visualization, editor sweep volumes and named designer snapshots remain deferred according to the proposal.
+
 ## Turning-frame study — 1 October 2026
 
 Positional-choice review: the existing puzzle already creates a correct arrangement with the player on the wrong passage. A Godot MCP Pro run reached that state, then returned to the arrival and completed from the longer ledge using normal walking and turns, without reset. [Wrong-passage evidence](monument-wrong-passage.png) shows the disconnected occupied path and connected destination. The taller landmark was cropped in that inverted view; the monument's fixed focus/scale now keep it above the footer. Added projected-mesh framing checks for both occupied passages across all four orientations. No walking region, connection or mechanism changed.

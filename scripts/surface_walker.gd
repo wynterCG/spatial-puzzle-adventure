@@ -214,6 +214,7 @@ func advance(world_direction: Vector3, distance: float) -> Vector3:
 	var world_normal := support.global_basis * normal
 	# Authored, settled graph AND touching compatible walking regions are required.
 	for other in support.neighbours:
+		if not support.allows_connection(other, world_next): continue
 		var local := other.to_local(world_next)
 		var up := (other.global_basis.inverse() * world_normal).normalized()
 		if not other.allows_point(local, up) or not pose_is_clear(other, local, up):
