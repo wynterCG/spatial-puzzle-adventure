@@ -61,7 +61,7 @@ static func run(g: Node3D) -> Array[String]:
 	interaction_cases(g, failures)
 	fixture_cases(g, failures)
 	curve_cases(g, failures)
-	print("AUTHORING CASES: ring v3 16-configuration table, dead ends, solution both ways, sweep clearance, 6-turn/16-action minimum, tower necessity, authored camera (no orbit, zoom, Home, Tab, legacy snapshots, turntable heading, ground follow, seam continuity), diegetic selection (pick, click, hover glow, no HUD list), carried pose, settled graph, undo, serialized saves, Play From Here, socket contract and apertures, interactions/conditions, checkpoints, two-state hinge, blocked sweep, validation, 90/180 degree curves")
+	print("AUTHORING CASES: ring v3 16-configuration table, dead ends, solution both ways, sweep clearance, 6-turn/16-action minimum, tower necessity, authored camera (no orbit, zoom, bounded pan, Home, Tab, legacy snapshots, turntable heading, ground follow, seam continuity), diegetic selection (pick, click, hover glow, no HUD list), carried pose, settled graph, undo, serialized saves, Play From Here, socket contract and apertures, interactions/conditions, checkpoints, two-state hinge, blocked sweep, validation, 90/180 degree curves")
 	finished = true
 	return failures
 
@@ -237,16 +237,22 @@ static func camera_cases(g: Node3D, failures: Array[String]) -> void:
 	drag.relative = Vector2(300, 120); drag.button_mask = MOUSE_BUTTON_MASK_RIGHT
 	g._unhandled_input(drag)
 	g.update_camera()
-	if g.snapshot() != before: failures.append("Right-drag must not orbit the authored view")
+	var after: Dictionary = g.snapshot()
+	if after.camera_frame != before.camera_frame: failures.append("Right-drag must not rotate the authored view")
+	if g.overview_pan == Vector2.ZERO: failures.append("Right-drag must pan the isometric view")
+	var basis_before: Basis = g.overview.global_basis
+	g.pan_overview(Vector2(1000, 1000))
+	if g.overview_pan.length() > g.overview_size * g.PAN_LIMIT + .001: failures.append("Pan must stay within its limit")
+	if not g.overview.global_basis.is_equal_approx(basis_before): failures.append("Pan must never change the camera angle")
 	g.zoom_overview(100)
 	if not is_equal_approx(g.overview_zoom, g.ZOOM_MIN): failures.append("Zoom must clamp to the minimum")
 	g.zoom_overview(-100)
 	if not is_equal_approx(g.overview_zoom, g.ZOOM_MAX): failures.append("Zoom must clamp to the maximum")
 	var frame: Basis = g.camera_frame
 	g.toggle_view(); g.toggle_view()
-	if not is_equal_approx(g.overview_zoom, g.ZOOM_MAX): failures.append("Tab must not reset zoom")
+	if not is_equal_approx(g.overview_zoom, g.ZOOM_MAX) or g.overview_pan == Vector2.ZERO: failures.append("Tab must not reset zoom or pan")
 	g.reset_overview()
-	if not is_equal_approx(g.overview_zoom, 1.0) or not g.camera_frame.is_equal_approx(frame): failures.append("Home must reset zoom only")
+	if not is_equal_approx(g.overview_zoom, 1.0) or g.overview_pan != Vector2.ZERO or not g.camera_frame.is_equal_approx(frame): failures.append("Home must reset zoom and pan only")
 	var legacy: Dictionary = g.snapshot()
 	legacy.overview_yaw = 1.2; legacy.overview_elevation = .5; legacy.overview_zoom = 3.0
 	g.restore(legacy)

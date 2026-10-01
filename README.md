@@ -23,8 +23,8 @@ Open `project.godot` in **Godot 4.7** and press **F5** to play The Ring. Press E
 | Interact | F |
 | Select structure (isometric) | Click it (1–9 also work) |
 | Rotate structure | Q / E |
-| Zoom isometric view (limited) | Mouse wheel |
-| Reset zoom | Home |
+| Zoom / pan isometric view | Mouse wheel / right-drag or WASD |
+| Reset view | Home |
 | Undo / restart | Z / R |
 | Checkpoint / hint | Backspace / H |
 | Debug info / menu | F3 / Escape |

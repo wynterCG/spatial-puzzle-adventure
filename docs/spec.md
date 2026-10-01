@@ -382,14 +382,14 @@ These are designed for that specific monument, so its silhouette, foreground and
 
 The camera remains ground-relative (§9.2–§10). When gravity changes, the player sees **the same monument from their new orientation**. That view is earned by moving through the architecture, never produced by dragging the camera.
 
-Players **cannot freely orbit** the view. Spatial information hidden by the composition is discovered through first-person exploration rather than camera manipulation.
+Players **cannot rotate** the view. Spatial information hidden by the composition is discovered through first-person exploration rather than camera manipulation.
 
 Allowed readability aids:
 
-- **limited zoom**, about ±20 % around the authored framing; enough to find the character or read a joint, never enough to turn the puzzle into a map or inspect first-person clues;
+- **zoom** (0.4–1.6 × the authored framing) and **bounded pan** (right/middle-drag or WASD, at most half the framing size). Both keep the authored angle. Closed shells still hide interiors at any zoom;
 - contextual occlusion handling: the player silhouette, and, where testing shows a need, cutaways, fades or selection outlines.
 
-**Tab reveals the current composition and never resets zoom.** A **Reset View** command restores the authored framing.
+**Tab reveals the current composition and never resets zoom or pan.** A **Reset View** command (Home) restores the authored framing.
 
 Alternative fixed viewpoints (for example 90° snaps) are not part of the baseline. Add them only for a specific relationship that playtesting shows is unreadable.
 ---
@@ -908,7 +908,8 @@ Persistent player UI should be limited to what testing proves necessary.
 
 **Click a structure** — Select it (it glows; no on-screen list)  
 **Q / E** — Rotate selected structure  
-**Mouse wheel** — Limited zoom  
+**Mouse wheel** — Zoom  
+**Right drag / WASD** — Pan  
 **Z** — Undo  
 **Home** — Reset framing  
 **Tab** — Return to first person

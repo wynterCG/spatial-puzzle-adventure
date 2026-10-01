@@ -7,9 +7,10 @@ const Piece = preload("res://core/surface_piece.gd")
 const Walker = preload("res://core/surface_walker.gd")
 const HUD = preload("res://runtime/hud.gd")
 const OUTLINE = preload("res://runtime/outline.gdshader")
-# Limited zoom around the authored framing (spec §11): enough to find the avatar, never a map.
-const ZOOM_MIN := .8
-const ZOOM_MAX := 1.25
+# Zoom and pan around the authored framing (spec §11). Neither ever rotates the view.
+const ZOOM_MIN := .4
+const ZOOM_MAX := 1.6
+const PAN_LIMIT := .5 # fraction of the authored framing size the view may slide away
 var world: Node3D
 var pieces: Array[SurfacePiece] = []
 var rigs: Array[Dictionary] = []
@@ -34,6 +35,8 @@ var camera_frame := Basis.IDENTITY
 # Authored composition offset in the player's ground frame (ElsewhereLevel.overview_local_offset).
 var overview_local_offset := Vector3(30, 40, -30)
 var overview_zoom := 1.0
+# Screen-plane pan in metres (x right, y up), applied after the authored composition.
+var overview_pan := Vector2.ZERO
 # Movable structure under the cursor in the isometric view (-1: none). Selection is diegetic:
 # the structures themselves glow; there is no list of movable pieces in the HUD.
 var hovered := -1
@@ -150,6 +153,8 @@ func update_camera(_delta := 0.0) -> void:
 	overview.size = overview_size * overview_zoom
 	overview.position = focus + camera_frame * overview_local_offset
 	overview.look_at(focus, ground.y)
+	# Pan slides the camera parallel to the screen, so the authored angle never changes.
+	overview.position += overview.global_basis.x * overview_pan.x + overview.global_basis.y * overview_pan.y
 
 func zoom_overview(steps: float) -> void:
 	if not architectural or paused or busy or blocks_play():
@@ -157,9 +162,16 @@ func zoom_overview(steps: float) -> void:
 	overview_zoom = clampf(overview_zoom * exp(-steps * .12), ZOOM_MIN, ZOOM_MAX)
 	update_camera()
 
-## Home: restores the authored zoom. Composition, focus and size are fixed per monument.
+func pan_overview(amount: Vector2) -> void:
+	if not architectural or paused or blocks_play():
+		return
+	overview_pan = (overview_pan + amount).limit_length(overview_size * PAN_LIMIT)
+	update_camera()
+
+## Home: restores the authored framing (zoom and pan). The angle is fixed per monument.
 func reset_overview() -> void:
 	overview_zoom = 1.0
+	overview_pan = Vector2.ZERO
 	update_camera()
 
 # --- Input and frame loop -------------------------------------------------------------------
@@ -167,6 +179,10 @@ func reset_overview() -> void:
 func _process(delta: float) -> void:
 	if walker.support == null:
 		return
+	if architectural and not paused and not blocks_play():
+		# WASD pans the isometric view; the character does not move in this view.
+		var pan := Input.get_vector("left", "right", "back", "forward")
+		if pan != Vector2.ZERO: pan_overview(pan * overview.size * .6 * minf(delta, .1))
 	if not architectural and not paused and not busy and not blocks_play():
 		var movement := Input.get_vector("left", "right", "forward", "back")
 		walker.align_movement_to_camera(movement)
@@ -202,8 +218,8 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event.is_action_pressed("hint"):
 		show_hint()
 	elif architectural and not busy:
-		# No orbit: the composition is authored (spec §11). The wheel only zooms.
-		# Point at the architecture to choose what to turn.
+		# No orbit: the angle is authored (spec §11). The wheel zooms, right/middle-drag pans,
+		# and pointing at the architecture chooses what to turn.
 		if event is InputEventMouseButton:
 			if event.pressed and event.button_index == MOUSE_BUTTON_WHEEL_UP:
 				zoom_overview(1)
@@ -213,7 +229,11 @@ func _unhandled_input(event: InputEvent) -> void:
 				var picked := pick_rig(event.position)
 				if picked >= 0: select_rig(picked)
 		elif event is InputEventMouseMotion:
-			set_hovered(pick_rig(event.position))
+			if event.button_mask & (MOUSE_BUTTON_MASK_RIGHT | MOUSE_BUTTON_MASK_MIDDLE):
+				var metres_per_pixel: float = overview.size / maxf(1.0, get_viewport().get_visible_rect().size.y)
+				pan_overview(Vector2(-event.relative.x, event.relative.y) * metres_per_pixel)
+			else:
+				set_hovered(pick_rig(event.position))
 		elif event.is_action_pressed("reset_view"):
 			reset_overview()
 		elif event.is_action_pressed("rotate_left"):
@@ -435,7 +455,7 @@ func snapshot() -> Dictionary:
 	var states: Array[int] = []
 	for entry in rigs:
 		states.append(entry.state)
-	return {"states": states, "player": player, "camera_bias": camera_bias, "camera_frame": camera_frame, "overview_zoom": overview_zoom, "selected": selected}
+	return {"states": states, "player": player, "camera_bias": camera_bias, "camera_frame": camera_frame, "overview_zoom": overview_zoom, "overview_pan": overview_pan, "selected": selected}
 
 func restore(data: Dictionary) -> void:
 	if tween and tween.is_valid():
@@ -452,6 +472,7 @@ func restore(data: Dictionary) -> void:
 	camera_frame = data.get("camera_frame", ground * camera_bias)
 	# Older snapshots may carry overview_yaw/overview_elevation from the orbit era; ignore them.
 	overview_zoom = clampf(data.get("overview_zoom", 1.0), ZOOM_MIN, ZOOM_MAX)
+	overview_pan = Vector2(data.get("overview_pan", Vector2.ZERO)).limit_length(overview_size * PAN_LIMIT)
 	select_rig(data.selected)
 	update_links()
 	update_camera()
