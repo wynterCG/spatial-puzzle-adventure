@@ -15,7 +15,8 @@ git checkout prototype-final
 | `scripts/positioning_game.gd`, `positioning_hud.gd`, `scenes/positioning.tscn` | The positioning runtime: three studies (Choose your deck, The quiet landing, Prepare the receiver), the Lantern Fold, the courtyard chapter and the procedural turning frame. The generic parts became `runtime/architecture_runtime.gd` |
 | `scripts/chapter_layout.gd`, `chapter_tests.gd` | Chapter 1 / The far light: turning courtyard blockout |
 | `scripts/complete_puzzle*.gd` | The Lantern Fold |
-| `scripts/monument_layout.gd`, `monument_tests.gd`, `scenes/monument.tscn` | Procedural Turning Frame (superseded by `monuments/turning_frame.tscn`) |
+| `scripts/monument_layout.gd`, `monument_tests.gd`, `scenes/monument.tscn` | Procedural Turning Frame |
+| `monuments/turning_frame.tscn` | The Turning Frame converted to the scene-authoring format (archived after the restart; it still references `res://runtime/monument.gd`, so copying it back into `monuments/` makes it playable again) |
 | `scripts/game.gd`, `hud.gd`, `scenes/main.tscn` | The original guided gallery, including portal (impossible-geometry) passages |
 | `scripts/*_tests.gd` | Positioning, camera and overview regression suites |
 | `scripts/surface_piece.gd`, `surface_walker.gd`, `curved_track.gd` | Copies of the traversal core at archive time (the live versions are in `core/`) |

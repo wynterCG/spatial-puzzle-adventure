@@ -10,11 +10,11 @@ A first-person architectural puzzle adventure. Explore small monumental sci-fi s
 
 ## Status
 
-Pre-production, Phase 1 (prove puzzle depth). The playable content is four blockout monuments built with the scene-authoring foundation: **The Turning Frame**, **The Ring**, **The Bell Cradle** and **The Folded Observatory**.
+Pre-production, Phase 1 (prove puzzle depth). The playable content is one blockout monument, **The Ring**, built with the scene-authoring foundation. Prototype monuments are archived in `legacy/`.
 
 ## Run
 
-Open `project.godot` in **Godot 4.7** and press **F5** to play the Turning Frame. Press Escape to pick another monument or change comfort settings.
+Open `project.godot` in **Godot 4.7** and press **F5** to play The Ring. Press Escape for comfort settings and, as more are built, other monuments.
 
 | Action | Default |
 |---|---|

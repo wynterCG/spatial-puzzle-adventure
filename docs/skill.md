@@ -6,7 +6,7 @@ How to work in this repository. The [spec](spec.md) owns every design decision; 
 
 The project restarted on 1 October 2026 from the ELSEWHERE spec. The earlier prototype (positioning studies, the connected courtyard chapter, the Lantern Fold, the procedural monument, the portal gallery, camera experiments and their docs) is archived read-only in `legacy/`. The last runnable prototype is the git tag `prototype-final`. Use the archive as reference; do not import from it, and do not revive its procedural layout builders.
 
-Current phase: spec §54 **Phase 1 — Prove Puzzle Depth**. The Turning Frame and The Ring blockouts exist (The Ring makes *which side of the bridge* the variable, using a turntable and a fixed side-change stair). Bell Cradle and Folded Observatory are authoring examples that reuse known positioning dependencies, not proof of *different* spatial concepts. The next real work is new monuments with distinct spatial ideas (candidates: Appendix A of the spec), each tested against §16 and §51.
+Current phase: spec §54 **Phase 1 — Prove Puzzle Depth**. The only monument is The Ring, which makes *which side of the bridge* the variable, using a turntable and a fixed side-change stair. The authored Turning Frame conversion is archived in `legacy/monuments/`; spec §41–42 still names the Turning Frame as a design target, so a fresh version may return as a new monument. The next real work is new monuments with distinct spatial ideas (candidates: Appendix A of the spec), each tested against §16 and §51.
 
 ## Layout
 
@@ -15,13 +15,13 @@ Current phase: spec §54 **Phase 1 — Prove Puzzle Depth**. The Turning Frame a
 | `core/` | Authored-surface traversal: `surface_piece.gd` (walk regions, contacts, solids; `class_name SurfacePiece`), `surface_walker.gd` (player, first-person camera; `SurfaceWalker`), `curved_track.gd` and `gravity_path.gd` (analytic gravity curves) |
 | `authoring/` | Scene-level data: `component.gd` (`ElsewhereComponent`, every §46 behaviour selected by `kind`), `level.gd` (`ElsewhereLevel`), `connections.gd` (socket descriptors and compatibility), `validation.gd`; `components/*.tscn` are the drag-in §46 blockout pieces |
 | `runtime/` | `architecture_runtime.gd`: generic runtime (camera B, turns and sweep clearance, snapshots/undo, input, preferences, save hooks). `monument.gd`: builds an `ElsewhereLevel` into a playable monument (paths, sockets, interactions, checkpoints, goal, per-level saves, Play From Here). `hud.gd`: minimal HUD |
-| `monuments/` | One scene per monument: root `Puzzle` node with `runtime/monument.gd`, plus a `Level` child holding the authored data. Main scene: `turning_frame.tscn` |
-| `tests/` | `authoring_tests.gd` (headless self-test), `test_helpers.gd` |
+| `monuments/` | One scene per monument: root `Puzzle` node with `runtime/monument.gd`, plus a `Level` child holding the authored data. Main scene: `the_ring.tscn`. Every scene here appears in the in-game menu |
+| `tests/` | `authoring_tests.gd` (headless self-test, launched from The Ring), `test_helpers.gd`, `fixtures/` (Bell Cradle and Folded Observatory scenes kept only to cover checkpoints, two-state hinges and blocked sweeps; they are test data, not monuments) |
 | `addons/elsewhere_authoring/` | First-party editor plugin: state preview, socket/normal display, validation, Play From Here (§48) |
 | `docs/` | `spec.md`, this guide, `authoring.md` (component reference), `authoring-friction.md`, `concept/`, `images/`. Has a `.gdignore` |
 | `legacy/` | Frozen archive with a `.gdignore`; Godot never loads it |
 
-Turntable (vertical-axis) structures can dock with fixed architecture only through narrow radial bridges: a wide or tangential piece sweeps its corners through anything touching its edge. Keep docking widths around 1.6 m at radius ≥ 6 m, as in The Ring and Bell Cradle. Tests must finish tweens with `H.turn` (it steps the tween to completion), not a fixed time.
+Turntable (vertical-axis) structures can dock with fixed architecture only through narrow radial bridges: a wide or tangential piece sweeps its corners through anything touching its edge. Keep docking widths around 1.6 m at radius ≥ 6 m, as in The Ring. Tests must finish tweens with `H.turn` (it steps the tween to completion), not a fixed time.
 
 Spec-to-code map: §46 library → `authoring/components/`; §48 tools → the plugin; §50 data model → `ElsewhereLevel` + `ElsewhereComponent` tree; §12–14, §18–19 → `architecture_runtime.gd` + `monument.gd`; §9–11 → `update_camera` / `transport_ground` / orbit layer.
 
@@ -59,7 +59,7 @@ Godot 4.7.2 (Steam build, no console executable; capture output with `--log-file
 ```bash
 G="/c/Program Files (x86)/Steam/steamapps/common/Godot Engine/godot.windows.opt.tools.64.exe"
 "$G" --headless --path . --import --log-file import.log
-"$G" --headless --path . monuments/turning_frame.tscn --log-file test.log -- --self-test
+"$G" --headless --path . monuments/the_ring.tscn --log-file test.log -- --self-test
 ```
 
 Require exit 0, the literal `AUTHORING SELF TEST PASS` line and no `SCRIPT ERROR` in the log. Close the editor before moving or renaming files; an open editor can re-save stale buffers to old paths. For gameplay or visual changes, also check live (Godot MCP Pro below): walking, Tab, orbit, Q/E, Z, Home, upside-down traversal, the finish panel, and the editor dock (preview immutability, Play From Here). Tests prove mechanics, not comprehension; do not claim players understand a puzzle until an unaided playtest shows it (§51).

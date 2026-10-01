@@ -1600,8 +1600,8 @@ As of 1 October 2026, on branch `feature/elsewhere-spec`. Details of how each sy
 | §48 State preview, connection and ground visualization, Play From Here | Implemented (editor plugin) |
 | §48 Socket snapping | Not started |
 | §49 Later tools (reachability, sweep visualization, snapshots) | Not started; validation reports structural errors only |
-| §42 Turning Frame | Blockout exists; reuses the positioning dependency; not playtested with unaided players |
-| §54 Phase 1: 2–3 further monuments with *different* spatial concepts | 1 in progress: **The Ring** (side as the variable; turntable with a fixed side-change stair). Blockout tested mechanically, not playtested. Bell Cradle and Folded Observatory are authoring examples that reuse known dependencies |
+| §42 Turning Frame | Prototype conversion archived in `legacy/monuments/`; a fresh Turning Frame is not started |
+| §54 Phase 1: 2–3 further monuments with *different* spatial concepts | 1 in progress: **The Ring** (side as the variable; turntable with a fixed side-change stair). Blockout tested mechanically, not playtested. Bell Cradle and Folded Observatory are now test fixtures only |
 | §24–32 Art direction, materials, emissive accents, background world | Not started (blockout colours only) |
 | §33 Minimal UI | Basic: debug details hidden behind F3 |
 | §35–36 Audio and music | Not started |

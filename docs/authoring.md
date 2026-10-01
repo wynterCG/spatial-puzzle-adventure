@@ -4,12 +4,12 @@ Implemented foundation, 1 October 2026. This is a scene-authoring workflow insid
 
 ## Start here
 
-1. Reload the project, then open `monuments/turning_frame.tscn`. The **Elsewhere Authoring** plugin is enabled in the project. If the dock is absent, enable it under Project Settings > Plugins. Local overrides must include it too.
+1. Reload the project, then open `monuments/the_ring.tscn`. The **Elsewhere Authoring** plugin is enabled in the project. If the dock is absent, enable it under Project Settings > Plugins. Local overrides must include it too.
 2. Expand **Level** in the Scene tree. Select a path, curved transition, structure or marker and edit its data in the Inspector. These are real saved scene nodes.
 3. Use **Refresh preview and validate** in the Elsewhere dock. Its preview shows the authored initial states, while the main editing viewport shows the base pose used to position children.
 4. Choose a structure state in the dock. This changes an isolated preview copy; it does not rotate, save or dirty the authored nodes. Green contacts are joined, amber are open, red are invalid/inactive; blue lines show ground normals and gold lines show travel direction.
 5. Select an active path, PlayerStart or Checkpoint, then press **Play From Selected Path / Marker**. It saves the scene, applies the preview states and starts at that location with matching gravity. Normal progress is neither loaded nor written during this debug launch. A later normal F6 runs normally. Path selection uses its centre (or the beginning of a curve); use a marker for an exact position.
-6. F6 runs the authored scene from its normal start/save; F5 runs the Turning Frame. The running game's Escape menu lists every scene in `monuments/`.
+6. F6 runs the authored scene from its normal start/save; F5 runs The Ring. The running game's Escape menu lists every scene in `monuments/`.
 
 For a new level, duplicate one of the scenes in `monuments/`, change **Level > level_id** to a unique stable identifier, and edit the composition. Increment **revision** when changes invalidate saved contacts or state indices. Give it its own title, question, explanation and optional hints. No new gameplay script is needed. Any scene saved in `monuments/` appears in the menu automatically.
 
@@ -17,12 +17,11 @@ For a new level, duplicate one of the scenes in `monuments/`, change **Level > l
 
 | Scene | Spatial decision | Authoring coverage |
 |---|---|---|
-| `turning_frame.tscn` | Choose the longer passage before the roll; aligning from the wrong path is insufficient | Separate passages, 180° curve, passenger rotation |
 | `the_ring.tscn` | Ride the bridge to the stair, change to its underside, and turn it again while hanging beneath | Vertical-axis turntable, top and underside faces of one bridge, fixed 180° side-change stair, decorative ring mesh, three states with distinct roles |
-| `bell_cradle.tscn` | Leave the moving arm at the fixed belfry before turning it again | Vertical belfry, radial cradle, checkpoint, fixed gravity transfer and a custom torus mesh independent of path logic |
-| `folded_observatory.tscn` | Prepare the receiver before docking fingers occupy its sweep | Folding gallery, narrow bent receiver, two-state hinge, custom rectangular walk regions and collision boxes |
+| `tests/fixtures/bell_cradle.tscn` (test fixture) | Leave the moving arm at the fixed belfry before turning it again | Vertical belfry, radial cradle, checkpoint, fixed gravity transfer and a custom torus mesh independent of path logic |
+| `tests/fixtures/folded_observatory.tscn` (test fixture) | Prepare the receiver before docking fingers occupy its sweep | Folding gallery, narrow bent receiver, two-state hinge, custom rectangular walk regions and collision boxes |
 
-The Turning Frame, Bell Cradle and Folded Observatory reuse three proven positioning dependencies. The Ring is the first Phase 1 study of a different variable, which face of a structure carries you. None of them is a claim of finished architecture or validated puzzle depth. Their solutions and important counterexamples are tested. Their visual identity, difficulty and human comprehension remain design work.
+The Ring is the only monument: the first Phase 1 study of a different variable, which face of a structure carries you. The two fixtures reuse prototype positioning dependencies and exist only to exercise checkpoints, hinges and blocked sweeps; they are not in the game menu. None of these is a claim of finished architecture or validated puzzle depth. Their solutions and important counterexamples are tested. Their visual identity, difficulty and human comprehension remain design work.
 
 ![Bell cradle blockout](images/authoring-bell-cradle.png)
 
@@ -70,7 +69,7 @@ Each authored level writes `user://authored-<level_id>.save`. Level ID and revis
 
 Validation reports missing/invalid starts and goals, marker/socket contact errors, invalid widths/frames, bad references, invalid state arrays, unsupported scaling/nested pivots and open contacts. An open socket is a warning because a puzzle is expected to disconnect routes. Validation does not prove solvability or fun. Preview shows current contacts, not future solutions. Runtime still checks clearance before every attempted turn.
 
-The new monuments deliberately reuse known dependencies so authoring defects can be separated from puzzle-design experiments. Use a reasoning playtest (the archived protocol is in `legacy/docs/playtest.md`), then record where authoring friction repeats in [authoring-friction.md](authoring-friction.md). Do not infer a mature construction grammar merely from three mechanically passing scenes.
+The new monuments deliberately reuse known dependencies so authoring defects can be separated from puzzle-design experiments. Use a reasoning playtest (the archived protocol is in `legacy/docs/playtest.md`), then record where authoring friction repeats in [authoring-friction.md](authoring-friction.md). Do not infer a mature construction grammar from a few mechanically passing scenes.
 
 ## Scope decisions
 
@@ -85,9 +84,9 @@ Mesh modelling, arbitrary physics construction, generated puzzles, automatic sol
 Run:
 
 ```powershell
-& $godot --headless --path . monuments/turning_frame.tscn -- --self-test
+& $godot --headless --path . monuments/the_ring.tscn -- --self-test
 ```
 
-Require exit 0, `AUTHORING SELF TEST PASS`, and no script errors. The suite exercises all three scenes, wrong routes and ordering, both frame rolls, two-state rotation, no intermediate connections, socket type/width/direction/normal/activity and apertures, interactions/conditions, occupied-ground protection, checkpoint reload, save isolation, revision/contact rejection, undo, Play From Here and forward/reverse 90°/180° traversal. It fails if execution aborts before the final assertion.
+Require exit 0, `AUTHORING SELF TEST PASS`, and no script errors. The suite exercises The Ring and both fixtures: wrong sides and ordering, both turn directions, two-state rotation, no intermediate connections, socket type/width/direction/normal/activity and apertures, interactions/conditions, occupied-ground protection, checkpoint reload, save isolation, revision/contact rejection, undo, Play From Here and forward/reverse 90°/180° traversal. It fails if execution aborts before the final assertion.
 
 The editor helper uses Godot's documented [EditorPlugin API](https://docs.godotengine.org/en/4.7/classes/class_editorplugin.html) and [EditorInterface API](https://docs.godotengine.org/en/4.7/classes/class_editorinterface.html). Test live editor launch, preview immutability and debug save suppression as well as headless gameplay.
