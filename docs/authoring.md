@@ -18,10 +18,11 @@ For a new level, duplicate one of the scenes in `monuments/`, change **Level > l
 | Scene | Spatial decision | Authoring coverage |
 |---|---|---|
 | `the_ring.tscn` | Align the inner wheel behind the ring arm, enter the hollow tower, curl underneath, turn the inner wheel again from inside, leave under the same ring arm and ride the ring to the exit ([design](designs/2026-10-01-the-ring-v3.md)) | Two independent vertical-axis rotors (inner wheel, ring), narrow necks at the tower doors for sweep clearance, explicit sockets on region paths, a fixed interior route hidden by a decorative CSG shell, first-person cues (guide line, sightline slot), authored composition |
+| `the_threshold.tscn` | Ride the sleeve until its low window lines up with the core's low slit, link into the closed core, curl over the slab, turn the sleeve again from inside and link out to the hidden balcony ([design](designs/2026-10-01-the-threshold.md)) | A rotor that carries a ledge, rings of box segments with openings (so line of sight works), fixed geometry that decides every sight line, five Spatial Links doorways, a gravity curl inside a closed tower, docking tongues that keep a wide ledge inside the sweep tolerance |
 | `tests/fixtures/bell_cradle.tscn` (test fixture) | Leave the moving arm at the fixed belfry before turning it again | Vertical belfry, radial cradle, checkpoint, fixed gravity transfer and a custom torus mesh independent of path logic |
 | `tests/fixtures/folded_observatory.tscn` (test fixture) | Prepare the receiver before docking fingers occupy its sweep | Folding gallery, narrow bent receiver, two-state hinge, custom rectangular walk regions and collision boxes |
 
-The Ring is the only monument: the first Phase 1 study of a different variable, which face of a structure carries you. The two fixtures reuse prototype positioning dependencies and exist only to exercise checkpoints, hinges and blocked sweeps; they are not in the game menu. None of these is a claim of finished architecture or validated puzzle depth. Their solutions and important counterexamples are tested. Their visual identity, difficulty and human comprehension remain design work.
+The Ring is the first Phase 1 study of a different variable, which face of a structure carries you. The Threshold is the second: from where you must observe a moving structure before a connection becomes visible. The two fixtures reuse prototype positioning dependencies and exist only to exercise checkpoints, hinges and blocked sweeps; they are not in the game menu. None of these is a claim of finished architecture or validated puzzle depth. Their solutions and important counterexamples are tested. Their visual identity, difficulty and human comprehension remain design work.
 
 ![Bell cradle blockout](images/authoring-bell-cradle.png)
 
@@ -80,7 +81,7 @@ Gravity curves set walking speed: speed is capped at the comfort turn rate × ra
 
 ## Thresholds (Spatial Links, experimental)
 
-Prototype only ([design](designs/2026-10-01-spatial-links.md)); used by The Fold, not by The Ring.
+Experimental ([design](designs/2026-10-01-spatial-links.md)); used by The Threshold and The Fold, not by The Ring.
 
 - **Placement:** a `THRESHOLD` component is a doorway standing at the edge of its path, parented under that path. `travel_direction` points out through the doorway, and `ground_normal` is the path's ground.
 - **Fields:** `width` and `aperture_height` size the opening. `trigger_radius` is how close the player must stand to prime it; scale it with the monument.
@@ -88,7 +89,9 @@ Prototype only ([design](designs/2026-10-01-spatial-links.md)); used by The Fold
 - **Discovery:** `initially_discovered` marks doorways the player knows from the start; others are discovered by sight within the level's `discovery_range`.
 - **Validation** rejects a doorway away from its path's edge, one without a link group, and one on an edge that also forms an ordinary socket (turn `end_sockets` off there).
 - **Art:** `blockout_frame` adds prototype jambs and a lintel (solid). Turn it off when the architecture provides the doorway. The seam is always added.
-- **Sight lines:** design what can be seen from where (that is the puzzle) and pin it in tests, as `tests/link_tests.gd` does for The Fold. The player's eye turns with the structure it stands on, so only fixed geometry can make a view depend on a structure's state.
+- **Sight lines:** design what can be seen from where (that is the puzzle) and pin it in tests, as `tests/threshold_tests.gd` and `tests/link_tests.gd` do. The player's eye turns with the structure it stands on, so only fixed geometry can make a view depend on a structure's state.
+- **What hides a doorway:** line of sight tests box solids only (path decks, `GEOMETRY` boxes, doorway frames), so build walls that matter from boxes (a ring is boxes; see `ring()` in `tools/gen_threshold.py`), not CSG. A doorway's own deck never hides it: to hide a doorway from below, add a separate box under its deck.
+- **Minimum and shortcuts:** run `tests/link_solver.gd` over every rotor state. It links only from poses where the runtime itself makes that doorway the source, so the minimum it finds is one a player can perform. It found The Threshold's only shortcut in blockout (a sight line from below the balcony).
 
 ## Readable movable structures
 
