@@ -118,6 +118,8 @@ func apply_progress(_data: Dictionary) -> void: pass
 func run_tests() -> void: get_tree().quit(0)
 ## A short contextual prompt for something usable right now (first person only); empty otherwise.
 func interaction_prompt() -> String: return ""
+## A small aiming mark at the centre of the first-person view (Spatial Links, while primed).
+func reticle_visible() -> bool: return false
 
 # --- Construction helpers -------------------------------------------------------------------
 

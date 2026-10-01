@@ -5,6 +5,11 @@ signal level_completed(level_id: String)
 const C = preload("res://authoring/component.gd")
 const Links = preload("res://authoring/connections.gd")
 const Validate = preload("res://authoring/validation.gd")
+const SpatialLinks = preload("res://core/spatial_links.gd")
+## A doorway must stay in view this long to be noticed (a one-frame glimpse is not enough).
+const DISCOVERY_SECONDS := .25
+## How close to the centre of the view a doorway must be to aim at it.
+const AIM_DEGREES := 6.0
 var data_source: ElsewhereLevel
 var definition: ElsewhereLevel
 var paths: Dictionary = {}
@@ -24,6 +29,7 @@ var primed := ""
 var discovered: Dictionary = {}
 const SEAM_COLOURS := {"discovered": Color(.62, .68, .82), "primed": Color(1, .93, .78), "linked": Color(.55, .9, 1)}
 var seam_materials: Dictionary = {}
+var discovery_time: Dictionary = {}
 
 func _ready() -> void:
 	data_source = get_node("Level")
@@ -61,7 +67,7 @@ func build_level() -> void:
 		world.add_child(backdrop)
 	definition.show()
 	pieces.clear(); rigs.clear(); ports.clear(); obstacles.clear(); paths.clear()
-	thresholds.clear(); discovered.clear(); link.clear(); primed = ""
+	thresholds.clear(); discovered.clear(); link.clear(); primed = ""; discovery_time.clear()
 	history.clear(); interaction_values.clear(); checkpoint.clear()
 	checkpoint_id = ""
 	selected = 0
@@ -246,6 +252,10 @@ func _process(delta: float) -> void:
 	if walker == null or walker.support == null: return
 	super._process(delta)
 	if busy or paused or architectural or blocks_play(): return
+	update_discovery(delta)
+	if primed != "" and threshold_in_reach() != primed:
+		primed = ""
+		refresh_thresholds()
 	for c in definition.components():
 		if c.kind == C.Kind.CHECKPOINT and c.active and paths.get(c.get_node(c.path)) == walker.support and walker.support.to_global(walker.foot).distance_to(c.global_position) < c.trigger_radius:
 			var id := str(definition.get_path_to(c))
@@ -262,6 +272,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			if not checkpoint.is_empty(): history.append(snapshot()); restore(checkpoint); save_progress()
 			return
 		if event.physical_keycode == KEY_F and not architectural and not blocks_play():
+			if use_threshold(): return
 			var nearby := interaction_in_range()
 			if nearby: activate(nearby); return
 	super._unhandled_input(event)
@@ -275,9 +286,142 @@ func interaction_in_range() -> Node3D:
 
 func interaction_prompt() -> String:
 	if architectural or paused or busy or blocks_play(): return ""
+	if primed != "":
+		var target := aim_target()
+		if target != "": return "F  Link to " + threshold_label(target)
+		return "F  Cancel" if threshold_in_reach() == primed else ""
+	var doorway := threshold_in_reach()
+	if doorway != "": return "F  Prime " + threshold_label(doorway)
 	var nearby := interaction_in_range()
 	if nearby == null: return ""
 	return "F  " + (nearby.label if not nearby.label.is_empty() else "Use")
+
+# --- Spatial Links (experimental) -----------------------------------------------------------
+
+func threshold_label(id: String) -> String:
+	var c: Node3D = thresholds[id]
+	return c.label if not c.label.is_empty() else str(c.name)
+
+## The doorway on the player's ground within its reach, nearest first.
+func threshold_in_reach() -> String:
+	var feet := walker.support.to_global(walker.foot)
+	var best := ""
+	var best_distance := INF
+	for id in thresholds:
+		var c: Node3D = thresholds[id]
+		if paths.get(c.get_node(c.path)) != walker.support: continue
+		var distance := feet.distance_to(c.global_position)
+		if distance <= c.trigger_radius and distance < best_distance:
+			best = id
+			best_distance = distance
+	return best
+
+## What never hides a doorway from line of sight: its own frame and seam, and its own deck.
+func threshold_exclusions(id: String) -> Array:
+	var c: Node3D = thresholds[id]
+	var exclude: Array = []
+	for art in ["Frame", "Seam"]:
+		var holder: Node3D = c.get_node_or_null(art)
+		if holder: exclude.append_array(holder.get_children())
+	exclude.append_array(paths[c.get_node(c.path)].solid_meshes)
+	return exclude
+
+## At least 2 of a doorway's 4 aperture points within range and in clear line of sight from the
+## eye (and inside the view, unless only checking a target already aimed at).
+func threshold_seen(id: String, require_view := true) -> bool:
+	var eye := walker.camera.global_position
+	var doorway := SpatialLinks.live(thresholds[id])
+	if eye.distance_to(doorway.position) > definition.discovery_range: return false
+	var exclude: Array = threshold_exclusions(id) + walker.support.solid_meshes
+	if primed != "" and primed != id: exclude += threshold_exclusions(primed)
+	var solids: Array = obstacles.duplicate()
+	for part in pieces: solids.append_array(part.solid_meshes)
+	var seen := 0
+	for point in SpatialLinks.aperture_points(doorway):
+		if require_view and not walker.camera.is_position_in_frustum(point): continue
+		if SpatialLinks.visible(eye, point, solids, exclude): seen += 1
+	return seen >= 2
+
+## First person discovers: a doorway in clear view for DISCOVERY_SECONDS is known for good.
+func update_discovery(delta: float) -> void:
+	if architectural: return
+	for id in thresholds:
+		if discovered.has(id): continue
+		if threshold_seen(id):
+			discovery_time[id] = discovery_time.get(id, 0.0) + delta
+			if discovery_time[id] >= DISCOVERY_SECONDS - .0001:
+				discovered[id] = true
+				refresh_threshold(thresholds[id])
+		else:
+			discovery_time.erase(id)
+
+## The discovered doorway nearest the centre of the view, within AIM_DEGREES and in sight.
+func aim_target() -> String:
+	var eye := walker.camera.global_position
+	var look := -walker.camera.global_basis.z
+	var best := ""
+	var best_angle := deg_to_rad(AIM_DEGREES)
+	for id in discovered:
+		if id == primed or not thresholds.has(id): continue
+		var centre: Vector3 = SpatialLinks.aperture_points(SpatialLinks.live(thresholds[id]))[0]
+		var angle := look.angle_to(centre - eye)
+		if angle <= best_angle and threshold_seen(id, false):
+			best = id
+			best_angle = angle
+	return best
+
+## Links the primed doorway to `target`, replacing any pair. Returns why not, or "".
+func try_link(target: String) -> String:
+	if primed == "": return "Stand at a doorway and press F first."
+	if target == primed: return "A doorway cannot lead to itself."
+	if not thresholds.has(target) or not discovered.has(target): return "You have not seen that doorway."
+	if thresholds[target].link_group != thresholds[primed].link_group: return "These doorways do not fit together."
+	history.append(snapshot())
+	link = [primed, target]
+	primed = ""
+	update_links()
+	refresh_thresholds()
+	message = "The two doorways now open onto each other."
+	save_progress()
+	return ""
+
+## F in first person: prime the doorway in reach, link to the one aimed at, or cancel.
+func use_threshold() -> bool:
+	if primed != "":
+		var target := aim_target()
+		if target != "":
+			var reason := try_link(target)
+			if reason != "": message = reason
+		elif threshold_in_reach() == primed:
+			primed = ""
+			refresh_thresholds()
+			message = "Doorway released."
+		else:
+			message = "Look at a doorway you have seen, then press F."
+		return true
+	var doorway := threshold_in_reach()
+	if doorway == "": return false
+	primed = doorway
+	refresh_thresholds()
+	message = "Look at another doorway you have seen and press F to join them."
+	return true
+
+func reticle_visible() -> bool:
+	return primed != "" and not architectural
+
+func connection_text() -> String:
+	var text := super.connection_text()
+	if thresholds.is_empty(): return text
+	text += "\nLink: " + (" <-> ".join(link.map(threshold_label)) if not link.is_empty() else "none") + ("  (primed " + threshold_label(primed) + ")" if primed != "" else "")
+	for id in link:
+		var c: Node3D = thresholds[id]
+		var doorway := SpatialLinks.live(c)
+		var owner_name := "fixed"
+		for entry in rigs:
+			if entry.node.is_ancestor_of(c): owner_name = str(entry.node.name)
+		text += "\n%s owner: %s  ground: %s" % [threshold_label(id), owner_name, doorway.normal.snapped(Vector3.ONE * .01)]
+	text += "\nDiscovered: " + ", ".join(discovered.keys().map(threshold_label))
+	return text
 
 func activate(c: Node3D) -> bool:
 	if busy or not c.active: return false
@@ -317,18 +461,22 @@ func snapshot() -> Dictionary:
 	for c in paths: active_paths[str(definition.get_path_to(c))] = c.active
 	var locks: Array = []
 	for entry in rigs: locks.append(entry.locked)
-	data.merge({"path_active": active_paths, "locks": locks, "interactions": interaction_values.duplicate(true)})
+	data.merge({"path_active": active_paths, "locks": locks, "interactions": interaction_values.duplicate(true), "link": link.duplicate()})
 	return data
 
 func restore(data: Dictionary) -> void:
 	for c in paths: set_path_active(c, data.path_active[str(definition.get_path_to(c))])
 	for i in range(rigs.size()): rigs[i].locked = data.locks[i]
 	interaction_values = data.interactions.duplicate(true)
+	# The link is puzzle configuration; what was discovered is knowledge and stays.
+	link = data.get("link", []).duplicate()
+	primed = ""
 	super.restore(data)
+	refresh_thresholds()
 
 func progress_path() -> String: return "user://authored-" + data_source.level_id + ".save"
 func progress_data() -> Dictionary:
-	return {"version": 1, "level": data_source.level_id, "revision": data_source.revision, "scene": snapshot(), "history": history, "checkpoint": checkpoint, "checkpoint_id": checkpoint_id, "won": won, "architectural": architectural, "finish_open": finish_open}
+	return {"version": 1, "level": data_source.level_id, "revision": data_source.revision, "scene": snapshot(), "history": history, "checkpoint": checkpoint, "checkpoint_id": checkpoint_id, "won": won, "architectural": architectural, "finish_open": finish_open, "discovered": discovered.keys()}
 func save_progress() -> void:
 	if debug_launch or walker == null or walker.support == null: return
 	super.save_progress()
@@ -343,6 +491,9 @@ func apply_progress(data: Dictionary) -> void:
 	history.assign(data.get("history", []))
 	checkpoint = saved_checkpoint; checkpoint_id = data.get("checkpoint_id", "")
 	won = data.get("won", false); finish_open = data.get("finish_open", true)
+	for id in data.get("discovered", []):
+		if thresholds.has(id): discovered[id] = true
+	refresh_thresholds()
 	architectural = data.get("architectural", false)
 	if architectural: overview.current = true
 	else: walker.camera.current = true
@@ -364,6 +515,8 @@ func valid_snapshot(data: Dictionary) -> bool:
 	var point: Vector3 = part.transform * data.player.foot
 	if not Validate.valid_contact(component, point, part.basis * data.player.normal): return false
 	if not data.camera_bias.is_finite() or not data.get("camera_frame", Basis.IDENTITY).is_finite(): return false
+	var pair: Array = data.get("link", [])
+	if not pair.is_empty() and (pair.size() != 2 or not pair.all(func(id): return thresholds.has(id))): return false
 	return true
 func load_progress() -> void:
 	if debug_launch:

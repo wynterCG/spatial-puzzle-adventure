@@ -11,16 +11,25 @@ static func run(g: Node3D, failures: Array[String]) -> void:
 	art_cases(g, failures)
 	mapping_cases(failures)
 	crossing_cases(g, failures)
+	discovery_cases(g, failures)
+	linking_cases(g, failures)
+	state_cases(g, failures)
 
 ## Two 8 x 4 m decks. A stands at Near's +x edge; B at Far's -x edge (out of Far, towards -x);
 ## C, in another link group, at Far's +x edge. Far's placement varies per test.
-static func build(g: Node3D, far_origin := Vector3(14, 0, 0), far_basis := Basis.IDENTITY) -> void:
+static func build(g: Node3D, far_origin := Vector3(14, 0, 0), far_basis := Basis.IDENTITY, with_d := false, blocker := false) -> void:
 	var level := ElsewhereLevel.new()
 	level.name = "Level"; level.level_id = "link_test"
 	var near := deck("Near", Vector3.ZERO, Basis.IDENTITY)
 	level.add_child(near)
 	near.add_child(marker(C.Kind.START, "Start", Vector3(-3, 0, 0)))
 	near.add_child(threshold("A", Vector3(4, 0, 0), Vector3.RIGHT, "g", true))
+	if with_d: near.add_child(threshold("D", Vector3(-4, 0, 0), Vector3.LEFT, "g", true))
+	if blocker:
+		var wall = C.new()
+		wall.name = "Blocker"; wall.kind = C.Kind.GEOMETRY; wall.dimensions = Vector3(.5, 12, 12)
+		wall.position = Vector3(9, 0, 0)
+		level.add_child(wall)
 	var far := deck("Far", far_origin, far_basis)
 	level.add_child(far)
 	far.add_child(marker(C.Kind.GOAL, "Goal", Vector3(1, 0, 0)))
@@ -165,3 +174,109 @@ static func crossing_cases(g: Node3D, failures: Array[String]) -> void:
 	g.definition.get_node("Far").position += Vector3(0, 0, 40)
 	hold_through(g, Vector3.RIGHT, 6.0)
 	if g.walker.support != piece(g, "Far") or g.walker.support.to_global(g.walker.foot).z < 38: failures.append("Crossing must use the threshold's current transform after its structure moved")
+
+## Stands at A on Near, looking at a point (pitch and heading set directly).
+static func stand_at_a(g: Node3D, look_at: Vector3) -> void:
+	var near := piece(g, "Near")
+	g.architectural = false
+	g.walker.place(near, Vector3(2.5, near.half.y, 0), Vector3.UP, Vector3.RIGHT)
+	g.walker.sync_pose(1)
+	var eye: Vector3 = g.walker.camera.global_position
+	var flat := (look_at - eye).slide(Vector3.UP)
+	g.walker.forward = near.global_basis.inverse() * flat.normalized()
+	g.walker.pitch = atan2((look_at - eye).y, flat.length())
+	g.walker.sync_pose(1)
+
+static func b_centre(g: Node3D) -> Vector3:
+	var b: Node3D = g.definition.get_node("Far/B")
+	return b.global_position + Vector3.UP * b.aperture_height * .5
+
+## Discovery by sight: 2 of 4 aperture points in view, in range and unobstructed for 0.25 s.
+static func discovery_cases(g: Node3D, failures: Array[String]) -> void:
+	build(g)
+	var b := id(g, "Far/B")
+	stand_at_a(g, b_centre(g))
+	g.update_discovery(.1)
+	if g.discovered.has(b): failures.append("A one-frame glimpse must not discover a doorway")
+	g.update_discovery(.1); g.update_discovery(.1)
+	if not g.discovered.has(b): failures.append("A doorway in clear view for 0.25 s must be discovered")
+	elif not g.definition.get_node("Far/B/Seam").visible: failures.append("A discovered doorway must show its seam")
+	build(g)
+	stand_at_a(g, b_centre(g) + Vector3(0, 40, 0))
+	for i in range(5): g.update_discovery(.1)
+	if g.discovered.has(b): failures.append("A doorway outside the view must not be discovered")
+	build(g, Vector3(14, 0, 0), Basis.IDENTITY, false, true)
+	stand_at_a(g, b_centre(g))
+	for i in range(5): g.update_discovery(.1)
+	if g.discovered.has(b): failures.append("A doorway behind a wall must not be discovered")
+	build(g)
+	stand_at_a(g, b_centre(g))
+	g.architectural = true
+	for i in range(5): g.update_discovery(.1)
+	if g.discovered.has(b): failures.append("The isometric view must never discover a doorway")
+	# A doorway's own frame and deck never hide it.
+	var far: Node3D = g.definition.get_node("Far/B")
+	var exclude: Array = g.threshold_exclusions(b)
+	if not far.get_node("Frame").get_children().all(func(mesh): return mesh in exclude): failures.append("Line of sight must ignore the doorway's own frame")
+	if not piece(g, "Far").solid_meshes.all(func(mesh): return mesh in exclude): failures.append("Line of sight must ignore the doorway's own deck")
+
+## Prime at the doorway you stand at, then link to a seen, compatible doorway you aim at.
+static func linking_cases(g: Node3D, failures: Array[String]) -> void:
+	build(g, Vector3(14, 0, 0), Basis.IDENTITY, true)
+	var a := id(g, "Near/A")
+	var b := id(g, "Far/B")
+	var d := id(g, "Near/D")
+	g.architectural = false
+	g.walker.place(piece(g, "Near"), Vector3(0, piece(g, "Near").half.y, 0), Vector3.UP, Vector3.RIGHT)
+	if g.threshold_in_reach() != "" or g.use_threshold() or g.primed != "": failures.append("Priming needs the player within reach of a doorway")
+	stand_at_a(g, b_centre(g))
+	if g.interaction_prompt() != "F  Prime A": failures.append("At a doorway the prompt must offer to prime it, got '%s'" % g.interaction_prompt())
+	g.use_threshold()
+	if g.primed != a: failures.append("F at a doorway must prime it")
+	if not g.reticle_visible(): failures.append("A primed doorway shows the aiming reticle")
+	if g.aim_target() != "": failures.append("An undiscovered doorway must not be a link target")
+	if g.try_link(b) == "" or not g.link.is_empty(): failures.append("Linking to an undiscovered doorway must change nothing")
+	for i in range(3): g.update_discovery(.1)
+	if g.aim_target() != b or g.interaction_prompt() != "F  Link to B": failures.append("Aiming at a discovered doorway must target it, prompt '%s'" % g.interaction_prompt())
+	var before: int = g.history.size()
+	g.use_threshold()
+	if g.link != [a, b] or g.primed != "" or g.history.size() != before + 1: failures.append("Linking must create the pair, clear priming and be undoable")
+	if piece(g, "Near").remote_links.size() != 1 or piece(g, "Far").remote_links.size() != 1: failures.append("The active pair must be crossable both ways")
+	if not g.definition.get_node("Near/A/Seam").visible or g.definition.get_node("Near/A/Seam").get_child(0).material_override != g.seam_material("linked"): failures.append("Linked doorways share the linked seam")
+	# Invalid pairings change nothing.
+	g.discovered[id(g, "Far/C")] = true
+	g.primed = a
+	if g.try_link(id(g, "Far/C")) == "" or g.link != [a, b]: failures.append("Incompatible link groups must not link")
+	if g.try_link(a) == "" or g.link != [a, b]: failures.append("A doorway must not link to itself")
+	# Replacement: one pair only.
+	g.primed = d
+	if g.try_link(b) != "" or g.link != [d, b] or not piece(g, "Near").remote_links.all(func(r): return r.node == g.thresholds[d]): failures.append("A new pair must replace the old one")
+	# Cancel at the primed doorway itself.
+	stand_at_a(g, b_centre(g) + Vector3(0, 40, 0))
+	g.use_threshold()
+	if g.primed != a: failures.append("Re-priming must work after linking")
+	g.use_threshold()
+	if g.primed != "": failures.append("F at the primed doorway without a target must cancel")
+
+## Undo rewinds the pair, never knowledge; saves keep both.
+static func state_cases(g: Node3D, failures: Array[String]) -> void:
+	build(g)
+	var a := id(g, "Near/A")
+	var b := id(g, "Far/B")
+	stand_at_a(g, b_centre(g))
+	for i in range(3): g.update_discovery(.1)
+	g.use_threshold(); g.use_threshold()
+	if g.link != [a, b]: failures.append("State cases need a link")
+	g.undo()
+	if not g.link.is_empty() or not g.discovered.has(b): failures.append("Undo must rewind the link but keep what was discovered")
+	g.primed = a
+	g.try_link(b)
+	g.restart()
+	if not g.link.is_empty() or not g.discovered.has(b): failures.append("Restart must clear the link but keep what was discovered")
+	g.primed = a
+	g.try_link(b)
+	var saved: Dictionary = bytes_to_var(var_to_bytes(g.progress_data()))
+	g.build_level()
+	if g.discovered.has(b): failures.append("A fresh level starts from authored knowledge")
+	g.apply_progress(saved)
+	if g.link != [a, b] or not g.discovered.has(b) or piece(g, "Near").remote_links.is_empty(): failures.append("Saves must restore the pair and what was discovered")

@@ -12,6 +12,7 @@ var status: Label
 var controls: Label
 var feedback: Label
 var prompt: Label
+var reticle: Label
 var menu: PanelContainer
 var finish: PanelContainer
 var finish_title: Label
@@ -58,6 +59,16 @@ func _ready() -> void:
 	feedback.offset_bottom = -86
 	feedback.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	# Contextual and quiet: shown only while something usable is within reach (spec §33).
+	reticle = label("+", 22)
+	root.add_child(reticle)
+	reticle.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	reticle.offset_left = -20
+	reticle.offset_right = 20
+	reticle.offset_top = -16
+	reticle.offset_bottom = 16
+	reticle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	reticle.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	reticle.modulate = Color(1, 1, 1, .7)
 	prompt = label("", 16)
 	root.add_child(prompt)
 	prompt.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
@@ -207,6 +218,7 @@ func refresh() -> void:
 	feedback.visible = not game.paused and not game.blocks_play()
 	prompt.text = game.interaction_prompt()
 	prompt.visible = not prompt.text.is_empty()
+	reticle.visible = game.reticle_visible() and not game.paused
 	controls.text = game.key_name("view") + "  Change view  /  "
 	if game.architectural:
 		controls.text += "Click  Select  /  " + game.key_name("rotate_left") + " · " + game.key_name("rotate_right") + "  Turn  /  Wheel  Zoom  /  Right-drag · WASD  Pan  /  " + game.key_name("reset_view") + "  Reset view  /  "
