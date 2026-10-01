@@ -6,7 +6,9 @@ extends Node3D
 const Piece = preload("res://core/surface_piece.gd")
 const Walker = preload("res://core/surface_walker.gd")
 const HUD = preload("res://runtime/hud.gd")
-const DEFAULT_ELEVATION := 0.7559694104 # atan2(40, sqrt(30*30 + 30*30))
+# Limited zoom around the authored framing (spec §11): enough to find the avatar, never a map.
+const ZOOM_MIN := .8
+const ZOOM_MAX := 1.25
 var world: Node3D
 var pieces: Array[SurfacePiece] = []
 var rigs: Array[Dictionary] = []
@@ -28,10 +30,9 @@ var history: Array[Dictionary] = []
 var initial: Dictionary
 var camera_bias := Basis.IDENTITY
 var camera_frame := Basis.IDENTITY
-var overview_yaw := 0.0
-var overview_elevation := DEFAULT_ELEVATION
+# Authored composition offset in the player's ground frame (ElsewhereLevel.overview_local_offset).
+var overview_local_offset := Vector3(30, 40, -30)
 var overview_zoom := 1.0
-var overview_dragging := false
 var focus := Vector3.ZERO
 var overview_size := 32.0
 var message := ""
@@ -117,7 +118,7 @@ func finish_layout() -> void:
 
 func update_links() -> void: pass
 
-# --- Camera B: ground-normal transport, independent manual orbit layer ----------------------
+# --- Camera B: authored composition, ground-normal transport, limited zoom ------------------
 
 func crossed_seam() -> void:
 	# Preserve world azimuth across a matching seam even if the two pieces use
@@ -142,36 +143,21 @@ func update_camera(_delta := 0.0) -> void:
 	camera_frame = transport_ground(camera_frame, ground.y)
 	camera_bias = ground.inverse() * camera_frame
 	overview.size = overview_size * overview_zoom
-	var azimuth := 3.0 * PI / 4.0 + overview_yaw
-	var offset := Vector3(sin(azimuth) * cos(overview_elevation), sin(overview_elevation), cos(azimuth) * cos(overview_elevation)) * sqrt(3400.0)
-	overview.position = focus + camera_frame * offset
+	overview.position = focus + camera_frame * overview_local_offset
 	overview.look_at(focus, ground.y)
-
-func orbit_overview(relative: Vector2) -> void:
-	if not architectural or paused or busy or blocks_play():
-		return
-	overview_yaw = wrapf(overview_yaw - relative.x * .006, -PI, PI)
-	overview_elevation = clampf(overview_elevation + relative.y * .006, deg_to_rad(25), deg_to_rad(70))
-	update_camera()
 
 func zoom_overview(steps: float) -> void:
 	if not architectural or paused or busy or blocks_play():
 		return
-	overview_zoom = clampf(overview_zoom * exp(-steps * .12), .65, 1.4)
+	overview_zoom = clampf(overview_zoom * exp(-steps * .12), ZOOM_MIN, ZOOM_MAX)
 	update_camera()
 
+## Home: restores the authored zoom. Composition, focus and size are fixed per monument.
 func reset_overview() -> void:
-	overview_yaw = 0.0
-	overview_elevation = DEFAULT_ELEVATION
 	overview_zoom = 1.0
 	update_camera()
 
 # --- Input and frame loop -------------------------------------------------------------------
-
-func _input(event: InputEvent) -> void:
-	# Release even over UI; _unhandled_input alone can miss that event.
-	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_RIGHT and not event.pressed:
-		overview_dragging = false
 
 func _process(delta: float) -> void:
 	if walker.support == null:
@@ -211,15 +197,12 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event.is_action_pressed("hint"):
 		show_hint()
 	elif architectural and not busy:
+		# No orbit: the composition is authored (spec §11). The wheel only zooms.
 		if event is InputEventMouseButton:
-			if event.button_index == MOUSE_BUTTON_RIGHT:
-				overview_dragging = event.pressed
-			elif event.pressed and event.button_index == MOUSE_BUTTON_WHEEL_UP:
+			if event.pressed and event.button_index == MOUSE_BUTTON_WHEEL_UP:
 				zoom_overview(1)
 			elif event.pressed and event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
 				zoom_overview(-1)
-		elif event is InputEventMouseMotion and overview_dragging and event.button_mask & MOUSE_BUTTON_MASK_RIGHT:
-			orbit_overview(event.relative)
 		elif event.is_action_pressed("reset_view"):
 			reset_overview()
 		elif event.is_action_pressed("rotate_left"):
@@ -232,13 +215,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		walker.look(event.relative)
 
 func _notification(what: int) -> void:
-	if what == NOTIFICATION_APPLICATION_FOCUS_OUT:
-		overview_dragging = false
 	if what == NOTIFICATION_WM_CLOSE_REQUEST and walker != null and walker.support != null:
 		save_progress()
 
 func toggle_view() -> void:
-	overview_dragging = false
 	architectural = not architectural
 	walker.moving = false
 	walker.sync_pose(1)
@@ -380,14 +360,13 @@ func snapshot() -> Dictionary:
 	var states: Array[int] = []
 	for entry in rigs:
 		states.append(entry.state)
-	return {"states": states, "player": player, "camera_bias": camera_bias, "camera_frame": camera_frame, "overview_yaw": overview_yaw, "overview_elevation": overview_elevation, "overview_zoom": overview_zoom, "selected": selected}
+	return {"states": states, "player": player, "camera_bias": camera_bias, "camera_frame": camera_frame, "overview_zoom": overview_zoom, "selected": selected}
 
 func restore(data: Dictionary) -> void:
 	if tween and tween.is_valid():
 		tween.kill()
 	busy = false
 	won = false
-	overview_dragging = false
 	for i in range(rigs.size()):
 		rigs[i].state = data.states[i]
 		var angles: PackedFloat32Array = rigs[i].get("angles", PackedFloat32Array([0, 90, 180, 270]))
@@ -396,9 +375,8 @@ func restore(data: Dictionary) -> void:
 	camera_bias = data.camera_bias
 	var ground := walker.support.global_basis * walker.support.surface_frame(walker.foot)
 	camera_frame = data.get("camera_frame", ground * camera_bias)
-	overview_yaw = data.get("overview_yaw", 0.0)
-	overview_elevation = clampf(data.get("overview_elevation", DEFAULT_ELEVATION), deg_to_rad(25), deg_to_rad(70))
-	overview_zoom = clampf(data.get("overview_zoom", 1.0), .65, 1.4)
+	# Older snapshots may carry overview_yaw/overview_elevation from the orbit era; ignore them.
+	overview_zoom = clampf(data.get("overview_zoom", 1.0), ZOOM_MIN, ZOOM_MAX)
 	select_rig(data.selected)
 	update_links()
 	update_camera()
@@ -426,7 +404,6 @@ func restart() -> void:
 
 func set_pause(value: bool) -> void:
 	paused = value
-	overview_dragging = false
 	if paused and not busy:
 		save_progress()
 	if busy and tween and tween.is_valid():

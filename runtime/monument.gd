@@ -124,7 +124,7 @@ func build_level() -> void:
 	focus = definition.overview_focus; overview_size = definition.overview_size
 	camera_bias = Basis.IDENTITY
 	camera_frame = walker.support.global_basis * walker.support.surface_frame(walker.foot)
-	overview_yaw = 0; overview_elevation = DEFAULT_ELEVATION; overview_zoom = 1
+	overview_local_offset = definition.overview_local_offset(); overview_zoom = 1
 	architectural = true
 	update_links(); update_camera(); select_rig(0)
 	toggle_view()

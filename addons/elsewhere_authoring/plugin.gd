@@ -151,7 +151,8 @@ func refresh_preview() -> void:
 		var tangent: Vector3 = socket.direction.cross(socket.normal).normalized() * socket.width / 2
 		C.line(overlay, socket.position - tangent, socket.position + tangent, colour)
 	camera.size = source.overview_size
-	camera.position = source.overview_focus + Vector3(30, 40, -30)
+	# The editor preview shows the authored composition from upright ground.
+	camera.position = source.overview_focus + source.overview_local_offset()
 	camera.look_at(source.overview_focus)
 	camera.current = true
 

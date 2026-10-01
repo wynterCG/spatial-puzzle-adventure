@@ -85,8 +85,8 @@ func _ready() -> void:
 	for scene in monument_scenes():
 		column.add_child(button(scene.get_file().get_basename().capitalize(), func(): game.open_level(scene)))
 	column.add_child(label("Isometric view", 15))
-	column.add_child(label("Right-drag: orbit  /  Wheel: zoom  /  Home: reset view", 14))
-	column.add_child(button("Reset isometric view", func(): game.reset_overview()))
+	column.add_child(label("Wheel: zoom  /  Home: reset zoom", 14))
+	column.add_child(button("Reset zoom", func(): game.reset_overview()))
 	column.add_child(label("Comfort", 15))
 	reduced = CheckButton.new()
 	reduced.text = "Reduced motion"
@@ -202,7 +202,7 @@ func refresh() -> void:
 	feedback.visible = not game.paused and not game.blocks_play()
 	controls.text = game.key_name("view") + "  Change view  /  "
 	if game.architectural:
-		controls.text += "Right-drag  Orbit  /  Wheel  Zoom  /  " + game.key_name("reset_view") + "  Reset view  /  " + game.key_name("rotate_left") + " · " + game.key_name("rotate_right") + "  Turn  /  "
+		controls.text += "1–9  Select  /  " + game.key_name("rotate_left") + " · " + game.key_name("rotate_right") + "  Turn  /  Wheel  Zoom  /  " + game.key_name("reset_view") + "  Reset zoom  /  "
 	else:
 		controls.text += game.key_name("forward") + game.key_name("left") + game.key_name("back") + game.key_name("right") + "  Walk  /  Mouse  Look  /  "
 	controls.text += game.key_name("undo") + "  Undo  /  " + game.key_name("reset") + "  Restart  /  " + game.key_name("hint") + "  Hint  /  F3  Debug  /  Esc  Settings"
