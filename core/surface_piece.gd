@@ -3,6 +3,7 @@ class_name SurfacePiece
 extends Node3D
 ## Architecture and its explicitly authored local-UP walking regions.
 
+const PAVING_RIM := 0.12
 var half := Vector3.ONE
 var title := ""
 var movable := false
@@ -87,7 +88,12 @@ func draw_paths() -> void:
 		visual.queue_free()
 	path_visuals.clear()
 	for region in walk_regions:
-		path_visuals.append(box(self, Vector3(region.get_center().x, half.y + 0.018, region.get_center().y), Vector3(region.size.x, 0.025, region.size.y), material(Color("d8c8ac"))))
+		# The light inlay sits inside a dark structural rim across the passage's width only,
+		# so joined passages still read as continuous along their length.
+		var size := region.size
+		if size.x <= size.y: size.x = maxf(size.x - 2 * PAVING_RIM, size.x * .5)
+		if size.y <= size.x: size.y = maxf(size.y - 2 * PAVING_RIM, size.y * .5)
+		path_visuals.append(box(self, Vector3(region.get_center().x, half.y + 0.018, region.get_center().y), Vector3(size.x, 0.025, size.y), material(Color("d8c8ac"))))
 
 func setup(label_text: String, dimensions: Vector3, tint: Color, can_move := false) -> void:
 	title = label_text

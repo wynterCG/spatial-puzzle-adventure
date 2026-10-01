@@ -1,4 +1,4 @@
-[gd_scene load_steps=18 format=3]
+[gd_scene load_steps=25 format=3]
 
 [ext_resource type="Script" path="res://runtime/monument.gd" id="1"]
 [ext_resource type="Script" path="res://authoring/level.gd" id="2"]
@@ -35,8 +35,8 @@ size = Vector3(0.25, 0.04, 1.6)
 size = Vector3(0.16, 40, 0.16)
 
 [sub_resource type="SphereMesh" id="CanopyMesh"]
-radius = 0.85
-height = 1.4
+radius = 0.55
+height = 0.95
 radial_segments = 16
 rings = 8
 
@@ -60,6 +60,31 @@ emission_energy_multiplier = 2.5
 [sub_resource type="StandardMaterial3D" id="Blossom"]
 albedo_color = Color(0.9, 0.6, 0.75, 1)
 roughness = 0.9
+
+[sub_resource type="BoxMesh" id="PierHeadMesh"]
+size = Vector3(3.7, 2.4, 1.6)
+
+[sub_resource type="CylinderMesh" id="PierNoseMesh"]
+top_radius = 1.7
+bottom_radius = 1.7
+height = 1.6
+radial_segments = 32
+
+[sub_resource type="BoxMesh" id="EntryMassMesh"]
+size = Vector3(3.7, 1, 1.6)
+
+[sub_resource type="BoxMesh" id="EntryPierMesh"]
+size = Vector3(1.2, 31, 1.2)
+
+[sub_resource type="BoxMesh" id="JambGlowMesh"]
+size = Vector3(0.14, 3.4, 0.03)
+
+[sub_resource type="BoxMesh" id="LintelGlowMesh"]
+size = Vector3(0.14, 0.03, 1.8)
+
+[sub_resource type="StandardMaterial3D" id="Foliage"]
+albedo_color = Color(0.2, 0.27, 0.24, 1)
+roughness = 0.95
 
 [sub_resource type="BoxMesh" id="Strip"]
 size = Vector3(0.12, 0.04, 1.62)
@@ -448,6 +473,57 @@ dimensions = Vector3(0.25, 1.8, 0.25)
 tint = Color(0.32, 0.24, 0.2, 1)
 
 [node name="TreeCanopy" type="MeshInstance3D" parent="Level"]
-position = Vector3(10.6, 5.5, 1.4)
+position = Vector3(10.6, 5.2, 1.4)
 mesh = SubResource("CanopyMesh")
-material_override = SubResource("Blossom")
+material_override = SubResource("Foliage")
+
+[node name="Structure" type="Node3D" parent="Level"]
+
+[node name="PierHead" type="MeshInstance3D" parent="Level/Structure"]
+position = Vector3(10.15, 1, 0)
+mesh = SubResource("PierHeadMesh")
+material_override = SubResource("RingMaterial")
+
+[node name="PierNose" type="MeshInstance3D" parent="Level/Structure"]
+position = Vector3(12, 1, 0)
+rotation = Vector3(1.5707963267948966, 0, 0)
+mesh = SubResource("PierNoseMesh")
+material_override = SubResource("RingMaterial")
+
+[node name="StairCore" type="CSGCylinder3D" parent="Level/Structure"]
+position = Vector3(0, 0, -8)
+rotation = Vector3(0, 0, 1.5707963267948966)
+radius = 0.72
+height = 1.6
+sides = 24
+material = SubResource("RingMaterial")
+
+[node name="StairCoreCut" type="CSGBox3D" parent="Level/Structure/StairCore"]
+position = Vector3(0, 0, 0.94)
+operation = 2
+size = Vector3(3, 3, 2)
+
+[node name="EntryMass" type="MeshInstance3D" parent="Level/Structure"]
+position = Vector3(-10.15, -0.3, 0)
+mesh = SubResource("EntryMassMesh")
+material_override = SubResource("RingMaterial")
+
+[node name="EntryPier" type="MeshInstance3D" parent="Level/Structure"]
+position = Vector3(-10.6, -16.3, 0)
+mesh = SubResource("EntryPierMesh")
+material_override = SubResource("RingMaterial")
+
+[node name="DoorGlowL" type="MeshInstance3D" parent="Level/Structure"]
+position = Vector3(8.25, 4.7, -0.89)
+mesh = SubResource("JambGlowMesh")
+material_override = SubResource("Magenta")
+
+[node name="DoorGlowR" type="MeshInstance3D" parent="Level/Structure"]
+position = Vector3(8.25, 4.7, 0.89)
+mesh = SubResource("JambGlowMesh")
+material_override = SubResource("Magenta")
+
+[node name="DoorGlowTop" type="MeshInstance3D" parent="Level/Structure"]
+position = Vector3(8.25, 6.39, 0)
+mesh = SubResource("LintelGlowMesh")
+material_override = SubResource("Magenta")

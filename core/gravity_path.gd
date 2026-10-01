@@ -49,7 +49,7 @@ func build() -> void:
 		section.transform = Transform3D(surface_frame(point_at(distance)), point_at(distance))
 		var span := length() / steps + .015
 		solid_meshes.append(box(section, Vector3(0, -thickness / 2, 0), Vector3(path_width, thickness, span), material(colour)))
-		box(section, Vector3(0, .014, 0), Vector3(path_width, .025, span), material(Color("dfceb0")))
+		box(section, Vector3(0, .014, 0), Vector3(maxf(path_width - 2 * SurfacePiece.PAVING_RIM, path_width * .5), .025, span), material(Color("dfceb0")))
 		for visual in section.get_children():
 			var original: StandardMaterial3D = visual.material_override
 			visual.set_meta("opaque_material", original)
