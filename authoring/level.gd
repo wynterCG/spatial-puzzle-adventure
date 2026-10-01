@@ -21,9 +21,10 @@ extends Node3D
 @export var backdrop: PackedScene = preload("res://world/backdrop.tscn")
 
 ## Orthographic camera distance from the focus: far enough that tall masses never stand
-## between the camera and the composition. The view itself does not depend on it.
+## between the camera and the composition, near enough to stay inside the backdrop's ring
+## (world/backdrop.tscn keeps its masses 600 m out). The view itself does not depend on it.
 func overview_distance() -> float:
-	return maxf(sqrt(3400.0), overview_size * 6.0)
+	return maxf(sqrt(3400.0), overview_size * 3.0)
 
 ## Camera offset from overview_focus in the player's ground frame (upright ground = world).
 func overview_local_offset() -> Vector3:

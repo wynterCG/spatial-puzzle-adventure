@@ -7,7 +7,7 @@ res = ['[sub_resource type="StandardMaterial3D" id="Stone"]\nalbedo_color = Colo
 nodes = ['[node name="Backdrop" type="Node3D"]\n']
 for i in range(26):
     angle = rng.random() * math.tau
-    distance = rng.uniform(450, 1600)
+    distance = rng.uniform(600, 1800) # beyond the overview camera (3x the framing)
     width = rng.uniform(40, 160)
     height = rng.uniform(250, 900)
     depth = width * rng.uniform(.4, 1.4)

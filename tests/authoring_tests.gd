@@ -245,7 +245,7 @@ static func sweep_cases(g: Node3D, failures: Array[String]) -> void:
 		var started := Time.get_ticks_msec()
 		g.turn_obstruction(g.rigs.find(entry), 1)
 		if Time.get_ticks_msec() - started > 500: failures.append("%s sweep check took over 500 ms" % entry.node.name)
-	if g.definition.overview_local_offset().length() < g.definition.overview_distance() - .001 or g.definition.overview_distance() < g.definition.overview_size * 6 - .001: failures.append("The overview camera must stand at least 6x the framing away")
+	if g.definition.overview_local_offset().length() < g.definition.overview_distance() - .001 or g.definition.overview_distance() < g.definition.overview_size * 3 - .001: failures.append("The overview camera must stand at least 3x the framing away")
 	if g.overview.far < g.definition.overview_distance() + 2000: failures.append("The overview far plane must reach past the composition and backdrop")
 
 ## Spec §52: FOV and gravity-transition pacing are player settings; reduced motion is gentle.
@@ -282,8 +282,17 @@ static func atmosphere_cases(g: Node3D, failures: Array[String]) -> void:
 	if backdrop == null or backdrop.get_child_count() < 20: failures.append("Every level must instance its backdrop")
 	else:
 		for mass in backdrop.get_children():
-			if Vector2(mass.global_position.x, mass.global_position.z).length() < 400: failures.append("Backdrop masses stay at least 400 m away")
+			if Vector2(mass.global_position.x, mass.global_position.z).length() < 550: failures.append("Backdrop masses stay at least 550 m away")
 			if mass in g.obstacles: failures.append("Backdrop must never be an obstacle")
+		# The overview camera, upright or upside down, never stands inside a mass or sees the
+		# monument through one.
+		for frame in [Basis.IDENTITY, Basis(Vector3.RIGHT, PI)]:
+			var focus: Vector3 = g.definition.overview_focus
+			var camera: Vector3 = focus + frame * g.definition.overview_local_offset()
+			for mass in backdrop.get_children():
+				var bounds := AABB(-mass.mesh.size * .5, mass.mesh.size).grow(5)
+				if bounds.has_point(mass.to_local(camera)) or bounds.intersects_segment(mass.to_local(camera), mass.to_local(focus)) != null:
+					failures.append("Backdrop %s blocks the overview camera" % mass.name)
 		var screen: Vector2 = g.overview.unproject_position(backdrop.get_child(0).global_position)
 		if not g.architectural: g.toggle_view()
 		if g.pick_rig(screen) != -1: failures.append("Backdrop must never be pickable")
