@@ -924,6 +924,7 @@ This is the concept worth prototyping.
   - Looking at a doorway **aims** at it. Aiming is generous (14°) and held against drift (22°), so the difficulty is choosing a doorway, not hitting one. A **tether** previews the link from source to target, and the prompt reads **"F  Link A ↔ B"** (or says why not, e.g. "B does not fit A").
   - **F** links: the tether flares, both doorways take the link colour, and the old pair goes dark.
   - **Visibility is the only rule:** a compatible doorway in sight can be linked; no earlier discovery is needed.
+  - **Doorways behind doorways (second playtest).** Aiming follows the view ray first. A doorway's frame selects it; its opening is looked *through*, so a linkable doorway beyond it is meant instead. With no ray hit, the generous cone applies.
 - **One pair (§8).** A new link replaces the old one.
 - **Undo (§31).** The link is puzzle configuration: undo, restart, checkpoints and saves restore it. **Discovery is knowledge**: undo and restart never make the player forget a doorway; saves keep it; only a fresh save resets it. (Restart keeping discovery is a one-line choice to revisit after playtesting.)
 - **Discovery (§6)** now only decides what the overview shows. A doorway is noticed when at least 2 of 4 aperture points (centre, left, right, top) are in view, within the level's `discovery_range` and in clear line of sight for **0.25 s**. A doorway's own frame and deck never hide it. The isometric view never discovers anything, and undiscovered doorways show no seam there (§21–22).
@@ -943,6 +944,12 @@ This is the concept worth prototyping.
 | **Frame** (turns about X, 4 states) | Its inner deck carries doorway **B**. State 0: the deck is a floor and the frame's west window shows B from the entry. State 1: the deck is a wall |
 | **Screen** (fixed) | A slot that lines up with the frame deck only in state 1 |
 | **Goal wall** (fixed, sideways ground) | Doorway **C** and the goal |
+
+**Legibility (second playtest: start and end looked alike).**
+- **Distinct places:** a warm lantern marks the entry, and the goal is a broad terrace under a light shaft.
+- **Named doorways:** each has a sign above its lintel (disc A, diamond B, bars C).
+- **The frame's floor:** accent edges mark its deck side, so the deck reads as a floor even when it is a wall.
+- **Something to face on arrival:** a warm rim frames the west window, so arriving on the deck you face a lit opening with A's sign beyond it.
 
 No ordinary path joins any two pieces. Intended solution: link **A↔B** while B is in sight → turn the frame once → walk through A, arriving on the deck that is now a wall → look back out through B and the slot to discover **C** → link **B↔C** (the way back is gone) → walk through B to the goal.
 
