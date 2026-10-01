@@ -311,6 +311,10 @@ It is not a separate map screen.
 
 The player remains visibly represented within the architecture.
 
+The isometric view is an **authored representation of the current monument**, not a freely orbiting 3D camera. It is excellent for understanding topology and manipulating structures, but it is deliberately not omniscient: interiors, undersides, depth relationships and perspective alignments are discovered in first person.
+
+> **First person discovers why a configuration matters. Isometric view lets the player act on it.**
+
 ---
 
 # 9. Isometric Camera
@@ -363,26 +367,31 @@ rather than making the structure appear stationary while the world turns around 
 
 ---
 
-# 11. Manual Isometric Orbit
+# 11. Authored Isometric Composition
 
-The player can manually orbit the isometric view for inspection.
+*Changed 1 October 2026: replaces manual orbit. See `designs/2026-10-01-the-ring-v3.md`.*
 
-Current intended behaviour:
+Each puzzle defines a deliberate composition:
 
-- controlled orbit around the puzzle centre;
-- limited zoom;
-- controlled vertical angle;
-- no completely unrestricted free-flight camera;
-- no arbitrary camera roll.
+- an architectural centre;
+- an azimuth;
+- an elevation;
+- a base framing size.
 
-The player's manually chosen viewing direction should persist.
+These are designed for that specific monument, so its silhouette, foreground and background read as an iconic, almost illustrated composition.
 
-**Tab should reveal the existing architectural view, not reset it.**
+The camera remains ground-relative (§9.2–§10). When gravity changes, the player sees **the same monument from their new orientation**. That view is earned by moving through the architecture, never produced by dragging the camera.
 
-A separate **Reset View** command can restore the authored default framing.
+Players **cannot freely orbit** the view. Spatial information hidden by the composition is discovered through first-person exploration rather than camera manipulation.
 
-Camera orbit and structure rotation must use clearly different controls.
+Allowed readability aids:
 
+- **limited zoom**, about ±20 % around the authored framing; enough to find the character or read a joint, never enough to turn the puzzle into a map or inspect first-person clues;
+- contextual occlusion handling: the player silhouette, and, where testing shows a need, cutaways, fades or selection outlines.
+
+**Tab reveals the current composition and never resets zoom.** A **Reset View** command restores the authored framing.
+
+Alternative fixed viewpoints (for example 90° snaps) are not part of the baseline. Add them only for a specific relationship that playtesting shows is unreadable.
 ---
 
 # 12. Structure Manipulation
@@ -897,11 +906,11 @@ Persistent player UI should be limited to what testing proves necessary.
 
 ### Isometric
 
-**Right drag** — Orbit  
-**Mouse wheel** — Zoom  
+**1 / 2 / …** — Select structure  
 **Q / E** — Rotate selected structure  
+**Mouse wheel** — Limited zoom  
 **Z** — Undo  
-**Home** — Reset camera framing  
+**Home** — Reset framing  
 **Tab** — Return to first person
 
 Exact inputs remain subject to usability testing and remapping support.
@@ -1592,7 +1601,8 @@ As of 1 October 2026, on branch `feature/elsewhere-spec`. Details of how each sy
 | Spec area | Status |
 |---|---|
 | §7 Authored gravity paths and 90°/180° curves | Implemented (analytic curves only; no general splines) |
-| §9–11 Isometric camera: puzzle-centred, ground-normal transport, independent manual orbit, Tab preserves view, Home resets | Implemented |
+| §9–10 Isometric camera: puzzle-centred, ground-normal transport | Implemented |
+| §11 Authored composition (per-monument azimuth/elevation, no orbit, limited zoom) | Designed (`designs/2026-10-01-the-ring-v3.md`); manual orbit still in code until built |
 | §12 Discrete authored states, player carried in local pose | Implemented (nested pivots not supported) |
 | §13 Connections: settled-state only, socket direction/normal/width/type/aperture | Implemented |
 | §14 Puzzle state incl. player path; §18 undo via snapshots; §19 checkpoints | Implemented, per-level saves |
