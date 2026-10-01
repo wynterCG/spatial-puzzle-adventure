@@ -1602,7 +1602,7 @@ As of 1 October 2026, on branch `feature/elsewhere-spec`. Details of how each sy
 |---|---|
 | §7 Authored gravity paths and 90°/180° curves | Implemented (analytic curves only; no general splines) |
 | §9–10 Isometric camera: puzzle-centred, ground-normal transport | Implemented |
-| §11 Authored composition (per-monument azimuth/elevation, no orbit, limited zoom) | Designed (`designs/2026-10-01-the-ring-v3.md`); manual orbit still in code until built |
+| §11 Authored composition (per-monument azimuth/elevation, no orbit, limited zoom) | Implemented; camera invariants are covered by tests |
 | §12 Discrete authored states, player carried in local pose | Implemented (nested pivots not supported) |
 | §13 Connections: settled-state only, socket direction/normal/width/type/aperture | Implemented |
 | §14 Puzzle state incl. player path; §18 undo via snapshots; §19 checkpoints | Implemented, per-level saves |
@@ -1611,7 +1611,7 @@ As of 1 October 2026, on branch `feature/elsewhere-spec`. Details of how each sy
 | §48 Socket snapping | Not started |
 | §49 Later tools (reachability, sweep visualization, snapshots) | Not started; validation reports structural errors only |
 | §42 Turning Frame | Prototype conversion archived in `legacy/monuments/`; a fresh Turning Frame is not started |
-| §54 Phase 1: 2–3 further monuments with *different* spatial concepts | 1 in progress: **The Ring** (which bridge *and* which side; two bridges on one turntable, a fixed stair that is both side-changer and waiting place, entry state reused as exit state). Blockout tested mechanically, not playtested. Bell Cradle and Folded Observatory are now test fixtures only |
+| §54 Phase 1: 2–3 further monuments with *different* spatial concepts | 1 in progress: **The Ring v3** (two independent rotors, a hollow tower hiding a side-changer, first-person sightline clue; minimum 6 turns pinned by tests). Blockout tested mechanically and checked against an information-design checklist; not playtested. Bell Cradle and Folded Observatory are now test fixtures only |
 | §24–32 Art direction, materials, emissive accents, background world | Not started (blockout colours only) |
 | §33 Minimal UI | Basic: debug details hidden behind F3 |
 | §35–36 Audio and music | Not started |

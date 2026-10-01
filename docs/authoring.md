@@ -17,7 +17,7 @@ For a new level, duplicate one of the scenes in `monuments/`, change **Level > l
 
 | Scene | Spatial decision | Authoring coverage |
 |---|---|---|
-| `the_ring.tscn` | The exit is docked to the far bridge's underside from the start; the near bridge has no underside. Ride to the stair, wait on it while the empty ring brings the far bridge, go under, and ride back to the starting arrangement | Vertical-axis turntable carrying two radial bridges walkable on opposite faces, fixed 180° side-change stair that doubles as the waiting place, art-only wheel (band, hub, ribs), authored goal landmark, entry state reused as exit state |
+| `the_ring.tscn` | Align the inner wheel behind the ring arm, enter the hollow tower, curl underneath, turn the inner wheel again from inside, leave under the same ring arm and ride the ring to the exit ([design](designs/2026-10-01-the-ring-v3.md)) | Two independent vertical-axis rotors (inner wheel, ring), narrow necks at the tower doors for sweep clearance, explicit sockets on region paths, a fixed interior route hidden by a decorative CSG shell, first-person cues (guide line, sightline slot), authored composition |
 | `tests/fixtures/bell_cradle.tscn` (test fixture) | Leave the moving arm at the fixed belfry before turning it again | Vertical belfry, radial cradle, checkpoint, fixed gravity transfer and a custom torus mesh independent of path logic |
 | `tests/fixtures/folded_observatory.tscn` (test fixture) | Prepare the receiver before docking fingers occupy its sweep | Folding gallery, narrow bent receiver, two-state hinge, custom rectangular walk regions and collision boxes |
 
@@ -27,7 +27,7 @@ The Ring is the only monument: the first Phase 1 study of a different variable, 
 
 ![The ring blockout, solved](images/the-ring-overview.png)
 
-Also see [the far bridge arriving under the stair](images/the-ring-waiting.png), [riding beneath it](images/the-ring-underside.png), [the entrance in first person](images/the-ring-entrance.png), [the view back from the terrace](images/the-ring-terrace.png), the [folded observatory blockout](images/authoring-observatory.png) and the [isolated editor state preview](images/authoring-state-preview.png).
+Also see [the upper tower door in first person](images/the-ring-upper-door.png), [the sightline from the lower door](images/the-ring-sightline.png), [the composition after leaving upside down](images/the-ring-underside.png), [the solved composition](images/the-ring-solved.png), the [folded observatory blockout](images/authoring-observatory.png) and the [isolated editor state preview](images/authoring-state-preview.png).
 
 ## Components and coordinates
 
@@ -52,6 +52,10 @@ All eight runtime behaviours are described through the same component script and
 Use custom MeshInstance3D nodes or imported scene geometry alongside behaviour nodes beneath a structure. The Bell Cradle's ring demonstrates this separation. A mesh does not automatically create a walkable face, socket or collision shape.
 
 Walkable surfaces render as a light inlay inside a dark rim (`SurfacePiece.PAVING_RIM`, 0.12 m) across their width; the rim is still walkable, so keep it narrow. Joined passages stay continuous along their length.
+
+## Isometric composition
+
+The isometric view is authored per monument (spec §11): set **Level > overview_focus**, **overview_size**, **overview_azimuth_degrees** and **overview_elevation_degrees**. Azimuth and elevation are relative to the player's ground frame, so the same composition is re-presented from whatever gravity the player has reached. Players cannot orbit; the wheel zooms within 0.8–1.25 and Home resets zoom. Choose the composition so it shows what the player must reason about, and deliberately leaves out what first person should discover (interiors, undersides, sightlines). The editor preview uses the same angle from upright ground.
 
 Set a path's **blockout=false** to hide its generated structural mass and place custom artwork around its logical route. Ivory paving still marks traversal. For additional physical interference, use geometry components as box proxies matching the visible architecture. Curved and path solids retain analytic body/camera/rotation queries. Arbitrary concave mesh collision is not implemented; the current rotation sweep uses oriented boxes.
 

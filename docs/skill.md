@@ -6,7 +6,7 @@ How to work in this repository. The [spec](spec.md) owns every design decision; 
 
 The project restarted on 1 October 2026 from the ELSEWHERE spec. The earlier prototype (positioning studies, the connected courtyard chapter, the Lantern Fold, the procedural monument, the portal gallery, camera experiments and their docs) is archived read-only in `legacy/`. The last runnable prototype is the git tag `prototype-final`. Use the archive as reference; do not import from it, and do not revive its procedural layout builders.
 
-Current phase: spec §54 **Phase 1 — Prove Puzzle Depth**. The only monument is The Ring: two bridges on one turntable, walkable on opposite faces, joined only through a fixed stair where the player must wait while the empty ring turns. The authored Turning Frame conversion is archived in `legacy/monuments/`; spec §41–42 still names the Turning Frame as a design target, so a fresh version may return as a new monument. The next real work is new monuments with distinct spatial ideas (candidates: Appendix A of the spec), each tested against §16 and §51.
+Current phase: spec §54 **Phase 1 — Prove Puzzle Depth**. The only monument is The Ring v3 ([design](designs/2026-10-01-the-ring-v3.md)): two independent rotors around a hollow tower whose hidden interior changes the player's side, with first-person cues (guide line, east sightline slot). First person discovers why a configuration matters; isometric is an authored composition for acting on it. The authored Turning Frame conversion is archived in `legacy/monuments/`; spec §41–42 still names the Turning Frame as a design target, so a fresh version may return as a new monument. The next real work is new monuments with distinct spatial ideas (candidates: Appendix A of the spec), each tested against §16 and §51.
 
 ## Layout
 
@@ -23,7 +23,7 @@ Current phase: spec §54 **Phase 1 — Prove Puzzle Depth**. The only monument i
 
 Turntable (vertical-axis) structures can dock with fixed architecture only through narrow radial bridges: a wide or tangential piece sweeps its corners through anything touching its edge. Keep docking widths around 1.6 m at radius ≥ 6 m, as in The Ring. Tests must finish tweens with `H.turn` (it steps the tween to completion), not a fixed time.
 
-Spec-to-code map: §46 library → `authoring/components/`; §48 tools → the plugin; §50 data model → `ElsewhereLevel` + `ElsewhereComponent` tree; §12–14, §18–19 → `architecture_runtime.gd` + `monument.gd`; §9–11 → `update_camera` / `transport_ground` / orbit layer.
+Spec-to-code map: §46 library → `authoring/components/`; §48 tools → the plugin; §50 data model → `ElsewhereLevel` + `ElsewhereComponent` tree; §12–14, §18–19 → `architecture_runtime.gd` + `monument.gd`; §9–11 → `update_camera` / `transport_ground` / `ElsewhereLevel.overview_local_offset()`. Minimum-solution guards → `tests/state_graph.gd`.
 
 ## Making a monument
 
@@ -48,7 +48,7 @@ These are proven behaviours; break them only with an explicit spec change.
 5. **Turns.** Links are disabled while turning and only form at settled authored states. Every turn samples the sweep at ≤1.5° (minimum 60 samples) against other structures and player clearance. Construction tolerance is for docking edges, not for hiding overlaps. `carries_player=false` structures refuse to move while occupied.
 6. **Rejected turns** change nothing: no state, no snapshot, no undo entry. Recovery by withdrawing or undoing must always be possible.
 7. **Snapshots.** Undo, checkpoints and saves restore structure states, occupied path, local pose, both camera layers, path activity, locks and interactions. Saves are per level (`user://authored-<level_id>.save`) and guarded by level id + revision + contact validity.
-8. **Camera B (§9–11).** Transport the previous camera frame by the shortest change in ground normal; never rebuild heading from support axes or inherit yaw about an unchanged normal (turntable turns do not orbit the view). Focus is fixed per monument. Manual yaw/elevation/zoom form a separate layer; Tab never resets it and Home resets only it. Character look never affects the isometric view.
+8. **Camera B (§9–11).** Transport the previous camera frame by the shortest change in ground normal; never rebuild heading from support axes or inherit yaw about an unchanged normal (turntable turns do not orbit the view). The composition (focus, size, azimuth, elevation) is authored per monument and expressed in the ground frame; there is **no orbit layer**. Zoom stays within 0.8–1.25, Tab never resets it and Home resets only zoom. Character look never affects the isometric view. Fix unreadable relationships with composition, fades or framing, not camera freedom.
 9. **Controls.** On ordinary ground, fresh movement input follows the projected camera; transported controls apply only on the authored curve during a held gesture. Mouse look alone never turns the avatar.
 10. **Play From Here** never loads or writes normal progress, and editor preview never mutates authored transforms.
 
@@ -62,7 +62,7 @@ G="/c/Program Files (x86)/Steam/steamapps/common/Godot Engine/godot.windows.opt.
 "$G" --headless --path . monuments/the_ring.tscn --log-file test.log -- --self-test
 ```
 
-Require exit 0, the literal `AUTHORING SELF TEST PASS` line and no `SCRIPT ERROR` in the log. Close the editor before moving or renaming files; an open editor can re-save stale buffers to old paths. For gameplay or visual changes, also check live (Godot MCP Pro below): walking, Tab, orbit, Q/E, Z, Home, upside-down traversal, the finish panel, and the editor dock (preview immutability, Play From Here). Tests prove mechanics, not comprehension; do not claim players understand a puzzle until an unaided playtest shows it (§51).
+Require exit 0, the literal `AUTHORING SELF TEST PASS` line and no `SCRIPT ERROR` in the log. Close the editor before moving or renaming files; an open editor can re-save stale buffers to old paths. For gameplay or visual changes, also check live (Godot MCP Pro below): walking, Tab, 1–9 selection, Q/E, Z, wheel/Home zoom, upside-down traversal, the finish panel, and the editor dock (preview immutability, Play From Here). When a monument's solution is settled, pin its minimum with `tests/state_graph.gd` (turns and actions) so a socket or geometry change cannot add a shortcut. Tests prove mechanics, not comprehension; do not claim players understand a puzzle until an unaided playtest shows it (§51).
 
 ## Godot MCP Pro
 
