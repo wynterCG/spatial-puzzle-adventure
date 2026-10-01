@@ -14,7 +14,9 @@ Current phase: spec §54 **Phase 1 — Prove Puzzle Depth**. The only monument i
 |---|---|
 | `core/` | Authored-surface traversal: `surface_piece.gd` (walk regions, contacts, solids; `class_name SurfacePiece`), `surface_walker.gd` (player, locomotion, first-person camera; `SurfaceWalker`), `locomotion_profile.gd` + `locomotion.tres` (movement feel, tunable in the inspector), `gravity_path.gd` (analytic gravity curves) |
 | `authoring/` | Scene-level data: `component.gd` (`ElsewhereComponent`, every §46 behaviour selected by `kind`), `level.gd` (`ElsewhereLevel`), `connections.gd` (socket descriptors and compatibility), `validation.gd`; `components/*.tscn` are the drag-in §46 blockout pieces |
-| `runtime/` | `architecture_runtime.gd`: generic runtime (camera B, turns and sweep clearance, snapshots/undo, input, preferences, save hooks). `monument.gd`: builds an `ElsewhereLevel` into a playable monument (paths, sockets, interactions, checkpoints, goal, per-level saves, Play From Here). `hud.gd`: minimal HUD |
+| `tools/` | Offline scene generators: `gen_ring.py` (The Ring, one `SCALE`), `gen_backdrop.py` (far scenery). Edit the generator, not the generated scene |
+| `world/` | Shared scenery scenes: `backdrop.tscn` (far silhouettes, selected per level by `ElsewhereLevel.backdrop`) |
+| `runtime/` | `atmosphere.gd`: sky, fog and mist environments (world and overview). `architecture_runtime.gd`: generic runtime (camera B, turns and sweep clearance, snapshots/undo, input, preferences, save hooks). `monument.gd`: builds an `ElsewhereLevel` into a playable monument (paths, sockets, interactions, checkpoints, goal, per-level saves, Play From Here). `hud.gd`: minimal HUD |
 | `monuments/` | One scene per monument: root `Puzzle` node with `runtime/monument.gd`, plus a `Level` child holding the authored data. Main scene: `the_ring.tscn`. Every scene here appears in the in-game menu |
 | `tests/` | `authoring_tests.gd` (headless self-test, launched from The Ring), `locomotion_bench.gd` (first-person feel measured on The Ring's route, part of the self-test), `eye_clearance_probe.gd` (separate run), `state_graph.gd`, `test_helpers.gd`, `fixtures/` (Bell Cradle and Folded Observatory scenes kept only to cover checkpoints, two-state hinges and blocked sweeps; they are test data, not monuments) |
 | `addons/elsewhere_authoring/` | First-party editor plugin: state preview, socket/normal display, validation, Play From Here (§48) |
@@ -27,7 +29,7 @@ Spec-to-code map: §46 library → `authoring/components/`; §48 tools → the p
 
 ## Making a monument
 
-1. Duplicate a scene in `monuments/`. Set a unique, stable `Level > level_id`; bump `revision` whenever saved contacts or state indices would become invalid.
+1. Duplicate a scene in `monuments/`, or generate it from a script in `tools/` when its geometry is regular. Author at monumental scale ([authoring.md](authoring.md#monument-scale)). Set a unique, stable `Level > level_id`; bump `revision` whenever saved contacts or state indices would become invalid.
 2. Compose with components under rotators, following [authoring.md](authoring.md). A monument is **scene data**: no per-level script and no procedural builder. If a monument seems to need new code, extract a reusable behaviour into `ElsewhereComponent`/runtime only after it repeats (§45). Log the friction in [authoring-friction.md](authoring-friction.md).
 3. Before building, write the §16 template (expected first idea / why insufficient / required discovery) into the level's `question`, `explanation` and `hints`.
 4. Add the monument to `tests/authoring_tests.gd`: its solution, the tempting wrong route and recovery.
@@ -55,6 +57,7 @@ These are proven behaviours; break them only with an explicit spec change.
 12. **Colour language.** An accent light means *this moves*, and each moving assembly has one accent (its rotator `tint`). Warm white is information and destination. Static architecture is neutral and never carries a mover's accent. Fix unreadable relationships with composition, fades or framing, not camera freedom.
 13. **Locomotion comfort.** Mouse look is applied 1:1 in the same frame and never smoothed. Only the ground's orientation is eased (`view_ground`, stored in the support's space so rotors carry it); the eye position is rigid. On a gravity curve, speed is capped at turn rate × radius from the first frame, so the view never turns faster than the comfort setting (Gentle/Normal/Brisk; reduced motion means Gentle). Blocked steps slide, never further than asked. `tests/locomotion_bench.gd` asserts all of this on The Ring's route; tune feel in `core/locomotion.tres` and keep the bench green.
 14. **Visible deck = walkable region** (§7.2). A path's own deck never extends past its walk regions except at sockets (`deck_cases`). Walking eyes stay 0.1 m clear of all art in every rotor configuration (`tests/eye_clearance_probe.gd`); fix failures with proportions (door widths, jamb spacing), not by hiding geometry.
+15. **Scale.** Player size, eye height, body padding, eye clearance and the near plane are absolute; everything authored about a monument scales. Turn sweeps sample by arc length (≤ `SWEEP_STEP`, 0.25 m), use the level's `sweep_tolerance`, and the overview camera stands `overview_distance()` (3× the framing) away, inside the backdrop's 600 m ring. Ring test distances go through `H.m()` (`RING_SCALE` matches `tools/gen_ring.py`).
 
 ## Verification
 

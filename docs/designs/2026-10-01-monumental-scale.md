@@ -1,6 +1,6 @@
 # Monumental scale
 
-Design, 1 October 2026. Status: **proposed**. Applies to The Ring (rebuilt at ×4) and to every later monument (authoring rules).
+Design, 1 October 2026. Status: **implemented** ([plan](2026-10-01-monumental-scale-plan.md)); not yet hand-playtested. Changes made during implementation: turn sweeps sample every **0.25 m**, not 0.1 m (0.1 m was too slow for Q/E, and the thinnest solid is 0.26 m); the overview camera stands **3×** the framing away and the backdrop starts at **600 m** (at 6× the camera stood inside a backdrop mass); light lines keep their thin, low profile while their lengths scale. Applies to The Ring (rebuilt at ×4) and to every later monument (authoring rules).
 
 ## Why
 
