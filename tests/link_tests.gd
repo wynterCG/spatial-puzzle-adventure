@@ -275,6 +275,18 @@ static func linking_cases(g: Node3D, failures: Array[String]) -> void:
 	if not g.use_threshold() or g.link != [a, b] or g.history.size() != before + 1: failures.append("One F press links A and B (undoable)")
 	if g.doorway_state(a) != "linked" or g.doorway_state(b) != "linked": failures.append("Both doorways show the link")
 	if piece(g, "Near").remote_links.size() != 1 or piece(g, "Far").remote_links.size() != 1: failures.append("The active pair must be crossable both ways")
+	# Stacked doorways: with a compatible C right behind B, looking through B's opening means C;
+	# looking at B's frame means B.
+	g.thresholds[c].link_group = "g"
+	g.walker.place(piece(g, "Near"), Vector3(2.5, piece(g, "Near").half.y, 0), Vector3.UP, Vector3.RIGHT)
+	stand_at_a(g, b_centre(g)); g.update_link_view()
+	if g.aimed != c: failures.append("Looking through B's opening at C behind it must aim at C: " + g.aimed)
+	var lintel: Vector3 = g.thresholds[b].global_position + Vector3.UP * (g.thresholds[b].aperture_height + .1)
+	stand_at_a(g, lintel); g.update_link_view()
+	if g.aimed != b: failures.append("Looking at B's frame must aim at B: " + g.aimed)
+	stand_at_a(g, b_centre(g)); g.update_link_view()
+	if g.aimed != c: failures.append("Looking back through B must aim at C again, not hold B")
+	g.thresholds[c].link_group = "other"
 	# Replacement: one pair only, from another source.
 	var near := piece(g, "Near")
 	g.walker.place(near, Vector3(-2.5, near.half.y, 0), Vector3.UP, Vector3.RIGHT)

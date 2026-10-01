@@ -427,8 +427,11 @@ func update_link_view() -> void:
 	else:
 		var eye := walker.camera.global_position
 		var look := -walker.camera.global_basis.z
+		var precise := ray_target(source, eye, look)
 		var held := aimed != "" and aimed != source and thresholds.has(aimed) and look.angle_to(doorway_centre(aimed) - eye) <= deg_to_rad(AIM_KEEP_DEGREES) and threshold_seen(aimed, false)
-		if not held:
+		if precise != "":
+			aimed = precise
+		elif not held:
 			aimed = ""
 			var best := deg_to_rad(AIM_DEGREES)
 			for id in thresholds:
@@ -443,6 +446,37 @@ func update_link_view() -> void:
 	if tether_flash > 0: return
 	tether.visible = source != "" and aimed != "" and compatible(source, aimed) and not linked_pair(source, aimed)
 	if tether.visible: place_tether(doorway_centre(source), doorway_centre(aimed), .35)
+
+## The doorway the centre of view actually points at. Hits are taken nearest first along the
+## view ray: a doorway's frame (a band around its opening) selects it; its opening is looked
+## through, so a linkable doorway beyond it is meant instead (the one behind is not hidden by
+## the one in front); with nothing beyond, the opening's own doorway. "" when the ray hits none.
+func ray_target(source: String, eye: Vector3, look: Vector3) -> String:
+	var hits: Array = []
+	for id in thresholds:
+		if id == source: continue
+		var doorway := SpatialLinks.live(thresholds[id])
+		var facing: float = look.dot(doorway.direction)
+		if absf(facing) < .0001: continue
+		var t: float = (doorway.position - eye).dot(doorway.direction) / facing
+		if t <= 0: continue
+		var local: Vector3 = SpatialLinks.frame(doorway).affine_inverse() * (eye + look * t)
+		var w: float = doorway.width / 2
+		var band: float = maxf(.25, doorway.width * .12)
+		var opening: bool = absf(local.x) <= w and local.y >= 0 and local.y <= doorway.height
+		var frame: bool = not opening and absf(local.x) <= w + band and local.y >= -band and local.y <= doorway.height + band
+		if (opening or frame) and threshold_seen(id, false): hits.append([t, id, opening])
+	hits.sort_custom(func(x, y): return x[0] < y[0])
+	for k in range(hits.size()):
+		var id: String = hits[k][1]
+		if not hits[k][2]: return id
+		var beyond := ""
+		for later in hits.slice(k + 1):
+			if compatible(source, later[1]):
+				beyond = later[1]
+				break
+		return beyond if beyond != "" else id
+	return ""
 
 func place_tether(from: Vector3, to: Vector3, alpha: float) -> void:
 	var span := to - from
