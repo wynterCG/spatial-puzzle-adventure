@@ -16,6 +16,14 @@ var launch_data: Dictionary = {}
 var authored_completed := false
 var goal_marker: Node3D
 var start_marker: Node3D
+## Spatial Links (experimental): threshold id -> component; the one active pair; the primed
+## threshold; what the player has seen. Discovery is knowledge: never part of undo snapshots.
+var thresholds: Dictionary = {}
+var link: Array = []
+var primed := ""
+var discovered: Dictionary = {}
+const SEAM_COLOURS := {"discovered": Color(.62, .68, .82), "primed": Color(1, .93, .78), "linked": Color(.55, .9, 1)}
+var seam_materials: Dictionary = {}
 
 func _ready() -> void:
 	data_source = get_node("Level")
@@ -53,6 +61,7 @@ func build_level() -> void:
 		world.add_child(backdrop)
 	definition.show()
 	pieces.clear(); rigs.clear(); ports.clear(); obstacles.clear(); paths.clear()
+	thresholds.clear(); discovered.clear(); link.clear(); primed = ""
 	history.clear(); interaction_values.clear(); checkpoint.clear()
 	checkpoint_id = ""
 	selected = 0
@@ -109,6 +118,11 @@ func build_level() -> void:
 			# A placeholder light, unless the monument authored its own landmark under the goal.
 			if not c.get_children().any(func(child): return child is MeshInstance3D):
 				Piece.box(c, Vector3(0, 1.8, 0), Vector3(.45, .8, .45), Piece.material(Color("ffdfa2"), 1))
+		elif c.kind == C.Kind.THRESHOLD:
+			var id := str(definition.get_path_to(c))
+			thresholds[id] = c
+			if c.initially_discovered: discovered[id] = true
+			build_threshold_art(c)
 		elif c.kind in [C.Kind.CHECKPOINT, C.Kind.INTERACTION]:
 			Piece.box(c, Vector3(0, .45, 0), Vector3(.3, .9, .3), Piece.material(c.tint, .2))
 			if c.kind == C.Kind.INTERACTION: interaction_values[str(definition.get_path_to(c))] = c.initial_value
@@ -139,6 +153,58 @@ func build_level() -> void:
 	if definition.components().any(func(c): return c.kind == C.Kind.CHECKPOINT): message += " Backspace: checkpoint."
 	initial = snapshot()
 	hud.refresh()
+
+## A threshold's art in its own doorway frame (x across, y up the ground normal, z back): an
+## optional blockout frame (prototype art; jambs and lintel are solid) and a seam that shows
+## the link state. Both are children of the threshold, so they move with its structure.
+func build_threshold_art(c: Node3D) -> void:
+	var up: Vector3 = c.ground_normal.normalized()
+	var out: Vector3 = c.travel_direction.normalized()
+	var doorway := Node3D.new()
+	doorway.basis = Basis(out.cross(up).normalized(), up, -out)
+	var w: float = c.width
+	var h: float = c.aperture_height
+	if c.blockout_frame:
+		var frame := doorway.duplicate()
+		frame.name = "Frame"
+		c.add_child(frame)
+		var j := maxf(.12, w * .08)
+		var stone := Piece.material(Color(.2, .2, .24))
+		for side in [-1.0, 1.0]:
+			obstacles.append(Piece.box(frame, Vector3(side * (w + j) / 2, h / 2, 0), Vector3(j, h, j), stone))
+		obstacles.append(Piece.box(frame, Vector3(0, h + j / 2, 0), Vector3(w + 2 * j, j, j), stone))
+	var seam := doorway
+	seam.name = "Seam"
+	c.add_child(seam)
+	var s := maxf(.04, w * .015)
+	for side in [-1.0, 1.0]:
+		Piece.box(seam, Vector3(side * w / 2, h / 2, 0), Vector3(s, h, s), null)
+	Piece.box(seam, Vector3(0, h, 0), Vector3(w, s, s), null)
+	refresh_threshold(c)
+
+func seam_material(state: String) -> StandardMaterial3D:
+	if not seam_materials.has(state):
+		var mat := StandardMaterial3D.new()
+		mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		mat.albedo_color = SEAM_COLOURS[state]
+		seam_materials[state] = mat
+	return seam_materials[state]
+
+## Seam state: hidden until discovered (the overview never reveals a doorway), then dim; the
+## linked pair shares one accent; a primed doorway is brighter, in first person only.
+func refresh_threshold(c: Node3D) -> void:
+	var id := str(definition.get_path_to(c))
+	var seam: Node3D = c.get_node_or_null("Seam")
+	if seam == null: return
+	seam.visible = discovered.has(id)
+	var state := "discovered"
+	if id in link: state = "linked"
+	if id == primed and not architectural: state = "primed"
+	for mesh in seam.get_children():
+		mesh.material_override = seam_material(state)
+
+func refresh_thresholds() -> void:
+	for c in thresholds.values(): refresh_threshold(c)
 
 func place_at_marker(marker: Node3D) -> void:
 	var part: SurfacePiece = paths[marker.get_node(marker.path)]

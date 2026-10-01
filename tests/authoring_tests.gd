@@ -8,6 +8,7 @@ const Validate = preload("res://authoring/validation.gd")
 const H = preload("res://tests/test_helpers.gd")
 const Graph = preload("res://tests/state_graph.gd")
 const Bench = preload("res://tests/locomotion_bench.gd")
+const LinkTests = preload("res://tests/link_tests.gd")
 static var finished := false
 
 static func load_level(g: Node3D, scene_path: String) -> void:
@@ -74,7 +75,8 @@ static func run(g: Node3D) -> Array[String]:
 	fixture_cases(g, failures)
 	curve_cases(g, failures)
 	seam_cases(g, failures)
-	print("AUTHORING CASES: ring v3 16-configuration table, dead ends, solution both ways, sweep clearance, 6-turn/16-action minimum, tower necessity, authored camera (no orbit, zoom, bounded pan, Home, Tab, legacy snapshots, turntable heading, ground follow, seam continuity), diegetic selection (pick, click, hover glow, no HUD list), carried pose, settled graph, undo, serialized saves, Play From Here, socket contract and apertures, interactions/conditions, checkpoints, two-state hinge, blocked sweep, validation, 90/180 degree curves, visible deck = walkable region, comfort settings, locomotion bench")
+	LinkTests.run(g, failures)
+	print("AUTHORING CASES: ring v3 16-configuration table, dead ends, solution both ways, sweep clearance, 6-turn/16-action minimum, tower necessity, authored camera (no orbit, zoom, bounded pan, Home, Tab, legacy snapshots, turntable heading, ground follow, seam continuity), diegetic selection (pick, click, hover glow, no HUD list), carried pose, settled graph, undo, serialized saves, Play From Here, socket contract and apertures, interactions/conditions, checkpoints, two-state hinge, blocked sweep, validation, 90/180 degree curves, visible deck = walkable region, comfort settings, locomotion bench, spatial links")
 	finished = true
 	return failures
 
