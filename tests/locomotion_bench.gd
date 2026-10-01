@@ -5,11 +5,9 @@ extends RefCounted
 ## threshold is still being worked towards; every metric is always reported.
 const H = preload("res://tests/test_helpers.gd")
 const DT := 1.0 / 60
-## Comfort cap the camera's gravity-frame rotation is held to (Normal setting), degrees per second.
-const RATE_CAP := 110.0
 const THRESHOLDS := {
 	"route": 0.0, # failed route segments
-	"rate": RATE_CAP * 1.05, # peak gravity-frame rotation, deg/s
+	"rate": 1.05, # peak gravity-frame rotation as a fraction of the walker's comfort cap
 	"rate_accel": 2400.0, # peak change of that rotation, deg/s^2: the view eases into a curve
 	"roll": .02, # |camera right . ground up| walking straight
 	"stalls": 0.0, # held-input dips that recover (snags)
@@ -19,7 +17,7 @@ const THRESHOLDS := {
 	"carried": .001, # camera drift relative to a support it rides, after one frame
 	"overshoot": .0001, # metres a slide moved beyond the requested step
 }
-const ASSERTED := ["route", "roll"]
+const ASSERTED := ["route", "rate", "rate_accel", "roll", "stalls", "mouse", "start", "stop", "carried", "overshoot"]
 
 static func run(g: Node3D, failures: Array[String]) -> Dictionary:
 	var m := {"route": 0.0, "rate": 0.0, "rate_accel": 0.0, "roll": 0.0, "stalls": 0.0, "overshoot": 0.0}
@@ -28,6 +26,7 @@ static func run(g: Node3D, failures: Array[String]) -> Dictionary:
 	start_stop(g, m)
 	m.carried = carried_drift(g)
 	neck_approach(g, m)
+	m.rate /= g.walker.effective_turn_rate()
 	var line := "LOCOMOTION BENCH:"
 	for key in THRESHOLDS:
 		var value: float = m.get(key, 0.0)

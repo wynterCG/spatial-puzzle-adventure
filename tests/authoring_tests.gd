@@ -28,13 +28,19 @@ static func load_level(g: Node3D, scene_path: String) -> void:
 static func walk(g: Node3D, direction: Vector3, distance: float) -> void:
 	g.architectural = false
 	g.walker.forward = direction
-	for i in range(int(ceil(distance / (3.5 / 60)))):
-		g.walker.walk(Vector2(0, -1), 1.0 / 60)
+	# Walk until the distance is covered or the player has stopped (a path end).
+	var covered := 0.0
+	var still := 0
+	for i in range(int(distance / .5 * 60) + 120):
+		var moved: float = g.walker.walk(Vector2(0, -1), 1.0 / 60)
+		covered += moved
+		still = still + 1 if moved < .0001 else 0
 		g.walker.sync_pose(1.0 / 60)
 		g.update_camera(1.0 / 60)
 		if not g.won and g.reached_goal():
 			g._process(0)
 			break
+		if covered >= distance or still >= 10: break
 
 ## Keeps walking in the current (transported) direction, e.g. after waiting at a path end.
 static func walk_on(g: Node3D, distance: float) -> void:
@@ -282,7 +288,7 @@ static func camera_cases(g: Node3D, failures: Array[String]) -> void:
 	var seam_checked := false
 	var previous_name := name_of(g)
 	var previous_frame: Basis = g.camera_frame
-	for step in range(int(ceil(20 / (3.5 / 60)))):
+	for step in range(int(ceil(20 / (2.0 / 60)))):
 		g.walker.walk(Vector2(0, -1), 1.0 / 60)
 		g.walker.sync_pose(1.0 / 60)
 		g.update_camera(1.0 / 60)

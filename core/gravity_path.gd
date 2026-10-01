@@ -11,6 +11,7 @@ var enabled := true
 var sections: Array[Node3D] = []
 
 func transports_controls() -> bool: return true
+func curvature_radius(point: Vector3) -> float: return radius if distance_at(point) < arc * radius - .001 else INF
 func length() -> float: return radius * arc + tail_length
 func point_at(distance: float, across := 0.0) -> Vector3:
 	var angle := clampf(distance / radius, 0, arc)
