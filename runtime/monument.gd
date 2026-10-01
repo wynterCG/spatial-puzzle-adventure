@@ -218,6 +218,15 @@ func update_links() -> void:
 		part.neighbours.clear()
 		part.strict_connections = true
 		part.connection_apertures.clear()
+		part.remote_links.clear()
+	# The one active Spatial Link pair (settled structures only, like sockets).
+	if link.size() == 2 and not busy:
+		var ends: Array = link.map(func(id): return thresholds.get(id))
+		if not ends.has(null):
+			for k in range(2):
+				var here: Node3D = ends[k]
+				var there: Node3D = ends[1 - k]
+				paths[here.get_node(here.path)].remote_links.append({"node": here, "other": there, "other_piece": paths[there.get_node(there.path)]})
 	for port_data in ports: port_data.joined = false
 	var sockets := Links.descriptors(definition)
 	if not busy:

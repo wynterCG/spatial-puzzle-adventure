@@ -19,6 +19,9 @@ var solid_meshes: Array[MeshInstance3D] = []
 var pick_body: StaticBody3D
 var strict_connections := false
 var connection_apertures: Array[Dictionary] = []
+## Spatial Links (experimental): {node, other, other_piece} for each linked threshold on this
+## piece. Filled by the runtime from the active pair; crossings read current transforms.
+var remote_links: Array[Dictionary] = []
 
 func allows_connection(other: SurfacePiece, world_point: Vector3) -> bool:
 	if not strict_connections: return true

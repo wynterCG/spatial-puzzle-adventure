@@ -42,6 +42,9 @@ var edge_count := 0
 var step_distance := 0.0
 signal stepped
 signal changed_surface
+## A Spatial Link crossing, with the rotation it applied (emitted before changed_surface).
+signal linked_crossing(rotation: Basis)
+const SpatialLinks = preload("res://core/spatial_links.gd")
 
 func _ready() -> void:
 	camera = Camera3D.new()
@@ -224,6 +227,8 @@ func advance(local_direction: Vector3, distance: float) -> float:
 		normal = other.surface_frame(foot).y
 		changed_surface.emit()
 		return start.distance_to(support.to_global(foot))
+	if cross_link(start, world_next):
+		return distance
 	# Ordinary edges are boundaries. No face folding, gravity snapping or wrapping.
 	next = support.step_contact(foot, direction, distance)
 	var next_normal := support.surface_frame(next).y
@@ -233,6 +238,33 @@ func advance(local_direction: Vector3, distance: float) -> float:
 		foot = next
 		normal = next_normal
 	return start.distance_to(support.to_global(foot))
+
+## Spatial Links: a step leaving this piece outward through a linked doorway continues from the
+## partner doorway, walking into its path on its ground. One-way per doorway (only outward from
+## its own path), and the landing sits EXIT_BIAS inside, so a held key crosses exactly once.
+func cross_link(start: Vector3, world_next: Vector3) -> bool:
+	for remote in support.remote_links:
+		var here: Dictionary = SpatialLinks.live(remote.node)
+		var offset: Vector3 = world_next - here.position
+		if (start - here.position).dot(here.direction) > 0 or offset.dot(here.direction) <= 0: continue
+		var across: Vector3 = here.direction.cross(here.normal).normalized()
+		if absf(offset.dot(across)) > here.width / 2 or absf(offset.dot(here.normal)) > .5: continue
+		var there: Dictionary = SpatialLinks.live(remote.other)
+		var mapping := SpatialLinks.mapping(here, there)
+		var other: SurfacePiece = remote.other_piece
+		var landed: Vector3 = other.constrain_to_path(other.to_local(mapping * world_next - there.direction * SpatialLinks.EXIT_BIAS))
+		var up := other.surface_frame(landed).y
+		if not other.allows_point(landed, up) or not pose_is_clear(other, landed, up): continue
+		var to_other: Basis = other.global_basis.inverse() * mapping.basis * support.global_basis
+		forward = (to_other * forward).slide(up).normalized()
+		view_ground = (to_other * view_ground).orthonormalized()
+		support = other
+		foot = landed
+		normal = up
+		linked_crossing.emit(mapping.basis)
+		changed_surface.emit()
+		return true
+	return false
 
 ## A blocked step slides along whichever of the ground's own axes moves furthest. A projection
 ## is never longer than the requested step, so sliding can't speed the player up.
