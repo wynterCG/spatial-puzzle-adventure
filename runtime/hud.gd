@@ -11,6 +11,7 @@ var question: Label
 var status: Label
 var controls: Label
 var feedback: Label
+var prompt: Label
 var menu: PanelContainer
 var finish: PanelContainer
 var finish_title: Label
@@ -53,6 +54,16 @@ func _ready() -> void:
 	feedback.offset_top = -130
 	feedback.offset_bottom = -86
 	feedback.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	# Contextual and quiet: shown only while something usable is within reach (spec §33).
+	prompt = label("", 16)
+	root.add_child(prompt)
+	prompt.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	prompt.offset_left = -200
+	prompt.offset_right = 200
+	prompt.offset_top = 70
+	prompt.offset_bottom = 100
+	prompt.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	prompt.modulate = Color(1, 1, 1, .85)
 	var bottom := panel(Vector2(38, -65), Vector2(1364, 40), Control.PRESET_BOTTOM_LEFT)
 	controls = label("", 14)
 	bottom.add_child(controls)
@@ -169,6 +180,8 @@ func refresh() -> void:
 	explanation.text = game.puzzle_reason()
 	feedback.text = game.message
 	feedback.visible = not game.paused and not game.blocks_play()
+	prompt.text = game.interaction_prompt()
+	prompt.visible = not prompt.text.is_empty()
 	controls.text = game.key_name("view") + "  Change view  /  "
 	if game.architectural:
 		controls.text += "Click  Select  /  " + game.key_name("rotate_left") + " · " + game.key_name("rotate_right") + "  Turn  /  Wheel  Zoom  /  Right-drag · WASD  Pan  /  " + game.key_name("reset_view") + "  Reset view  /  "

@@ -436,6 +436,14 @@ static func interaction_cases(g: Node3D, failures: Array[String]) -> void:
 	gate.target = NodePath("../Balcony")
 	g.data_source.add_child(gate)
 	g.build_level()
+	brake = g.definition.get_node("Brake")
+	if g.interaction_prompt() != "F  Use": failures.append("A usable interaction in reach must show its F prompt, got '%s'" % g.interaction_prompt())
+	g.architectural = true
+	if g.interaction_prompt() != "": failures.append("The isometric view must show no interaction prompt")
+	g.architectural = false
+	brake.position.x += 3
+	if g.interaction_prompt() != "": failures.append("An interaction out of reach must show no prompt")
+	brake.position.x -= 3
 	var before_interaction: Dictionary = g.snapshot()
 	var press := InputEventKey.new()
 	press.physical_keycode = KEY_F; press.pressed = true

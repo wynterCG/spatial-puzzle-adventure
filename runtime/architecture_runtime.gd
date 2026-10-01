@@ -110,6 +110,8 @@ func progress_path() -> String: return ""
 func progress_data() -> Dictionary: return {}
 func apply_progress(_data: Dictionary) -> void: pass
 func run_tests() -> void: get_tree().quit(0)
+## A short contextual prompt for something usable right now (first person only); empty otherwise.
+func interaction_prompt() -> String: return ""
 
 # --- Construction helpers -------------------------------------------------------------------
 

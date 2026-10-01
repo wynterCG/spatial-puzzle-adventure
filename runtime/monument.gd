@@ -180,10 +180,22 @@ func _unhandled_input(event: InputEvent) -> void:
 			if not checkpoint.is_empty(): history.append(snapshot()); restore(checkpoint); save_progress()
 			return
 		if event.physical_keycode == KEY_F and not architectural and not blocks_play():
-			for c in definition.components():
-				if c.kind == C.Kind.INTERACTION and c.activation == 0 and c.active and walker.support.to_global(walker.foot).distance_to(c.global_position) < c.trigger_radius:
-					activate(c); return
+			var nearby := interaction_in_range()
+			if nearby: activate(nearby); return
 	super._unhandled_input(event)
+
+## The F-activated interaction the player is standing within reach of, if any.
+func interaction_in_range() -> Node3D:
+	for c in definition.components():
+		if c.kind == C.Kind.INTERACTION and c.activation == 0 and c.active and walker.support.to_global(walker.foot).distance_to(c.global_position) < c.trigger_radius:
+			return c
+	return null
+
+func interaction_prompt() -> String:
+	if architectural or paused or busy or blocks_play(): return ""
+	var nearby := interaction_in_range()
+	if nearby == null: return ""
+	return "F  " + (nearby.label if not nearby.label.is_empty() else "Use")
 
 func activate(c: Node3D) -> bool:
 	if busy or not c.active: return false
