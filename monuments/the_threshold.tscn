@@ -1,0 +1,1025 @@
+[gd_scene load_steps=32 format=3]
+
+[ext_resource type="Script" path="res://runtime/monument.gd" id="1"]
+[ext_resource type="Script" path="res://authoring/level.gd" id="2"]
+[ext_resource type="Script" path="res://authoring/component.gd" id="3"]
+
+[sub_resource type="StandardMaterial3D" id="GoalLight"]
+albedo_color = Color(1, 0.93, 0.85, 1)
+emission_enabled = true
+emission = Color(1, 0.91, 0.82, 1)
+emission_energy_multiplier = 2.5
+
+[sub_resource type="StandardMaterial3D" id="Lantern"]
+albedo_color = Color(1, 0.72, 0.42, 1)
+emission_enabled = true
+emission = Color(1, 0.66, 0.34, 1)
+emission_energy_multiplier = 2.2
+
+[sub_resource type="StandardMaterial3D" id="Warm"]
+albedo_color = Color(1, 0.55, 0.2, 1)
+emission_enabled = true
+emission = Color(1, 0.5, 0.15, 1)
+emission_energy_multiplier = 1.1
+
+[sub_resource type="StandardMaterial3D" id="Cool"]
+albedo_color = Color(0.3, 0.62, 1, 1)
+emission_enabled = true
+emission = Color(0.25, 0.58, 1, 1)
+emission_energy_multiplier = 1.1
+
+[sub_resource type="StandardMaterial3D" id="Accent"]
+albedo_color = Color(0.55, 0.9, 1, 1)
+emission_enabled = true
+emission = Color(0.5, 0.88, 1, 1)
+emission_energy_multiplier = 1.4
+
+[sub_resource type="StandardMaterial3D" id="SignLight"]
+albedo_color = Color(0.95, 0.95, 1, 1)
+emission_enabled = true
+emission = Color(0.9, 0.93, 1, 1)
+emission_energy_multiplier = 1.6
+
+[sub_resource type="StandardMaterial3D" id="CrownStone"]
+albedo_color = Color(0.11, 0.1, 0.13, 1)
+roughness = 0.8
+
+[sub_resource type="BoxMesh" id="BeamMesh"]
+size = Vector3(0.64, 160, 0.64)
+
+[sub_resource type="BoxMesh" id="PlateMesh"]
+size = Vector3(4.8, 0.04, 4.8)
+
+[sub_resource type="BoxMesh" id="LanternMesh"]
+size = Vector3(2.4, 2.4, 2.4)
+
+[sub_resource type="CylinderMesh" id="SignDisc"]
+top_radius = 0.9
+bottom_radius = 0.9
+height = 0.32
+radial_segments = 32
+
+[sub_resource type="BoxMesh" id="SignDiamond"]
+size = Vector3(0.32, 1.2, 1.2)
+
+[sub_resource type="BoxMesh" id="SignBar"]
+size = Vector3(0.32, 0.3, 1.6)
+
+[sub_resource type="TorusMesh" id="SignRing"]
+inner_radius = 0.6
+outer_radius = 0.9
+rings = 32
+ring_segments = 8
+
+[sub_resource type="CylinderMesh" id="CrownMesh"]
+top_radius = 17.2
+bottom_radius = 17.2
+height = 3.2
+radial_segments = 48
+
+[sub_resource type="CylinderMesh" id="BaseMesh"]
+top_radius = 15.6
+bottom_radius = 12.8
+height = 160
+radial_segments = 48
+
+[sub_resource type="BoxMesh" id="LowSlitRimAcross"]
+size = Vector3(0.08, 0.14, 3.88)
+
+[sub_resource type="BoxMesh" id="LowSlitRimUp"]
+size = Vector3(0.08, 7.2, 0.14)
+
+[sub_resource type="BoxMesh" id="HighSlitRimAcross"]
+size = Vector3(0.08, 0.14, 3.88)
+
+[sub_resource type="BoxMesh" id="HighSlitRimUp"]
+size = Vector3(0.08, 6.4, 0.14)
+
+[sub_resource type="BoxMesh" id="LampBand"]
+size = Vector3(9.6, 11.2, 0.1)
+
+[sub_resource type="BoxMesh" id="GuideMesh"]
+size = Vector3(15.2, 0.02, 0.24)
+
+[sub_resource type="BoxMesh" id="WindowRimAcross"]
+size = Vector3(0.08, 0.14, 5.08)
+
+[sub_resource type="BoxMesh" id="WindowRimUp"]
+size = Vector3(0.08, 8.8, 0.14)
+
+[sub_resource type="BoxMesh" id="HighOpeningRimAcross"]
+size = Vector3(0.08, 0.14, 5.88)
+
+[sub_resource type="BoxMesh" id="HighOpeningRimUp"]
+size = Vector3(0.08, 8.8, 0.14)
+
+[sub_resource type="TorusMesh" id="BandMesh"]
+inner_radius = 26.3
+outer_radius = 26.65
+rings = 96
+ring_segments = 6
+
+[sub_resource type="BoxMesh" id="LedgeEdgeLong"]
+size = Vector3(7.2, 0.06, 0.1)
+
+[node name="Puzzle" type="Node3D"]
+script = ExtResource("1")
+
+[node name="Level" type="Node3D" parent="."]
+script = ExtResource("2")
+level_id = "the_threshold"
+revision = 1
+title = "The threshold"
+question = "From where can you see into the tower?"
+explanation = "The tower has no door, and the shell around it turns. Ride the ledge one turn: the sleeve's low window lines up with the core's low slit, and from the ledge door you see a doorway hanging inside. Link to it and cross. Inside, curl over the slab's edge onto its top, then turn the sleeve twice: the high opening lines up with the high slit and shows the balcony door."
+overview_focus = Vector3(-8, 12, 0)
+overview_size = 152
+overview_azimuth_degrees = -50
+overview_elevation_degrees = 38
+sweep_tolerance = 0.16
+discovery_range = 160
+hints = PackedStringArray("The outer shell turns; the tower inside it does not. What can you see through its openings, and from where?", "Stand at the ledge door and ride the sleeve one turn: the window and the low slit line up.", "Link the ledge door to the door inside and cross. Curl onto the slab top, turn the sleeve twice, link the high door to the balcony door and cross.")
+
+[node name="Entry" type="Node3D" parent="Level"]
+script = ExtResource("3")
+kind = 0
+label = "Entry"
+position = Vector3(-52, 0, 0)
+dimensions = Vector3(32, 3.2, 16)
+end_sockets = false
+tint = Color(0.23, 0.23, 0.26, 1)
+regions = Array[Rect2]([Rect2(-16, -8, 29.6, 16), Rect2(13.6, -3.2, 2.4, 6.4)])
+
+[node name="LedgeSocket" type="Node3D" parent="Level/Entry"]
+script = ExtResource("3")
+kind = 2
+position = Vector3(16, 0, 0)
+path = NodePath("..")
+travel_direction = Vector3(1, 0, 0)
+width = 6.4
+
+[node name="PlayerStart" type="Node3D" parent="Level/Entry"]
+script = ExtResource("3")
+kind = 4
+position = Vector3(4, 0, 0)
+path = NodePath("..")
+
+[node name="Gate" type="Node3D" parent="Level/Entry"]
+script = ExtResource("3")
+kind = 9
+label = "Gate"
+position = Vector3(-16, 0, 0)
+path = NodePath("..")
+travel_direction = Vector3(-1, 0, 0)
+ground_normal = Vector3(0, 1, 0)
+width = 3.2
+aperture_height = 5.6
+trigger_radius = 8
+link_group = "threshold"
+tint = Color(0.55, 0.9, 1, 1)
+
+[node name="SignMount" type="Node3D" parent="Level/Entry/Gate"]
+position = Vector3(0, 7.1, 0)
+rotation = Vector3(0, 0, 0)
+
+[node name="Sign" type="MeshInstance3D" parent="Level/Entry/Gate/SignMount"]
+mesh = SubResource("SignDisc")
+material_override = SubResource("SignLight")
+cast_shadow = 0
+rotation = Vector3(0, 0, 1.5708)
+
+[node name="EntryPier" type="Node3D" parent="Level"]
+script = ExtResource("3")
+kind = 8
+position = Vector3(-56, -103.2, 0)
+dimensions = Vector3(4.8, 200, 4.8)
+tint = Color(0.17, 0.17, 0.2, 1)
+
+[node name="LanternPost" type="Node3D" parent="Level"]
+script = ExtResource("3")
+kind = 8
+position = Vector3(-54, 6.4, 10.4)
+dimensions = Vector3(1.2, 12.8, 1.2)
+tint = Color(0.17, 0.17, 0.2, 1)
+
+[node name="Lantern" type="MeshInstance3D" parent="Level/LanternPost"]
+mesh = SubResource("LanternMesh")
+material_override = SubResource("Lantern")
+cast_shadow = 0
+position = Vector3(0, 7.6, 0)
+
+[node name="Core" type="Node3D" parent="Level"]
+
+[node name="CoreWall00Below" type="Node3D" parent="Level/Core"]
+script = ExtResource("3")
+kind = 8
+position = Vector3(14.8, 0, 0)
+rotation = Vector3(0, -0, 0)
+dimensions = Vector3(2.4, 48, 6.3652)
+tint = Color(0.11, 0.1, 0.13, 1)
+
+[node name="CoreWall00Above" type="Node3D" parent="Level/Core"]
+script = ExtResource("3")
+kind = 8
+position = Vector3(14.8, 39.2, 0)
+rotation = Vector3(0, -0, 0)
+dimensions = Vector3(2.4, 17.6, 6.3652)
+tint = Color(0.11, 0.1, 0.13, 1)
+
+[node name="CoreWall00Left" type="Node3D" parent="Level/Core"]
+script = ExtResource("3")
+kind = 8
+position = Vector3(14.8, 27.2, -2.4913)
+rotation = Vector3(0, -0, 0)
+dimensions = Vector3(2.4, 6.4, 1.3826)
+tint = Color(0.11, 0.1, 0.13, 1)
+
+[node name="CoreWall00Right" type="Node3D" parent="Level/Core"]
+script = ExtResource("3")
+kind = 8
+position = Vector3(14.8, 27.2, 2.4913)
+rotation = Vector3(0, -0, 0)
+dimensions = Vector3(2.4, 6.4, 1.3826)
+tint = Color(0.11, 0.1, 0.13, 1)
+
+[node name="CoreWall01" type="Node3D" parent="Level/Core"]
+script = ExtResource("3")
+kind = 8
+position = Vector3(13.6734, 12, 5.66371)
+rotation = Vector3(0, -0.392699, 0)
+dimensions = Vector3(2.4, 72, 6.3652)
+tint = Color(0.11, 0.1, 0.13, 1)
+
+[node name="CoreWall02" type="Node3D" parent="Level/Core"]
+script = ExtResource("3")
+kind = 8
+position = Vector3(10.4652, 12, 10.4652)
+rotation = Vector3(0, -0.785398, 0)
+dimensions = Vector3(2.4, 72, 6.3652)
+tint = Color(0.11, 0.1, 0.13, 1)
+
+[node name="CoreWall03" type="Node3D" parent="Level/Core"]
+script = ExtResource("3")
+kind = 8
+position = Vector3(5.66371, 12, 13.6734)
+rotation = Vector3(0, -1.1781, 0)
+dimensions = Vector3(2.4, 72, 6.3652)
+tint = Color(0.11, 0.1, 0.13, 1)
+
+[node name="CoreWall04Below" type="Node3D" parent="Level/Core"]
+script = ExtResource("3")
+kind = 8
+position = Vector3(9.06239e-16, -9.6, 14.8)
+rotation = Vector3(0, -1.5708, 0)
+dimensions = Vector3(2.4, 28.8, 6.3652)
+tint = Color(0.11, 0.1, 0.13, 1)
+
+[node name="CoreWall04Above" type="Node3D" parent="Level/Core"]
+script = ExtResource("3")
+kind = 8
+position = Vector3(9.06239e-16, 30, 14.8)
+rotation = Vector3(0, -1.5708, 0)
+dimensions = Vector3(2.4, 36, 6.3652)
+tint = Color(0.11, 0.1, 0.13, 1)
+
+[node name="CoreWall04Left" type="Node3D" parent="Level/Core"]
+script = ExtResource("3")
+kind = 8
+position = Vector3(2.4913, 8.4, 14.8)
+rotation = Vector3(0, -1.5708, 0)
+dimensions = Vector3(2.4, 7.2, 1.3826)
+tint = Color(0.11, 0.1, 0.13, 1)
+
+[node name="CoreWall04Right" type="Node3D" parent="Level/Core"]
+script = ExtResource("3")
+kind = 8
+position = Vector3(-2.4913, 8.4, 14.8)
+rotation = Vector3(0, -1.5708, 0)
+dimensions = Vector3(2.4, 7.2, 1.3826)
+tint = Color(0.11, 0.1, 0.13, 1)
+
+[node name="CoreWall05" type="Node3D" parent="Level/Core"]
+script = ExtResource("3")
+kind = 8
+position = Vector3(-5.66371, 12, 13.6734)
+rotation = Vector3(0, -1.9635, 0)
+dimensions = Vector3(2.4, 72, 6.3652)
+tint = Color(0.11, 0.1, 0.13, 1)
+
+[node name="CoreWall06" type="Node3D" parent="Level/Core"]
+script = ExtResource("3")
+kind = 8
+position = Vector3(-10.4652, 12, 10.4652)
+rotation = Vector3(0, -2.35619, 0)
+dimensions = Vector3(2.4, 72, 6.3652)
+tint = Color(0.11, 0.1, 0.13, 1)
+
+[node name="CoreWall07" type="Node3D" parent="Level/Core"]
+script = ExtResource("3")
+kind = 8
+position = Vector3(-13.6734, 12, 5.66371)
+rotation = Vector3(0, -2.74889, 0)
+dimensions = Vector3(2.4, 72, 6.3652)
+tint = Color(0.11, 0.1, 0.13, 1)
+
+[node name="CoreWall08" type="Node3D" parent="Level/Core"]
+script = ExtResource("3")
+kind = 8
+position = Vector3(-14.8, 12, 1.81248e-15)
+rotation = Vector3(0, -3.14159, 0)
+dimensions = Vector3(2.4, 72, 6.3652)
+tint = Color(0.11, 0.1, 0.13, 1)
+
+[node name="CoreWall09" type="Node3D" parent="Level/Core"]
+script = ExtResource("3")
+kind = 8
+position = Vector3(-13.6734, 12, -5.66371)
+rotation = Vector3(0, -3.53429, 0)
+dimensions = Vector3(2.4, 72, 6.3652)
+tint = Color(0.11, 0.1, 0.13, 1)
+
+[node name="CoreWall10" type="Node3D" parent="Level/Core"]
+script = ExtResource("3")
+kind = 8
+position = Vector3(-10.4652, 12, -10.4652)
+rotation = Vector3(0, -3.92699, 0)
+dimensions = Vector3(2.4, 72, 6.3652)
+tint = Color(0.11, 0.1, 0.13, 1)
+
+[node name="CoreWall11" type="Node3D" parent="Level/Core"]
+script = ExtResource("3")
+kind = 8
+position = Vector3(-5.66371, 12, -13.6734)
+rotation = Vector3(0, -4.31969, 0)
+dimensions = Vector3(2.4, 72, 6.3652)
+tint = Color(0.11, 0.1, 0.13, 1)
+
+[node name="CoreWall12" type="Node3D" parent="Level/Core"]
+script = ExtResource("3")
+kind = 8
+position = Vector3(-2.71872e-15, 12, -14.8)
+rotation = Vector3(0, -4.71239, 0)
+dimensions = Vector3(2.4, 72, 6.3652)
+tint = Color(0.11, 0.1, 0.13, 1)
+
+[node name="CoreWall13" type="Node3D" parent="Level/Core"]
+script = ExtResource("3")
+kind = 8
+position = Vector3(5.66371, 12, -13.6734)
+rotation = Vector3(0, -5.10509, 0)
+dimensions = Vector3(2.4, 72, 6.3652)
+tint = Color(0.11, 0.1, 0.13, 1)
+
+[node name="CoreWall14" type="Node3D" parent="Level/Core"]
+script = ExtResource("3")
+kind = 8
+position = Vector3(10.4652, 12, -10.4652)
+rotation = Vector3(0, -5.49779, 0)
+dimensions = Vector3(2.4, 72, 6.3652)
+tint = Color(0.11, 0.1, 0.13, 1)
+
+[node name="CoreWall15" type="Node3D" parent="Level/Core"]
+script = ExtResource("3")
+kind = 8
+position = Vector3(13.6734, 12, -5.66371)
+rotation = Vector3(0, -5.89049, 0)
+dimensions = Vector3(2.4, 72, 6.3652)
+tint = Color(0.11, 0.1, 0.13, 1)
+
+[node name="CoreFloor" type="Node3D" parent="Level/Core"]
+script = ExtResource("3")
+kind = 8
+position = Vector3(0, -23.2, 0)
+dimensions = Vector3(19.2, 1.6, 19.2)
+tint = Color(0.11, 0.1, 0.13, 1)
+
+[node name="CoreRoof" type="Node3D" parent="Level/Core"]
+script = ExtResource("3")
+kind = 8
+position = Vector3(0, 47.2, 0)
+dimensions = Vector3(19.2, 1.6, 19.2)
+tint = Color(0.11, 0.1, 0.13, 1)
+
+[node name="Crown" type="MeshInstance3D" parent="Level/Core"]
+position = Vector3(0, 49.6, 0)
+mesh = SubResource("CrownMesh")
+material_override = SubResource("CrownStone")
+
+[node name="Base" type="MeshInstance3D" parent="Level/Core"]
+position = Vector3(0, -104, 0)
+mesh = SubResource("BaseMesh")
+material_override = SubResource("CrownStone")
+
+[node name="LowSlitRim" type="Node3D" parent="Level/Core"]
+position = Vector3(9.82779e-16, 0, 16.05)
+rotation = Vector3(0, -1.5708, 0)
+
+[node name="Top" type="MeshInstance3D" parent="Level/Core/LowSlitRim"]
+mesh = SubResource("LowSlitRimAcross")
+material_override = SubResource("Cool")
+cast_shadow = 0
+position = Vector3(0, 12, 0)
+
+[node name="Bottom" type="MeshInstance3D" parent="Level/Core/LowSlitRim"]
+mesh = SubResource("LowSlitRimAcross")
+material_override = SubResource("Cool")
+cast_shadow = 0
+position = Vector3(0, 4.8, 0)
+
+[node name="Left" type="MeshInstance3D" parent="Level/Core/LowSlitRim"]
+mesh = SubResource("LowSlitRimUp")
+material_override = SubResource("Cool")
+cast_shadow = 0
+position = Vector3(0, 8.4, -1.8)
+
+[node name="Right" type="MeshInstance3D" parent="Level/Core/LowSlitRim"]
+mesh = SubResource("LowSlitRimUp")
+material_override = SubResource("Cool")
+cast_shadow = 0
+position = Vector3(0, 8.4, 1.8)
+
+[node name="HighSlitRim" type="Node3D" parent="Level/Core"]
+position = Vector3(16.05, 0, 0)
+rotation = Vector3(0, -0, 0)
+
+[node name="Top" type="MeshInstance3D" parent="Level/Core/HighSlitRim"]
+mesh = SubResource("HighSlitRimAcross")
+material_override = SubResource("Cool")
+cast_shadow = 0
+position = Vector3(0, 30.4, 0)
+
+[node name="Bottom" type="MeshInstance3D" parent="Level/Core/HighSlitRim"]
+mesh = SubResource("HighSlitRimAcross")
+material_override = SubResource("Cool")
+cast_shadow = 0
+position = Vector3(0, 24, 0)
+
+[node name="Left" type="MeshInstance3D" parent="Level/Core/HighSlitRim"]
+mesh = SubResource("HighSlitRimUp")
+material_override = SubResource("Cool")
+cast_shadow = 0
+position = Vector3(0, 27.2, -1.8)
+
+[node name="Right" type="MeshInstance3D" parent="Level/Core/HighSlitRim"]
+mesh = SubResource("HighSlitRimUp")
+material_override = SubResource("Cool")
+cast_shadow = 0
+position = Vector3(0, 27.2, 1.8)
+
+[node name="LampBand" type="MeshInstance3D" parent="Level/Core"]
+mesh = SubResource("LampBand")
+material_override = SubResource("Cool")
+cast_shadow = 0
+position = Vector3(0, 9.6, -13.3)
+
+[node name="InteriorLightLow" type="OmniLight3D" parent="Level/Core"]
+position = Vector3(0, 9.6, 0)
+light_color = Color(0.7, 0.85, 1, 1)
+light_energy = 1.2
+omni_range = 16.8
+
+[node name="InteriorLightHigh" type="OmniLight3D" parent="Level/Core"]
+position = Vector3(0, 32, 0)
+light_color = Color(0.7, 0.85, 1, 1)
+light_energy = 1.2
+omni_range = 16.8
+
+[node name="SlabTop" type="Node3D" parent="Level/Core"]
+script = ExtResource("3")
+kind = 0
+label = "Slab top"
+position = Vector3(2, 24, 0)
+dimensions = Vector3(15.2, 3.2, 6.4)
+end_sockets = false
+tint = Color(0.23, 0.23, 0.26, 1)
+
+[node name="CurlSocket" type="Node3D" parent="Level/Core/SlabTop"]
+script = ExtResource("3")
+kind = 2
+position = Vector3(-7.6, 0, 0)
+path = NodePath("..")
+travel_direction = Vector3(-1, 0, 0)
+width = 6.4
+
+[node name="HighDoor" type="Node3D" parent="Level/Core/SlabTop"]
+script = ExtResource("3")
+kind = 9
+label = "High door"
+position = Vector3(7.6, 0, 0)
+path = NodePath("..")
+travel_direction = Vector3(1, 0, 0)
+ground_normal = Vector3(0, 1, 0)
+width = 3.2
+aperture_height = 5.6
+trigger_radius = 8
+link_group = "threshold"
+tint = Color(0.55, 0.9, 1, 1)
+
+[node name="SignMount" type="Node3D" parent="Level/Core/SlabTop/HighDoor"]
+position = Vector3(0, 7.1, 0)
+rotation = Vector3(0, 0, 0)
+
+[node name="SignUpper" type="MeshInstance3D" parent="Level/Core/SlabTop/HighDoor/SignMount"]
+mesh = SubResource("SignBar")
+material_override = SubResource("SignLight")
+cast_shadow = 0
+position = Vector3(0, 0.36, 0)
+
+[node name="SignLower" type="MeshInstance3D" parent="Level/Core/SlabTop/HighDoor/SignMount"]
+mesh = SubResource("SignBar")
+material_override = SubResource("SignLight")
+cast_shadow = 0
+position = Vector3(0, -0.36, 0)
+
+[node name="SlabCurl" type="Node3D" parent="Level/Core"]
+script = ExtResource("3")
+kind = 1
+label = "Slab curl"
+position = Vector3(-5.6, 24, 0)
+rotation = Vector3(0, 1.5708, 0)
+radius = 4
+dimensions = Vector3(8, 1.04, 6.4)
+tint = Color(0.23, 0.23, 0.26, 1)
+
+[node name="SlabUnder" type="Node3D" parent="Level/Core"]
+script = ExtResource("3")
+kind = 0
+label = "Slab underside"
+position = Vector3(2, 16, 0)
+rotation = Vector3(3.14159, 0, 0)
+dimensions = Vector3(15.2, 3.2, 6.4)
+end_sockets = false
+tint = Color(0.23, 0.23, 0.26, 1)
+
+[node name="CurlSocket" type="Node3D" parent="Level/Core/SlabUnder"]
+script = ExtResource("3")
+kind = 2
+position = Vector3(-7.6, 0, 0)
+path = NodePath("..")
+travel_direction = Vector3(-1, 0, 0)
+width = 6.4
+
+[node name="UnderDoor" type="Node3D" parent="Level/Core/SlabUnder"]
+script = ExtResource("3")
+kind = 9
+label = "Under door"
+position = Vector3(-2, 0, -3.2)
+path = NodePath("..")
+travel_direction = Vector3(0, 0, -1)
+ground_normal = Vector3(0, 1, 0)
+width = 3.2
+aperture_height = 5.6
+trigger_radius = 8
+link_group = "threshold"
+tint = Color(0.55, 0.9, 1, 1)
+
+[node name="SignMount" type="Node3D" parent="Level/Core/SlabUnder/UnderDoor"]
+position = Vector3(0, 7.1, 0)
+rotation = Vector3(0, 1.5708, 0)
+
+[node name="Sign" type="MeshInstance3D" parent="Level/Core/SlabUnder/UnderDoor/SignMount"]
+mesh = SubResource("SignBar")
+material_override = SubResource("SignLight")
+cast_shadow = 0
+
+[node name="GuideTop" type="MeshInstance3D" parent="Level/Core"]
+mesh = SubResource("GuideMesh")
+material_override = SubResource("Cool")
+cast_shadow = 0
+position = Vector3(2, 24.035, 0)
+
+[node name="GuideUnder" type="MeshInstance3D" parent="Level/Core"]
+mesh = SubResource("GuideMesh")
+material_override = SubResource("Cool")
+cast_shadow = 0
+position = Vector3(2, 15.965, 0)
+
+[node name="GuideCurl" type="CSGTorus3D" parent="Level/Core"]
+position = Vector3(-5.6, 20, 0)
+rotation = Vector3(1.5708, 0, 0)
+inner_radius = 4.04
+outer_radius = 4.24
+sides = 48
+ring_sides = 6
+material = SubResource("Cool")
+
+[node name="GuideCurlCut" type="CSGBox3D" parent="Level/Core/GuideCurl"]
+position = Vector3(4, 0, 0)
+operation = 2
+size = Vector3(8, 12, 12)
+
+[node name="SlabCore" type="Node3D" parent="Level/Core"]
+script = ExtResource("3")
+kind = 8
+position = Vector3(2, 20, 0)
+dimensions = Vector3(14.8, 2, 6)
+tint = Color(0.11, 0.1, 0.13, 1)
+
+[node name="SlabBeam" type="Node3D" parent="Level/Core"]
+script = ExtResource("3")
+kind = 8
+position = Vector3(12, 20, 0)
+dimensions = Vector3(4.8, 1.6, 2.4)
+tint = Color(0.11, 0.1, 0.13, 1)
+
+[node name="Sleeve" type="Node3D" parent="Level"]
+script = ExtResource("3")
+kind = 3
+label = "The sleeve"
+axis = Vector3(0, 1, 0)
+initial_state = 0
+duration = 1.8
+tint = Color(0.55, 0.9, 1, 1)
+
+[node name="SleeveWall00" type="Node3D" parent="Level/Sleeve"]
+script = ExtResource("3")
+kind = 8
+position = Vector3(25.2, 14, 0)
+rotation = Vector3(0, -0, 0)
+dimensions = Vector3(2.4, 44, 10.5026)
+tint = Color(0.5, 0.48, 0.45, 1)
+
+[node name="SleeveWall01" type="Node3D" parent="Level/Sleeve"]
+script = ExtResource("3")
+kind = 8
+position = Vector3(23.2818, 14, 9.64362)
+rotation = Vector3(0, -0.392699, 0)
+dimensions = Vector3(2.4, 44, 10.5026)
+tint = Color(0.5, 0.48, 0.45, 1)
+
+[node name="SleeveWall02" type="Node3D" parent="Level/Sleeve"]
+script = ExtResource("3")
+kind = 8
+position = Vector3(17.8191, 14, 17.8191)
+rotation = Vector3(0, -0.785398, 0)
+dimensions = Vector3(2.4, 44, 10.5026)
+tint = Color(0.5, 0.48, 0.45, 1)
+
+[node name="SleeveWall03" type="Node3D" parent="Level/Sleeve"]
+script = ExtResource("3")
+kind = 8
+position = Vector3(9.64362, 14, 23.2818)
+rotation = Vector3(0, -1.1781, 0)
+dimensions = Vector3(2.4, 44, 10.5026)
+tint = Color(0.5, 0.48, 0.45, 1)
+
+[node name="SleeveWall04" type="Node3D" parent="Level/Sleeve"]
+script = ExtResource("3")
+kind = 8
+position = Vector3(1.54305e-15, 14, 25.2)
+rotation = Vector3(0, -1.5708, 0)
+dimensions = Vector3(2.4, 44, 10.5026)
+tint = Color(0.5, 0.48, 0.45, 1)
+
+[node name="SleeveWall05" type="Node3D" parent="Level/Sleeve"]
+script = ExtResource("3")
+kind = 8
+position = Vector3(-9.64362, 14, 23.2818)
+rotation = Vector3(0, -1.9635, 0)
+dimensions = Vector3(2.4, 44, 10.5026)
+tint = Color(0.5, 0.48, 0.45, 1)
+
+[node name="SleeveWall06" type="Node3D" parent="Level/Sleeve"]
+script = ExtResource("3")
+kind = 8
+position = Vector3(-17.8191, 14, 17.8191)
+rotation = Vector3(0, -2.35619, 0)
+dimensions = Vector3(2.4, 44, 10.5026)
+tint = Color(0.5, 0.48, 0.45, 1)
+
+[node name="SleeveWall07" type="Node3D" parent="Level/Sleeve"]
+script = ExtResource("3")
+kind = 8
+position = Vector3(-23.2818, 14, 9.64362)
+rotation = Vector3(0, -2.74889, 0)
+dimensions = Vector3(2.4, 44, 10.5026)
+tint = Color(0.5, 0.48, 0.45, 1)
+
+[node name="SleeveWall08Below" type="Node3D" parent="Level/Sleeve"]
+script = ExtResource("3")
+kind = 8
+position = Vector3(-25.2, -4, 3.08611e-15)
+rotation = Vector3(0, -3.14159, 0)
+dimensions = Vector3(2.4, 8, 10.5026)
+tint = Color(0.5, 0.48, 0.45, 1)
+
+[node name="SleeveWall08Above" type="Node3D" parent="Level/Sleeve"]
+script = ExtResource("3")
+kind = 8
+position = Vector3(-25.2, 22.4, 3.08611e-15)
+rotation = Vector3(0, -3.14159, 0)
+dimensions = Vector3(2.4, 27.2, 10.5026)
+tint = Color(0.5, 0.48, 0.45, 1)
+
+[node name="SleeveWall08Left" type="Node3D" parent="Level/Sleeve"]
+script = ExtResource("3")
+kind = 8
+position = Vector3(-25.2, 4.4, 3.82564)
+rotation = Vector3(0, -3.14159, 0)
+dimensions = Vector3(2.4, 8.8, 2.85129)
+tint = Color(0.5, 0.48, 0.45, 1)
+
+[node name="SleeveWall08Right" type="Node3D" parent="Level/Sleeve"]
+script = ExtResource("3")
+kind = 8
+position = Vector3(-25.2, 4.4, -3.82564)
+rotation = Vector3(0, -3.14159, 0)
+dimensions = Vector3(2.4, 8.8, 2.85129)
+tint = Color(0.5, 0.48, 0.45, 1)
+
+[node name="SleeveWall09" type="Node3D" parent="Level/Sleeve"]
+script = ExtResource("3")
+kind = 8
+position = Vector3(-23.2818, 14, -9.64362)
+rotation = Vector3(0, -3.53429, 0)
+dimensions = Vector3(2.4, 44, 10.5026)
+tint = Color(0.5, 0.48, 0.45, 1)
+
+[node name="SleeveWall10" type="Node3D" parent="Level/Sleeve"]
+script = ExtResource("3")
+kind = 8
+position = Vector3(-17.8191, 14, -17.8191)
+rotation = Vector3(0, -3.92699, 0)
+dimensions = Vector3(2.4, 44, 10.5026)
+tint = Color(0.5, 0.48, 0.45, 1)
+
+[node name="SleeveWall11" type="Node3D" parent="Level/Sleeve"]
+script = ExtResource("3")
+kind = 8
+position = Vector3(-9.64362, 14, -23.2818)
+rotation = Vector3(0, -4.31969, 0)
+dimensions = Vector3(2.4, 44, 10.5026)
+tint = Color(0.5, 0.48, 0.45, 1)
+
+[node name="SleeveWall12Below" type="Node3D" parent="Level/Sleeve"]
+script = ExtResource("3")
+kind = 8
+position = Vector3(-4.62916e-15, 7.6, -25.2)
+rotation = Vector3(0, -4.71239, 0)
+dimensions = Vector3(2.4, 31.2, 10.5026)
+tint = Color(0.5, 0.48, 0.45, 1)
+
+[node name="SleeveWall12Above" type="Node3D" parent="Level/Sleeve"]
+script = ExtResource("3")
+kind = 8
+position = Vector3(-4.62916e-15, 34, -25.2)
+rotation = Vector3(0, -4.71239, 0)
+dimensions = Vector3(2.4, 4, 10.5026)
+tint = Color(0.5, 0.48, 0.45, 1)
+
+[node name="SleeveWall12Left" type="Node3D" parent="Level/Sleeve"]
+script = ExtResource("3")
+kind = 8
+position = Vector3(-4.02564, 27.6, -25.2)
+rotation = Vector3(0, -4.71239, 0)
+dimensions = Vector3(2.4, 8.8, 2.45129)
+tint = Color(0.5, 0.48, 0.45, 1)
+
+[node name="SleeveWall12Right" type="Node3D" parent="Level/Sleeve"]
+script = ExtResource("3")
+kind = 8
+position = Vector3(4.02564, 27.6, -25.2)
+rotation = Vector3(0, -4.71239, 0)
+dimensions = Vector3(2.4, 8.8, 2.45129)
+tint = Color(0.5, 0.48, 0.45, 1)
+
+[node name="SleeveWall13" type="Node3D" parent="Level/Sleeve"]
+script = ExtResource("3")
+kind = 8
+position = Vector3(9.64362, 14, -23.2818)
+rotation = Vector3(0, -5.10509, 0)
+dimensions = Vector3(2.4, 44, 10.5026)
+tint = Color(0.5, 0.48, 0.45, 1)
+
+[node name="SleeveWall14" type="Node3D" parent="Level/Sleeve"]
+script = ExtResource("3")
+kind = 8
+position = Vector3(17.8191, 14, -17.8191)
+rotation = Vector3(0, -5.49779, 0)
+dimensions = Vector3(2.4, 44, 10.5026)
+tint = Color(0.5, 0.48, 0.45, 1)
+
+[node name="SleeveWall15" type="Node3D" parent="Level/Sleeve"]
+script = ExtResource("3")
+kind = 8
+position = Vector3(23.2818, 14, -9.64362)
+rotation = Vector3(0, -5.89049, 0)
+dimensions = Vector3(2.4, 44, 10.5026)
+tint = Color(0.5, 0.48, 0.45, 1)
+
+[node name="WindowRim" type="Node3D" parent="Level/Sleeve"]
+position = Vector3(-26.45, 0, 3.23919e-15)
+rotation = Vector3(0, -3.14159, 0)
+
+[node name="Top" type="MeshInstance3D" parent="Level/Sleeve/WindowRim"]
+mesh = SubResource("WindowRimAcross")
+material_override = SubResource("Warm")
+cast_shadow = 0
+position = Vector3(0, 8.8, 0)
+
+[node name="Bottom" type="MeshInstance3D" parent="Level/Sleeve/WindowRim"]
+mesh = SubResource("WindowRimAcross")
+material_override = SubResource("Warm")
+cast_shadow = 0
+position = Vector3(0, 0, 0)
+
+[node name="Left" type="MeshInstance3D" parent="Level/Sleeve/WindowRim"]
+mesh = SubResource("WindowRimUp")
+material_override = SubResource("Warm")
+cast_shadow = 0
+position = Vector3(0, 4.4, -2.4)
+
+[node name="Right" type="MeshInstance3D" parent="Level/Sleeve/WindowRim"]
+mesh = SubResource("WindowRimUp")
+material_override = SubResource("Warm")
+cast_shadow = 0
+position = Vector3(0, 4.4, 2.4)
+
+[node name="HighOpeningRim" type="Node3D" parent="Level/Sleeve"]
+position = Vector3(-4.85879e-15, 0, -26.45)
+rotation = Vector3(0, -4.71239, 0)
+
+[node name="Top" type="MeshInstance3D" parent="Level/Sleeve/HighOpeningRim"]
+mesh = SubResource("HighOpeningRimAcross")
+material_override = SubResource("Warm")
+cast_shadow = 0
+position = Vector3(0, 32, 0)
+
+[node name="Bottom" type="MeshInstance3D" parent="Level/Sleeve/HighOpeningRim"]
+mesh = SubResource("HighOpeningRimAcross")
+material_override = SubResource("Warm")
+cast_shadow = 0
+position = Vector3(0, 23.2, 0)
+
+[node name="Left" type="MeshInstance3D" parent="Level/Sleeve/HighOpeningRim"]
+mesh = SubResource("HighOpeningRimUp")
+material_override = SubResource("Warm")
+cast_shadow = 0
+position = Vector3(0, 27.6, -2.8)
+
+[node name="Right" type="MeshInstance3D" parent="Level/Sleeve/HighOpeningRim"]
+mesh = SubResource("HighOpeningRimUp")
+material_override = SubResource("Warm")
+cast_shadow = 0
+position = Vector3(0, 27.6, 2.8)
+
+[node name="BandTop" type="MeshInstance3D" parent="Level/Sleeve"]
+mesh = SubResource("BandMesh")
+material_override = SubResource("Accent")
+cast_shadow = 0
+position = Vector3(0, 34.8, 0)
+
+[node name="BandBottom" type="MeshInstance3D" parent="Level/Sleeve"]
+mesh = SubResource("BandMesh")
+material_override = SubResource("Accent")
+cast_shadow = 0
+position = Vector3(0, -6.8, 0)
+
+[node name="Ledge" type="Node3D" parent="Level/Sleeve"]
+script = ExtResource("3")
+kind = 0
+label = "Ledge"
+position = Vector3(-31.6, 0, 0)
+dimensions = Vector3(8.8, 3.2, 16)
+end_sockets = false
+tint = Color(0.23, 0.23, 0.26, 1)
+regions = Array[Rect2]([Rect2(-2.8, -8, 7.2, 16), Rect2(-4.4, -3.2, 1.6, 6.4)])
+
+[node name="EntrySocket" type="Node3D" parent="Level/Sleeve/Ledge"]
+script = ExtResource("3")
+kind = 2
+position = Vector3(-4.4, 0, 0)
+path = NodePath("..")
+travel_direction = Vector3(-1, 0, 0)
+width = 6.4
+
+[node name="LedgeDoor" type="Node3D" parent="Level/Sleeve/Ledge"]
+script = ExtResource("3")
+kind = 9
+label = "Ledge door"
+position = Vector3(4.4, 0, 0)
+path = NodePath("..")
+travel_direction = Vector3(1, 0, 0)
+ground_normal = Vector3(0, 1, 0)
+width = 3.2
+aperture_height = 5.6
+trigger_radius = 8
+link_group = "threshold"
+tint = Color(0.55, 0.9, 1, 1)
+
+[node name="SignMount" type="Node3D" parent="Level/Sleeve/Ledge/LedgeDoor"]
+position = Vector3(0, 7.1, 0)
+rotation = Vector3(0, 0, 0)
+
+[node name="Sign" type="MeshInstance3D" parent="Level/Sleeve/Ledge/LedgeDoor/SignMount"]
+mesh = SubResource("SignDiamond")
+material_override = SubResource("SignLight")
+cast_shadow = 0
+rotation = Vector3(0.785398, 0, 0)
+
+[node name="LedgeBracket" type="Node3D" parent="Level/Sleeve"]
+script = ExtResource("3")
+kind = 8
+position = Vector3(-26.4, -5.6, 0)
+dimensions = Vector3(4.8, 4.8, 12)
+tint = Color(0.5, 0.48, 0.45, 1)
+
+[node name="LedgeEdgeNorth" type="MeshInstance3D" parent="Level/Sleeve"]
+mesh = SubResource("LedgeEdgeLong")
+material_override = SubResource("Accent")
+cast_shadow = 0
+position = Vector3(-30.8, 0.03, -7.95)
+
+[node name="LedgeEdgeSouth" type="MeshInstance3D" parent="Level/Sleeve"]
+mesh = SubResource("LedgeEdgeLong")
+material_override = SubResource("Accent")
+cast_shadow = 0
+position = Vector3(-30.8, 0.03, 7.95)
+
+[node name="Balcony" type="Node3D" parent="Level"]
+script = ExtResource("3")
+kind = 0
+label = "Balcony"
+position = Vector3(35, 24, 0)
+dimensions = Vector3(10.8, 3.2, 16)
+end_sockets = false
+tint = Color(0.23, 0.23, 0.26, 1)
+
+[node name="BalconyDoor" type="Node3D" parent="Level/Balcony"]
+script = ExtResource("3")
+kind = 9
+label = "Balcony door"
+position = Vector3(-5.4, 0, 0)
+path = NodePath("..")
+travel_direction = Vector3(-1, 0, 0)
+ground_normal = Vector3(0, 1, 0)
+width = 3.2
+aperture_height = 5.6
+trigger_radius = 8
+link_group = "threshold"
+tint = Color(0.55, 0.9, 1, 1)
+
+[node name="SignMount" type="Node3D" parent="Level/Balcony/BalconyDoor"]
+position = Vector3(0, 7.1, 0)
+rotation = Vector3(0, 0, 0)
+
+[node name="Sign" type="MeshInstance3D" parent="Level/Balcony/BalconyDoor/SignMount"]
+mesh = SubResource("SignRing")
+material_override = SubResource("SignLight")
+cast_shadow = 0
+rotation = Vector3(0, 0, 1.5708)
+
+[node name="Goal" type="Node3D" parent="Level/Balcony"]
+script = ExtResource("3")
+kind = 5
+position = Vector3(2, 0, 0)
+path = NodePath("..")
+trigger_radius = 4.8
+tint = Color(0.55, 0.9, 1, 1)
+
+[node name="Plate" type="MeshInstance3D" parent="Level/Balcony/Goal"]
+mesh = SubResource("PlateMesh")
+material_override = SubResource("GoalLight")
+cast_shadow = 0
+position = Vector3(0, 0.02, 0)
+
+[node name="LightShaft" type="MeshInstance3D" parent="Level/Balcony/Goal"]
+mesh = SubResource("BeamMesh")
+material_override = SubResource("GoalLight")
+cast_shadow = 0
+position = Vector3(0, 90, 0)
+
+[node name="BalconySill" type="Node3D" parent="Level"]
+script = ExtResource("3")
+kind = 8
+position = Vector3(28.6, 22.4, 0)
+dimensions = Vector3(2, 3.2, 16)
+tint = Color(0.17, 0.17, 0.2, 1)
+
+[node name="BalconySoffit" type="Node3D" parent="Level"]
+script = ExtResource("3")
+kind = 8
+position = Vector3(34, 19.6, 0)
+dimensions = Vector3(12.8, 2.4, 18.4)
+tint = Color(0.17, 0.17, 0.2, 1)
+
+[node name="BalconyWallNorth" type="Node3D" parent="Level"]
+script = ExtResource("3")
+kind = 8
+position = Vector3(34, 28.4, -8.6)
+dimensions = Vector3(12.8, 8.8, 1.2)
+tint = Color(0.17, 0.17, 0.2, 1)
+
+[node name="BalconyWallSouth" type="Node3D" parent="Level"]
+script = ExtResource("3")
+kind = 8
+position = Vector3(34, 28.4, 8.6)
+dimensions = Vector3(12.8, 8.8, 1.2)
+tint = Color(0.17, 0.17, 0.2, 1)
+
+[node name="BalconyPier" type="Node3D" parent="Level"]
+script = ExtResource("3")
+kind = 8
+position = Vector3(40, -89.6, 0)
+dimensions = Vector3(4, 220.8, 4.8)
+tint = Color(0.17, 0.17, 0.2, 1)
