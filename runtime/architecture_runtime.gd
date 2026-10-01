@@ -7,6 +7,9 @@ const Piece = preload("res://core/surface_piece.gd")
 const Walker = preload("res://core/surface_walker.gd")
 const HUD = preload("res://runtime/hud.gd")
 const OUTLINE = preload("res://runtime/outline.gdshader")
+const Atmosphere = preload("res://runtime/atmosphere.gd")
+## Settings written before v2 saved the FOV on every change, so an old value is not a choice.
+const PREFERENCES_VERSION := 2
 # Zoom and pan around the authored framing (spec §11). Neither ever rotates the view.
 const ZOOM_MIN := .4
 const ZOOM_MAX := 1.6
@@ -23,6 +26,7 @@ var rigs: Array[Dictionary] = []
 var ports: Array[Dictionary] = []
 var obstacles: Array[MeshInstance3D] = []
 var walker: SurfaceWalker
+var environment: Environment
 var overview: Camera3D
 var hud: CanvasLayer
 var start: SurfacePiece
@@ -55,15 +59,10 @@ var input_bindings := {"forward": KEY_W, "back": KEY_S, "left": KEY_A, "right": 
 
 func _ready() -> void:
 	configure_input()
-	var environment := WorldEnvironment.new()
-	var env := Environment.new()
-	env.background_mode = Environment.BG_COLOR
-	env.background_color = Color("10182f")
-	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	env.ambient_light_color = Color("a5b8ef")
-	env.ambient_light_energy = 0.55
-	environment.environment = env
-	add_child(environment)
+	var world_environment := WorldEnvironment.new()
+	environment = Atmosphere.world_environment()
+	world_environment.environment = environment
+	add_child(world_environment)
 	for data in [[Vector3(-48, -32, 0), Color("ffe5bf"), 0.75], [Vector3(35, 125, 0), Color("899adb"), 0.25]]:
 		var light := DirectionalLight3D.new()
 		light.rotation_degrees = data[0]
@@ -555,9 +554,13 @@ func connection_text() -> String:
 func load_preferences() -> void:
 	var settings := ConfigFile.new()
 	settings.load("user://settings.cfg")
+	apply_preferences(settings)
+
+func apply_preferences(settings: ConfigFile) -> void:
 	walker.reduced_motion = settings.get_value("comfort", "reduced_motion", false)
 	walker.sensitivity = settings.get_value("comfort", "sensitivity", 0.0022)
-	walker.fov = clampf(settings.get_value("comfort", "fov", walker.profile.fov), 60, 95)
+	var chosen_fov: bool = settings.get_value("comfort", "version", 1) >= PREFERENCES_VERSION
+	walker.fov = clampf(settings.get_value("comfort", "fov", walker.profile.fov), 60, 95) if chosen_fov else walker.profile.fov
 	walker.turn_rate = settings.get_value("comfort", "turn_rate", walker.profile.max_gravity_turn_rate)
 	walker.sync_pose(1)
 	hud.sync_preferences()
@@ -567,6 +570,7 @@ func save_preferences() -> void:
 	settings.load("user://settings.cfg")
 	for key in ["reduced_motion", "sensitivity", "fov", "turn_rate"]:
 		settings.set_value("comfort", key, walker.get(key))
+	settings.set_value("comfort", "version", PREFERENCES_VERSION)
 	settings.save("user://settings.cfg")
 
 func save_progress() -> void:

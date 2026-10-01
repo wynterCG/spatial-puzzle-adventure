@@ -17,6 +17,8 @@ extends Node3D
 ## so docking edges may touch. Scale it with the monument (0.04 m at player scale). It hides
 ## contact, never real overlaps.
 @export_range(0.0, 0.5, 0.01) var sweep_tolerance := 0.04
+## Far scenery around the monument (never gameplay): silhouettes rising out of the mist.
+@export var backdrop: PackedScene = preload("res://world/backdrop.tscn")
 
 ## Orthographic camera distance from the focus: far enough that tall masses never stand
 ## between the camera and the composition. The view itself does not depend on it.

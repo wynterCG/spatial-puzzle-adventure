@@ -17,7 +17,7 @@ extends Resource
 ## Eye height above the walking surface, metres.
 @export_range(1.0, 2.0, .01) var eye_height := 1.55
 ## Vertical field of view, degrees (the comfort setting overrides it).
-@export_range(50.0, 100.0, 1.0) var fov := 72.0
+@export_range(50.0, 100.0, 1.0) var fov := 60.0
 ## Vertical head bob amplitude at full speed, metres. Zero on curves and with reduced motion; never roll.
 @export_range(0.0, .05, .001) var head_bob := .01
 ## Distance of one footstep, metres: one bob cycle.

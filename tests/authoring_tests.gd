@@ -65,6 +65,7 @@ static func run(g: Node3D) -> Array[String]:
 	Bench.run(g, failures)
 	camera_cases(g, failures)
 	comfort_cases(g, failures)
+	atmosphere_cases(g, failures)
 	selection_cases(g, failures)
 	runtime_cases(g, failures)
 	socket_cases(g, failures)
@@ -250,6 +251,34 @@ static func comfort_cases(g: Node3D, failures: Array[String]) -> void:
 	w.fov = 90
 	if not is_equal_approx(w.camera.fov, 90): failures.append("The FOV setting must reach the camera")
 	w.fov = w.profile.fov
+	g.build_level()
+
+## Atmosphere kit: sky, depth fog and mist; a crisp overview; a far backdrop that is scenery only.
+static func atmosphere_cases(g: Node3D, failures: Array[String]) -> void:
+	g.build_level()
+	var env: Environment = g.environment
+	if env == null or not env.fog_enabled or env.background_mode != Environment.BG_SKY: failures.append("The world needs sky and fog")
+	if g.overview.environment == null or g.overview.environment == env or g.overview.environment.fog_depth_begin <= g.definition.overview_distance(): failures.append("The overview must keep haze beyond its composition")
+	var backdrop: Node3D = g.world.get_node_or_null("Backdrop")
+	if backdrop == null or backdrop.get_child_count() < 20: failures.append("Every level must instance its backdrop")
+	else:
+		for mass in backdrop.get_children():
+			if Vector2(mass.global_position.x, mass.global_position.z).length() < 400: failures.append("Backdrop masses stay at least 400 m away")
+			if mass in g.obstacles: failures.append("Backdrop must never be an obstacle")
+		var screen: Vector2 = g.overview.unproject_position(backdrop.get_child(0).global_position)
+		if not g.architectural: g.toggle_view()
+		if g.pick_rig(screen) != -1: failures.append("Backdrop must never be pickable")
+	if not is_equal_approx(g.walker.profile.fov, 60.0): failures.append("Default FOV is 60")
+	# Preference migration: a pre-v2 saved FOV (written whenever any setting changed) is ignored.
+	var old := ConfigFile.new()
+	old.set_value("comfort", "fov", 72.0)
+	g.apply_preferences(old)
+	if not is_equal_approx(g.walker.fov, 60.0): failures.append("An FOV saved before v2 must not override the new default")
+	var chosen := ConfigFile.new()
+	chosen.set_value("comfort", "version", g.PREFERENCES_VERSION); chosen.set_value("comfort", "fov", 80.0)
+	g.apply_preferences(chosen)
+	if not is_equal_approx(g.walker.fov, 80.0): failures.append("A chosen FOV must be kept")
+	g.apply_preferences(ConfigFile.new())
 	g.build_level()
 
 ## Spec §7.2: a surface presented as walkable matches its authored walkable region. Points just

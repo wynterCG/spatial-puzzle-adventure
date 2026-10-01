@@ -47,6 +47,10 @@ func build_level() -> void:
 	definition = data_source.duplicate()
 	definition.name = "Level"
 	world.add_child(definition)
+	if definition.backdrop:
+		var backdrop: Node3D = definition.backdrop.instantiate()
+		backdrop.name = "Backdrop"
+		world.add_child(backdrop)
 	definition.show()
 	pieces.clear(); rigs.clear(); ports.clear(); obstacles.clear(); paths.clear()
 	history.clear(); interaction_values.clear(); checkpoint.clear()
@@ -126,6 +130,7 @@ func build_level() -> void:
 	overview_local_offset = definition.overview_local_offset(); overview_zoom = 1
 	sweep_tolerance = definition.sweep_tolerance
 	overview.far = definition.overview_distance() + 3000
+	overview.environment = Atmosphere.overview_environment(environment, definition.overview_distance())
 	architectural = true
 	update_links(); update_camera(); select_rig(0)
 	toggle_view()
