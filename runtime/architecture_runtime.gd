@@ -536,13 +536,15 @@ func load_preferences() -> void:
 	settings.load("user://settings.cfg")
 	walker.reduced_motion = settings.get_value("comfort", "reduced_motion", false)
 	walker.sensitivity = settings.get_value("comfort", "sensitivity", 0.0022)
+	walker.fov = clampf(settings.get_value("comfort", "fov", walker.profile.fov), 60, 95)
+	walker.turn_rate = settings.get_value("comfort", "turn_rate", walker.profile.max_gravity_turn_rate)
 	walker.sync_pose(1)
 	hud.sync_preferences()
 
 func save_preferences() -> void:
 	var settings := ConfigFile.new()
 	settings.load("user://settings.cfg")
-	for key in ["reduced_motion", "sensitivity"]:
+	for key in ["reduced_motion", "sensitivity", "fov", "turn_rate"]:
 		settings.set_value("comfort", key, walker.get(key))
 	settings.save("user://settings.cfg")
 

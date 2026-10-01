@@ -63,13 +63,14 @@ static func run(g: Node3D) -> Array[String]:
 	deck_cases(g, failures)
 	Bench.run(g, failures)
 	camera_cases(g, failures)
+	comfort_cases(g, failures)
 	selection_cases(g, failures)
 	runtime_cases(g, failures)
 	socket_cases(g, failures)
 	interaction_cases(g, failures)
 	fixture_cases(g, failures)
 	curve_cases(g, failures)
-	print("AUTHORING CASES: ring v3 16-configuration table, dead ends, solution both ways, sweep clearance, 6-turn/16-action minimum, tower necessity, authored camera (no orbit, zoom, bounded pan, Home, Tab, legacy snapshots, turntable heading, ground follow, seam continuity), diegetic selection (pick, click, hover glow, no HUD list), carried pose, settled graph, undo, serialized saves, Play From Here, socket contract and apertures, interactions/conditions, checkpoints, two-state hinge, blocked sweep, validation, 90/180 degree curves, visible deck = walkable region, locomotion bench")
+	print("AUTHORING CASES: ring v3 16-configuration table, dead ends, solution both ways, sweep clearance, 6-turn/16-action minimum, tower necessity, authored camera (no orbit, zoom, bounded pan, Home, Tab, legacy snapshots, turntable heading, ground follow, seam continuity), diegetic selection (pick, click, hover glow, no HUD list), carried pose, settled graph, undo, serialized saves, Play From Here, socket contract and apertures, interactions/conditions, checkpoints, two-state hinge, blocked sweep, validation, 90/180 degree curves, visible deck = walkable region, comfort settings, locomotion bench")
 	finished = true
 	return failures
 
@@ -212,6 +213,25 @@ static func selection_cases(g: Node3D, failures: Array[String]) -> void:
 	if g.hovered != -1 or band_mesh.material_overlay != null: failures.append("Leaving the ring must clear its hover glow")
 	g.toggle_view()
 	if arm_core.material_overlay != null: failures.append("First person must show no selection glow")
+	g.build_level()
+
+## Spec §52: FOV and gravity-transition pacing are player settings; reduced motion is gentle.
+static func comfort_cases(g: Node3D, failures: Array[String]) -> void:
+	var w: SurfaceWalker = g.walker
+	var curl := piece(g, "TowerCurl")
+	w.place(curl, curl.point_at(.5), curl.surface_frame(curl.point_at(.5)).y, -curl.surface_frame(curl.point_at(.5)).z)
+	for rate in w.TURN_RATES.values():
+		w.turn_rate = rate
+		if not is_equal_approx(w.speed_limit(), deg_to_rad(rate) * 1.0): failures.append("Curve speed must follow the %d deg/s setting" % rate)
+	w.turn_rate = w.TURN_RATES.Brisk
+	w.reduced_motion = true
+	if not is_equal_approx(w.speed_limit(), deg_to_rad(w.TURN_RATES.Gentle)): failures.append("Reduced motion must use gentle gravity curves")
+	w.reduced_motion = false
+	w.turn_rate = w.profile.max_gravity_turn_rate
+	if not is_inf(piece(g, "Entry").curvature_radius(Vector3.ZERO)) or not is_equal_approx(w.speed_limit(), deg_to_rad(w.turn_rate)): failures.append("Only curves limit walking speed")
+	w.fov = 90
+	if not is_equal_approx(w.camera.fov, 90): failures.append("The FOV setting must reach the camera")
+	w.fov = w.profile.fov
 	g.build_level()
 
 ## Spec §7.2: a surface presented as walkable matches its authored walkable region. Points just
