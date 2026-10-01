@@ -17,7 +17,7 @@ For a new level, duplicate one of the scenes in `monuments/`, change **Level > l
 
 | Scene | Spatial decision | Authoring coverage |
 |---|---|---|
-| `the_ring.tscn` | Ride the bridge to the stair, change to its underside, and turn it again while hanging beneath | Vertical-axis turntable, top and underside faces of one bridge, fixed 180° side-change stair, decorative ring mesh, three states with distinct roles |
+| `the_ring.tscn` | Ride the bridge to the stair, change to its underside, and turn it again while hanging beneath | Vertical-axis turntable, top and underside faces of one bridge, fixed 180° side-change stair, a wheel of art meshes (band, hub, ribs) carried by the rotator with no collision, an authored goal landmark replacing the placeholder, three states with distinct roles |
 | `tests/fixtures/bell_cradle.tscn` (test fixture) | Leave the moving arm at the fixed belfry before turning it again | Vertical belfry, radial cradle, checkpoint, fixed gravity transfer and a custom torus mesh independent of path logic |
 | `tests/fixtures/folded_observatory.tscn` (test fixture) | Prepare the receiver before docking fingers occupy its sweep | Folding gallery, narrow bent receiver, two-state hinge, custom rectangular walk regions and collision boxes |
 
@@ -27,7 +27,7 @@ The Ring is the only monument: the first Phase 1 study of a different variable, 
 
 ![The ring blockout, solved](images/the-ring-overview.png)
 
-Also see [the ring from its underside](images/the-ring-underside.png), the [folded observatory blockout](images/authoring-observatory.png) and the [isolated editor state preview](images/authoring-state-preview.png).
+Also see [the ring from its underside](images/the-ring-underside.png), [the entrance in first person](images/the-ring-entrance.png), [the view back from the terrace](images/the-ring-terrace.png), the [folded observatory blockout](images/authoring-observatory.png) and the [isolated editor state preview](images/authoring-state-preview.png).
 
 ## Components and coordinates
 

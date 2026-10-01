@@ -1,14 +1,44 @@
-[gd_scene load_steps=9 format=3]
+[gd_scene load_steps=18 format=3]
 
 [ext_resource type="Script" path="res://runtime/monument.gd" id="1"]
 [ext_resource type="Script" path="res://authoring/level.gd" id="2"]
 [ext_resource type="Script" path="res://authoring/component.gd" id="3"]
 
-[sub_resource type="TorusMesh" id="RingMesh"]
-inner_radius = 6.1
-outer_radius = 6.9
-rings = 96
-ring_segments = 16
+[sub_resource type="BoxMesh" id="BandMesh"]
+size = Vector3(1.6, 1, 1.34)
+
+[sub_resource type="TorusMesh" id="InnerLineMesh"]
+inner_radius = 5.55
+outer_radius = 5.68
+rings = 128
+ring_segments = 6
+
+[sub_resource type="TorusMesh" id="HubMesh"]
+inner_radius = 2.05
+outer_radius = 2.55
+rings = 64
+ring_segments = 8
+
+[sub_resource type="CylinderMesh" id="CollarMesh"]
+top_radius = 1.95
+bottom_radius = 1.95
+height = 0.9
+radial_segments = 32
+
+[sub_resource type="BoxMesh" id="RibMesh"]
+size = Vector3(3.3, 0.28, 0.28)
+
+[sub_resource type="BoxMesh" id="ThresholdMesh"]
+size = Vector3(0.25, 0.04, 1.6)
+
+[sub_resource type="BoxMesh" id="BeamMesh"]
+size = Vector3(0.16, 40, 0.16)
+
+[sub_resource type="SphereMesh" id="CanopyMesh"]
+radius = 0.85
+height = 1.4
+radial_segments = 16
+rings = 8
 
 [sub_resource type="StandardMaterial3D" id="RingMaterial"]
 albedo_color = Color(0.13, 0.12, 0.15, 1)
@@ -20,6 +50,16 @@ albedo_color = Color(0.86, 0.36, 0.62, 1)
 emission_enabled = true
 emission = Color(0.86, 0.36, 0.62, 1)
 emission_energy_multiplier = 1.6
+
+[sub_resource type="StandardMaterial3D" id="GoalLight"]
+albedo_color = Color(1, 0.93, 0.85, 1)
+emission_enabled = true
+emission = Color(1, 0.91, 0.82, 1)
+emission_energy_multiplier = 2.5
+
+[sub_resource type="StandardMaterial3D" id="Blossom"]
+albedo_color = Color(0.9, 0.6, 0.75, 1)
+roughness = 0.9
 
 [sub_resource type="BoxMesh" id="Strip"]
 size = Vector3(0.12, 0.04, 1.62)
@@ -54,6 +94,27 @@ kind = 4
 position = Vector3(-1.2, 0, 0)
 path = NodePath("..")
 
+[node name="EntryJambL" type="Node3D" parent="Level"]
+script = ExtResource("3")
+kind = 8
+position = Vector3(-11.75, 2.3, -1.05)
+dimensions = Vector3(0.4, 4.2, 0.3)
+tint = Color(0.17, 0.17, 0.2, 1)
+
+[node name="EntryJambR" type="Node3D" parent="Level"]
+script = ExtResource("3")
+kind = 8
+position = Vector3(-11.75, 2.3, 1.05)
+dimensions = Vector3(0.4, 4.2, 0.3)
+tint = Color(0.17, 0.17, 0.2, 1)
+
+[node name="EntryLintel" type="Node3D" parent="Level"]
+script = ExtResource("3")
+kind = 8
+position = Vector3(-11.75, 4.6, 0)
+dimensions = Vector3(0.4, 0.4, 2.4)
+tint = Color(0.17, 0.17, 0.2, 1)
+
 [node name="Tower" type="Node3D" parent="Level"]
 script = ExtResource("3")
 kind = 8
@@ -66,6 +127,11 @@ position = Vector3(-1.22, 0.5, 0)
 mesh = SubResource("TowerStrip")
 material_override = SubResource("Magenta")
 
+[node name="Collar" type="MeshInstance3D" parent="Level/Tower"]
+position = Vector3(0, -2, 0)
+mesh = SubResource("CollarMesh")
+material_override = SubResource("RingMaterial")
+
 [node name="Ring" type="Node3D" parent="Level"]
 script = ExtResource("3")
 kind = 3
@@ -75,8 +141,191 @@ initial_state = 2
 duration = 1.2
 tint = Color(0.86, 0.36, 0.62, 1)
 
-[node name="RingArt" type="MeshInstance3D" parent="Level/Ring"]
-mesh = SubResource("RingMesh")
+[node name="RingArt" type="Node3D" parent="Level/Ring"]
+
+[node name="Band00" type="MeshInstance3D" parent="Level/Ring/RingArt"]
+transform = Transform3D(1.000000, 0, 0.000000, 0, 1, 0, -0.000000, 0, 1.000000, 6.500000, 0, -0.000000)
+mesh = SubResource("BandMesh")
+material_override = SubResource("RingMaterial")
+
+[node name="Band01" type="MeshInstance3D" parent="Level/Ring/RingArt"]
+transform = Transform3D(0.980785, 0, 0.195090, 0, 1, 0, -0.195090, 0, 0.980785, 6.375104, 0, -1.268087)
+mesh = SubResource("BandMesh")
+material_override = SubResource("RingMaterial")
+
+[node name="Band02" type="MeshInstance3D" parent="Level/Ring/RingArt"]
+transform = Transform3D(0.923880, 0, 0.382683, 0, 1, 0, -0.382683, 0, 0.923880, 6.005217, 0, -2.487442)
+mesh = SubResource("BandMesh")
+material_override = SubResource("RingMaterial")
+
+[node name="Band03" type="MeshInstance3D" parent="Level/Ring/RingArt"]
+transform = Transform3D(0.831470, 0, 0.555570, 0, 1, 0, -0.555570, 0, 0.831470, 5.404552, 0, -3.611207)
+mesh = SubResource("BandMesh")
+material_override = SubResource("RingMaterial")
+
+[node name="Band04" type="MeshInstance3D" parent="Level/Ring/RingArt"]
+transform = Transform3D(0.707107, 0, 0.707107, 0, 1, 0, -0.707107, 0, 0.707107, 4.596194, 0, -4.596194)
+mesh = SubResource("BandMesh")
+material_override = SubResource("RingMaterial")
+
+[node name="Band05" type="MeshInstance3D" parent="Level/Ring/RingArt"]
+transform = Transform3D(0.555570, 0, 0.831470, 0, 1, 0, -0.831470, 0, 0.555570, 3.611207, 0, -5.404552)
+mesh = SubResource("BandMesh")
+material_override = SubResource("RingMaterial")
+
+[node name="Band06" type="MeshInstance3D" parent="Level/Ring/RingArt"]
+transform = Transform3D(0.382683, 0, 0.923880, 0, 1, 0, -0.923880, 0, 0.382683, 2.487442, 0, -6.005217)
+mesh = SubResource("BandMesh")
+material_override = SubResource("RingMaterial")
+
+[node name="Band07" type="MeshInstance3D" parent="Level/Ring/RingArt"]
+transform = Transform3D(0.195090, 0, 0.980785, 0, 1, 0, -0.980785, 0, 0.195090, 1.268087, 0, -6.375104)
+mesh = SubResource("BandMesh")
+material_override = SubResource("RingMaterial")
+
+[node name="Band08" type="MeshInstance3D" parent="Level/Ring/RingArt"]
+transform = Transform3D(0.000000, 0, 1.000000, 0, 1, 0, -1.000000, 0, 0.000000, 0.000000, 0, -6.500000)
+mesh = SubResource("BandMesh")
+material_override = SubResource("RingMaterial")
+
+[node name="Band09" type="MeshInstance3D" parent="Level/Ring/RingArt"]
+transform = Transform3D(-0.195090, 0, 0.980785, 0, 1, 0, -0.980785, 0, -0.195090, -1.268087, 0, -6.375104)
+mesh = SubResource("BandMesh")
+material_override = SubResource("RingMaterial")
+
+[node name="Band10" type="MeshInstance3D" parent="Level/Ring/RingArt"]
+transform = Transform3D(-0.382683, 0, 0.923880, 0, 1, 0, -0.923880, 0, -0.382683, -2.487442, 0, -6.005217)
+mesh = SubResource("BandMesh")
+material_override = SubResource("RingMaterial")
+
+[node name="Band11" type="MeshInstance3D" parent="Level/Ring/RingArt"]
+transform = Transform3D(-0.555570, 0, 0.831470, 0, 1, 0, -0.831470, 0, -0.555570, -3.611207, 0, -5.404552)
+mesh = SubResource("BandMesh")
+material_override = SubResource("RingMaterial")
+
+[node name="Band12" type="MeshInstance3D" parent="Level/Ring/RingArt"]
+transform = Transform3D(-0.707107, 0, 0.707107, 0, 1, 0, -0.707107, 0, -0.707107, -4.596194, 0, -4.596194)
+mesh = SubResource("BandMesh")
+material_override = SubResource("RingMaterial")
+
+[node name="Band13" type="MeshInstance3D" parent="Level/Ring/RingArt"]
+transform = Transform3D(-0.831470, 0, 0.555570, 0, 1, 0, -0.555570, 0, -0.831470, -5.404552, 0, -3.611207)
+mesh = SubResource("BandMesh")
+material_override = SubResource("RingMaterial")
+
+[node name="Band14" type="MeshInstance3D" parent="Level/Ring/RingArt"]
+transform = Transform3D(-0.923880, 0, 0.382683, 0, 1, 0, -0.382683, 0, -0.923880, -6.005217, 0, -2.487442)
+mesh = SubResource("BandMesh")
+material_override = SubResource("RingMaterial")
+
+[node name="Band15" type="MeshInstance3D" parent="Level/Ring/RingArt"]
+transform = Transform3D(-0.980785, 0, 0.195090, 0, 1, 0, -0.195090, 0, -0.980785, -6.375104, 0, -1.268087)
+mesh = SubResource("BandMesh")
+material_override = SubResource("RingMaterial")
+
+[node name="Band16" type="MeshInstance3D" parent="Level/Ring/RingArt"]
+transform = Transform3D(-1.000000, 0, 0.000000, 0, 1, 0, -0.000000, 0, -1.000000, -6.500000, 0, -0.000000)
+mesh = SubResource("BandMesh")
+material_override = SubResource("RingMaterial")
+
+[node name="Band17" type="MeshInstance3D" parent="Level/Ring/RingArt"]
+transform = Transform3D(-0.980785, 0, -0.195090, 0, 1, 0, 0.195090, 0, -0.980785, -6.375104, 0, 1.268087)
+mesh = SubResource("BandMesh")
+material_override = SubResource("RingMaterial")
+
+[node name="Band18" type="MeshInstance3D" parent="Level/Ring/RingArt"]
+transform = Transform3D(-0.923880, 0, -0.382683, 0, 1, 0, 0.382683, 0, -0.923880, -6.005217, 0, 2.487442)
+mesh = SubResource("BandMesh")
+material_override = SubResource("RingMaterial")
+
+[node name="Band19" type="MeshInstance3D" parent="Level/Ring/RingArt"]
+transform = Transform3D(-0.831470, 0, -0.555570, 0, 1, 0, 0.555570, 0, -0.831470, -5.404552, 0, 3.611207)
+mesh = SubResource("BandMesh")
+material_override = SubResource("RingMaterial")
+
+[node name="Band20" type="MeshInstance3D" parent="Level/Ring/RingArt"]
+transform = Transform3D(-0.707107, 0, -0.707107, 0, 1, 0, 0.707107, 0, -0.707107, -4.596194, 0, 4.596194)
+mesh = SubResource("BandMesh")
+material_override = SubResource("RingMaterial")
+
+[node name="Band21" type="MeshInstance3D" parent="Level/Ring/RingArt"]
+transform = Transform3D(-0.555570, 0, -0.831470, 0, 1, 0, 0.831470, 0, -0.555570, -3.611207, 0, 5.404552)
+mesh = SubResource("BandMesh")
+material_override = SubResource("RingMaterial")
+
+[node name="Band22" type="MeshInstance3D" parent="Level/Ring/RingArt"]
+transform = Transform3D(-0.382683, 0, -0.923880, 0, 1, 0, 0.923880, 0, -0.382683, -2.487442, 0, 6.005217)
+mesh = SubResource("BandMesh")
+material_override = SubResource("RingMaterial")
+
+[node name="Band23" type="MeshInstance3D" parent="Level/Ring/RingArt"]
+transform = Transform3D(-0.195090, 0, -0.980785, 0, 1, 0, 0.980785, 0, -0.195090, -1.268087, 0, 6.375104)
+mesh = SubResource("BandMesh")
+material_override = SubResource("RingMaterial")
+
+[node name="Band24" type="MeshInstance3D" parent="Level/Ring/RingArt"]
+transform = Transform3D(-0.000000, 0, -1.000000, 0, 1, 0, 1.000000, 0, -0.000000, -0.000000, 0, 6.500000)
+mesh = SubResource("BandMesh")
+material_override = SubResource("RingMaterial")
+
+[node name="Band25" type="MeshInstance3D" parent="Level/Ring/RingArt"]
+transform = Transform3D(0.195090, 0, -0.980785, 0, 1, 0, 0.980785, 0, 0.195090, 1.268087, 0, 6.375104)
+mesh = SubResource("BandMesh")
+material_override = SubResource("RingMaterial")
+
+[node name="Band26" type="MeshInstance3D" parent="Level/Ring/RingArt"]
+transform = Transform3D(0.382683, 0, -0.923880, 0, 1, 0, 0.923880, 0, 0.382683, 2.487442, 0, 6.005217)
+mesh = SubResource("BandMesh")
+material_override = SubResource("RingMaterial")
+
+[node name="Band27" type="MeshInstance3D" parent="Level/Ring/RingArt"]
+transform = Transform3D(0.555570, 0, -0.831470, 0, 1, 0, 0.831470, 0, 0.555570, 3.611207, 0, 5.404552)
+mesh = SubResource("BandMesh")
+material_override = SubResource("RingMaterial")
+
+[node name="Band28" type="MeshInstance3D" parent="Level/Ring/RingArt"]
+transform = Transform3D(0.707107, 0, -0.707107, 0, 1, 0, 0.707107, 0, 0.707107, 4.596194, 0, 4.596194)
+mesh = SubResource("BandMesh")
+material_override = SubResource("RingMaterial")
+
+[node name="Band29" type="MeshInstance3D" parent="Level/Ring/RingArt"]
+transform = Transform3D(0.831470, 0, -0.555570, 0, 1, 0, 0.555570, 0, 0.831470, 5.404552, 0, 3.611207)
+mesh = SubResource("BandMesh")
+material_override = SubResource("RingMaterial")
+
+[node name="Band30" type="MeshInstance3D" parent="Level/Ring/RingArt"]
+transform = Transform3D(0.923880, 0, -0.382683, 0, 1, 0, 0.382683, 0, 0.923880, 6.005217, 0, 2.487442)
+mesh = SubResource("BandMesh")
+material_override = SubResource("RingMaterial")
+
+[node name="Band31" type="MeshInstance3D" parent="Level/Ring/RingArt"]
+transform = Transform3D(0.980785, 0, -0.195090, 0, 1, 0, 0.195090, 0, 0.980785, 6.375104, 0, 1.268087)
+mesh = SubResource("BandMesh")
+material_override = SubResource("RingMaterial")
+
+[node name="InnerLine" type="MeshInstance3D" parent="Level/Ring"]
+mesh = SubResource("InnerLineMesh")
+material_override = SubResource("Magenta")
+
+[node name="Hub" type="MeshInstance3D" parent="Level/Ring"]
+mesh = SubResource("HubMesh")
+material_override = SubResource("RingMaterial")
+
+[node name="RibBack" type="MeshInstance3D" parent="Level/Ring"]
+position = Vector3(-4.15, 0, 0)
+mesh = SubResource("RibMesh")
+material_override = SubResource("RingMaterial")
+
+[node name="RibLeft" type="MeshInstance3D" parent="Level/Ring"]
+position = Vector3(0, 0, -4.15)
+rotation = Vector3(0, 1.5707963267948966, 0)
+mesh = SubResource("RibMesh")
+material_override = SubResource("RingMaterial")
+
+[node name="RibRight" type="MeshInstance3D" parent="Level/Ring"]
+position = Vector3(0, 0, 4.15)
+rotation = Vector3(0, 1.5707963267948966, 0)
+mesh = SubResource("RibMesh")
 material_override = SubResource("RingMaterial")
 
 [node name="SpokeTop" type="Node3D" parent="Level/Ring"]
@@ -151,6 +400,39 @@ position = Vector3(-1.4, 0, 0)
 path = NodePath("..")
 tint = Color(0.86, 0.36, 0.62, 1)
 
+[node name="LightShaft" type="MeshInstance3D" parent="Level/Terrace/Goal"]
+position = Vector3(-0.35, 23.8, 0)
+mesh = SubResource("BeamMesh")
+material_override = SubResource("GoalLight")
+cast_shadow = 0
+
+[node name="Threshold" type="MeshInstance3D" parent="Level/Terrace/Goal"]
+position = Vector3(-0.35, 0.02, 0)
+mesh = SubResource("ThresholdMesh")
+material_override = SubResource("GoalLight")
+cast_shadow = 0
+
+[node name="TerraceJambL" type="Node3D" parent="Level"]
+script = ExtResource("3")
+kind = 8
+position = Vector3(8.25, 4.3, -1.05)
+dimensions = Vector3(0.4, 4.2, 0.3)
+tint = Color(0.17, 0.17, 0.2, 1)
+
+[node name="TerraceJambR" type="Node3D" parent="Level"]
+script = ExtResource("3")
+kind = 8
+position = Vector3(8.25, 4.3, 1.05)
+dimensions = Vector3(0.4, 4.2, 0.3)
+tint = Color(0.17, 0.17, 0.2, 1)
+
+[node name="TerraceLintel" type="Node3D" parent="Level"]
+script = ExtResource("3")
+kind = 8
+position = Vector3(8.25, 6.6, 0)
+dimensions = Vector3(0.4, 0.4, 2.4)
+tint = Color(0.17, 0.17, 0.2, 1)
+
 [node name="Planter" type="Node3D" parent="Level"]
 script = ExtResource("3")
 kind = 8
@@ -165,9 +447,7 @@ position = Vector3(10.6, 4.1, 1.4)
 dimensions = Vector3(0.25, 1.8, 0.25)
 tint = Color(0.32, 0.24, 0.2, 1)
 
-[node name="TreeCanopy" type="Node3D" parent="Level"]
-script = ExtResource("3")
-kind = 8
-position = Vector3(10.6, 5.4, 1.4)
-dimensions = Vector3(1.6, 1.1, 1.6)
-tint = Color(0.86, 0.5, 0.68, 1)
+[node name="TreeCanopy" type="MeshInstance3D" parent="Level"]
+position = Vector3(10.6, 5.5, 1.4)
+mesh = SubResource("CanopyMesh")
+material_override = SubResource("Blossom")

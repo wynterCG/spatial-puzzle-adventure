@@ -102,7 +102,9 @@ func build_level() -> void:
 		elif c.kind == C.Kind.START: start_marker = c
 		elif c.kind == C.Kind.GOAL:
 			goal_marker = c
-			Piece.box(c, Vector3(0, 1.8, 0), Vector3(.45, .8, .45), Piece.material(Color("ffdfa2"), 1))
+			# A placeholder light, unless the monument authored its own landmark under the goal.
+			if not c.get_children().any(func(child): return child is MeshInstance3D):
+				Piece.box(c, Vector3(0, 1.8, 0), Vector3(.45, .8, .45), Piece.material(Color("ffdfa2"), 1))
 		elif c.kind in [C.Kind.CHECKPOINT, C.Kind.INTERACTION]:
 			Piece.box(c, Vector3(0, .45, 0), Vector3(.3, .9, .3), Piece.material(c.tint, .2))
 			if c.kind == C.Kind.INTERACTION: interaction_values[str(definition.get_path_to(c))] = c.initial_value
