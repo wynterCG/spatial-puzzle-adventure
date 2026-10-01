@@ -1,9 +1,9 @@
 @tool
 extends EditorPlugin
-const C = preload("res://scripts/authoring/component.gd")
-const Level = preload("res://scripts/authoring/level.gd")
-const Links = preload("res://scripts/authoring/connections.gd")
-const Validate = preload("res://scripts/authoring/validation.gd")
+const C = preload("res://authoring/component.gd")
+const Level = preload("res://authoring/level.gd")
+const Links = preload("res://authoring/connections.gd")
+const Validate = preload("res://authoring/validation.gd")
 var dock: VBoxContainer
 var status: Label
 var result: RichTextLabel
@@ -109,8 +109,8 @@ func refresh_preview() -> void:
 	for control in states_box.get_children():
 		states_box.remove_child(control); control.queue_free()
 	if source == null:
-		status.text = "Open scenes/authored/*.tscn, or duplicate one to begin."
-		result.text = "Add behaviours from scenes/authoring_components. Use your own architecture under the same pivots."
+		status.text = "Open monuments/*.tscn, or duplicate one to begin."
+		result.text = "Add behaviours from authoring/components. Use your own architecture under the same pivots."
 		return
 	if scene_id != source.level_id:
 		scene_id = source.level_id; preview_states.clear()
