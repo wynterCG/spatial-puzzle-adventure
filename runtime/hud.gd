@@ -9,10 +9,8 @@ var title: Label
 var mode: Label
 var question: Label
 var status: Label
-var selected_label: Label
 var controls: Label
 var feedback: Label
-var sidebar: PanelContainer
 var menu: PanelContainer
 var finish: PanelContainer
 var finish_title: Label
@@ -21,8 +19,6 @@ var reflection: Label
 var reflection_button: Button
 var reduced: CheckButton
 var sensitivity: HSlider
-var selectors: Array[Button] = []
-var selector_list: VBoxContainer
 
 func _ready() -> void:
 	root = Control.new()
@@ -49,18 +45,6 @@ func _ready() -> void:
 	top.add_child(question)
 	status = label("", 14)
 	top.add_child(status)
-	sidebar = panel(Vector2(38, 220), Vector2(310, 200), Control.PRESET_TOP_LEFT)
-	var column := VBoxContainer.new()
-	sidebar.add_child(column)
-	column.add_child(label("RECONFIGURE", 12))
-	selected_label = label("", 21)
-	column.add_child(selected_label)
-	selector_list = VBoxContainer.new()
-	column.add_child(selector_list)
-	var row := HBoxContainer.new()
-	column.add_child(row)
-	for direction in [-1, 1]:
-		row.add_child(button("Turn left" if direction < 0 else "Turn right", func(): game.rotate_selected(direction)))
 	feedback = label("", 17)
 	root.add_child(feedback)
 	feedback.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
@@ -76,7 +60,7 @@ func _ready() -> void:
 	var scroll := ScrollContainer.new()
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	menu.add_child(scroll)
-	column = VBoxContainer.new()
+	var column := VBoxContainer.new()
 	column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	column.add_theme_constant_override("separation", 8)
 	scroll.add_child(column)
@@ -170,26 +154,11 @@ func sync_preferences() -> void:
 func refresh() -> void:
 	if game.walker.support == null:
 		return
-	while selectors.size() < game.rigs.size():
-		var index := selectors.size()
-		var choice := button(str(index + 1), func(): game.select_rig(index))
-		selectors.append(choice)
-		selector_list.add_child(choice)
 	title.text = game.puzzle_title()
 	mode.text = "ARCHITECT  /  arrange the space" if game.architectural else "INHABITANT  /  first person"
 	question.text = game.puzzle_question()
 	status.visible = debug
 	status.text = game.connection_text() if debug else ""
-	selected_label.text = game.rigs[game.selected].label if not game.rigs.is_empty() else "No moving structure"
-	selected_label.add_theme_color_override("font_color", game.rigs[game.selected].get("tint", Color("e4dfd6")) if not game.rigs.is_empty() else Color("e4dfd6"))
-	for i in range(selectors.size()):
-		selectors[i].visible = i < game.rigs.size()
-		if i < game.rigs.size():
-			selectors[i].text = str(i + 1) + "  " + game.rigs[i].label
-			var tint: Color = game.rigs[i].get("tint", Color("e4dfd6"))
-			selectors[i].add_theme_color_override("font_color", tint.lightened(.2))
-			selectors[i].add_theme_color_override("font_hover_color", tint.lightened(.4))
-	sidebar.visible = game.architectural and not game.paused and not game.blocks_play() and not game.rigs.is_empty()
 	menu.visible = game.paused
 	if game.won and not finish.visible:
 		explanation.visible = false
@@ -202,7 +171,7 @@ func refresh() -> void:
 	feedback.visible = not game.paused and not game.blocks_play()
 	controls.text = game.key_name("view") + "  Change view  /  "
 	if game.architectural:
-		controls.text += "1–9  Select  /  " + game.key_name("rotate_left") + " · " + game.key_name("rotate_right") + "  Turn  /  Wheel  Zoom  /  " + game.key_name("reset_view") + "  Reset zoom  /  "
+		controls.text += "Click  Select  /  " + game.key_name("rotate_left") + " · " + game.key_name("rotate_right") + "  Turn  /  Wheel  Zoom  /  " + game.key_name("reset_view") + "  Reset zoom  /  "
 	else:
 		controls.text += game.key_name("forward") + game.key_name("left") + game.key_name("back") + game.key_name("right") + "  Walk  /  Mouse  Look  /  "
 	controls.text += game.key_name("undo") + "  Undo  /  " + game.key_name("reset") + "  Restart  /  " + game.key_name("hint") + "  Hint  /  F3  Debug  /  Esc  Settings"

@@ -55,12 +55,13 @@ static func run(g: Node3D) -> Array[String]:
 	ring_cases(g, failures)
 	graph_cases(g, failures)
 	camera_cases(g, failures)
+	selection_cases(g, failures)
 	runtime_cases(g, failures)
 	socket_cases(g, failures)
 	interaction_cases(g, failures)
 	fixture_cases(g, failures)
 	curve_cases(g, failures)
-	print("AUTHORING CASES: ring v3 16-configuration table, dead ends, solution both ways, sweep clearance, 6-turn/16-action minimum, tower necessity, authored camera (no orbit, zoom, Home, Tab, legacy snapshots, turntable heading, ground follow, seam continuity), carried pose, settled graph, undo, serialized saves, Play From Here, socket contract and apertures, interactions/conditions, checkpoints, two-state hinge, blocked sweep, validation, 90/180 degree curves")
+	print("AUTHORING CASES: ring v3 16-configuration table, dead ends, solution both ways, sweep clearance, 6-turn/16-action minimum, tower necessity, authored camera (no orbit, zoom, Home, Tab, legacy snapshots, turntable heading, ground follow, seam continuity), diegetic selection (pick, click, hover glow, no HUD list), carried pose, settled graph, undo, serialized saves, Play From Here, socket contract and apertures, interactions/conditions, checkpoints, two-state hinge, blocked sweep, validation, 90/180 degree curves")
 	finished = true
 	return failures
 
@@ -164,6 +165,46 @@ static func solve_ring(g: Node3D, failures: Array[String]) -> void:
 	walk_on(g, 6)
 	H.turn(g, ring, 1, failures); H.turn(g, ring, 1, failures)
 	walk(g, Vector3.RIGHT, 16)
+
+## Diegetic selection: point at a movable structure in the isometric view; no HUD list.
+static func selection_cases(g: Node3D, failures: Array[String]) -> void:
+	var inner := rig_index(g, "InnerWheel")
+	var ring := rig_index(g, "Ring")
+	g.build_level()
+	if not g.architectural: g.toggle_view()
+	g.update_camera()
+	if "sidebar" in g.hud or "selectors" in g.hud: failures.append("The HUD must not list movable structures")
+	var screen := func(point: Vector3) -> Vector2: return g.overview.unproject_position(point)
+	var band: Vector3 = g.definition.get_node("Ring/RingArt/Band16").global_position + Vector3.UP * .5
+	var arm: Vector3 = g.definition.get_node("InnerWheel/InnerTop").global_position + Vector3.UP * .05
+	var entry: Vector3 = g.definition.get_node("Entry").global_position
+	if g.pick_rig(screen.call(band)) != ring: failures.append("Pointing at the ring band must pick the ring")
+	if g.pick_rig(screen.call(arm)) != inner: failures.append("Pointing at an inner arm must pick the inner wheel")
+	if g.pick_rig(screen.call(entry)) != -1: failures.append("Static architecture must not be pickable")
+	var click := InputEventMouseButton.new()
+	click.button_index = MOUSE_BUTTON_LEFT; click.pressed = true
+	click.position = screen.call(band)
+	g._unhandled_input(click)
+	if g.selected != ring: failures.append("Clicking the ring must select it")
+	click.position = screen.call(arm)
+	g._unhandled_input(click)
+	if g.selected != inner: failures.append("Clicking the inner wheel must select it")
+	click.position = screen.call(entry)
+	g._unhandled_input(click)
+	if g.selected != inner: failures.append("Clicking static architecture must keep the selection")
+	var hover := InputEventMouseMotion.new()
+	hover.position = screen.call(band)
+	g._unhandled_input(hover)
+	var band_mesh: MeshInstance3D = g.definition.get_node("Ring/RingArt/Band16")
+	var arm_core: MeshInstance3D = g.definition.get_node("InnerWheel/InnerTopTip")
+	if g.hovered != ring or band_mesh.material_overlay == null: failures.append("Hovering the ring must make it glow")
+	if arm_core.material_overlay == null or arm_core.material_overlay == band_mesh.material_overlay: failures.append("The selected structure must glow distinctly from the hovered one")
+	hover.position = screen.call(entry)
+	g._unhandled_input(hover)
+	if g.hovered != -1 or band_mesh.material_overlay != null: failures.append("Leaving the ring must clear its hover glow")
+	g.toggle_view()
+	if arm_core.material_overlay != null: failures.append("First person must show no selection glow")
+	g.build_level()
 
 ## Minimum-solution regression on the real runtime graph: guards against shortcuts.
 static func graph_cases(g: Node3D, failures: Array[String]) -> void:

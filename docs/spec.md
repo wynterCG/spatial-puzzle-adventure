@@ -906,7 +906,7 @@ Persistent player UI should be limited to what testing proves necessary.
 
 ### Isometric
 
-**1 / 2 / …** — Select structure  
+**Click a structure** — Select it (it glows; no on-screen list)  
 **Q / E** — Rotate selected structure  
 **Mouse wheel** — Limited zoom  
 **Z** — Undo  

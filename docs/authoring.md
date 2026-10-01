@@ -53,6 +53,10 @@ Use custom MeshInstance3D nodes or imported scene geometry alongside behaviour n
 
 Walkable surfaces render as a light inlay inside a dark rim (`SurfacePiece.PAVING_RIM`, 0.12 m) across their width; the rim is still walkable, so keep it narrow. Joined passages stay continuous along their length.
 
+## Readable movable structures
+
+Players select by pointing at the structure in isometric; there is no HUD list. Give every rotator a distinct **tint**: it colours the hover and selection glow, and the monument's accent lights on that assembly should use the same colour. Put accent lights only on things that move; use warm white for information (guide lines, sightline targets) and destinations, and keep static architecture neutral. Any visible mesh under a rotator is clickable, including decorative art, so give each assembly enough visible mass to point at.
+
 ## Isometric composition
 
 The isometric view is authored per monument (spec §11): set **Level > overview_focus**, **overview_size**, **overview_azimuth_degrees** and **overview_elevation_degrees**. Azimuth and elevation are relative to the player's ground frame, so the same composition is re-presented from whatever gravity the player has reached. Players cannot orbit; the wheel zooms within 0.8–1.25 and Home resets zoom. Choose the composition so it shows what the player must reason about, and deliberately leaves out what first person should discover (interiors, undersides, sightlines). The editor preview uses the same angle from upright ground.

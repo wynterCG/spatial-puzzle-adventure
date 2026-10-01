@@ -33,6 +33,10 @@ var camera_frame := Basis.IDENTITY
 # Authored composition offset in the player's ground frame (ElsewhereLevel.overview_local_offset).
 var overview_local_offset := Vector3(30, 40, -30)
 var overview_zoom := 1.0
+# Movable structure under the cursor in the isometric view (-1: none). Selection is diegetic:
+# the structures themselves glow; there is no list of movable pieces in the HUD.
+var hovered := -1
+var glow_materials: Dictionary = {}
 var focus := Vector3.ZERO
 var overview_size := 32.0
 var message := ""
@@ -198,11 +202,17 @@ func _unhandled_input(event: InputEvent) -> void:
 		show_hint()
 	elif architectural and not busy:
 		# No orbit: the composition is authored (spec §11). The wheel only zooms.
+		# Point at the architecture to choose what to turn.
 		if event is InputEventMouseButton:
 			if event.pressed and event.button_index == MOUSE_BUTTON_WHEEL_UP:
 				zoom_overview(1)
 			elif event.pressed and event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
 				zoom_overview(-1)
+			elif event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+				var picked := pick_rig(event.position)
+				if picked >= 0: select_rig(picked)
+		elif event is InputEventMouseMotion:
+			set_hovered(pick_rig(event.position))
 		elif event.is_action_pressed("reset_view"):
 			reset_overview()
 		elif event.is_action_pressed("rotate_left"):
@@ -227,15 +237,78 @@ func toggle_view() -> void:
 		overview.current = true
 	else:
 		walker.camera.current = true
+		hovered = -1
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE if architectural else Input.MOUSE_MODE_CAPTURED
+	refresh_glow()
+
+# --- Diegetic selection ---------------------------------------------------------------------
+
+## The movable structure whose own geometry is under a screen point in the isometric view.
+## Only movable assemblies are tested, so static architecture never steals a click and
+## hidden interiors are never pickable. Boxes are exact; rings count as flat annuli.
+func pick_rig(screen: Vector2) -> int:
+	if not architectural or rigs.is_empty(): return -1
+	var origin := overview.project_ray_origin(screen)
+	var direction := overview.project_ray_normal(screen)
+	var best := INF
+	var found := -1
+	for k in range(rigs.size()):
+		for visual in rigs[k].node.find_children("*", "MeshInstance3D", true, false):
+			if visual.mesh == null or not visual.is_visible_in_tree(): continue
+			var distance := ray_hit(visual, origin, direction)
+			if distance < best:
+				best = distance
+				found = k
+	return found
+
+func ray_hit(visual: MeshInstance3D, origin: Vector3, direction: Vector3) -> float:
+	var inverse := visual.global_transform.affine_inverse()
+	var local_origin: Vector3 = inverse * origin
+	var local_direction: Vector3 = (inverse.basis * direction).normalized()
+	var scale := (visual.global_transform.basis * local_direction).length()
+	if visual.mesh is TorusMesh:
+		if absf(local_direction.y) < .0001: return INF
+		var t := -local_origin.y / local_direction.y
+		var point := local_origin + local_direction * t
+		var radius := Vector2(point.x, point.z).length()
+		var torus := visual.mesh as TorusMesh
+		return t * scale if t > 0 and radius >= torus.inner_radius and radius <= torus.outer_radius else INF
+	var hit = visual.mesh.get_aabb().intersects_ray(local_origin, local_direction)
+	return INF if hit == null else (hit - local_origin).length() * scale
+
+func set_hovered(index: int) -> void:
+	if index == hovered: return
+	hovered = index
+	refresh_glow()
+
+## Each movable assembly glows in its own accent colour: faintly when hovered, more when
+## selected. Only in the isometric view; first person stays clean.
+func refresh_glow() -> void:
+	for k in range(rigs.size()):
+		var level := 0
+		if architectural and k == selected: level = 2
+		elif architectural and k == hovered: level = 1
+		var overlay: Material = null if level == 0 else glow_material(rigs[k].get("tint", Color("e4dfd6")), level)
+		for visual in rigs[k].node.find_children("*", "MeshInstance3D", true, false):
+			visual.material_overlay = overlay
+
+func glow_material(tint: Color, level: int) -> StandardMaterial3D:
+	var key := str(tint) + str(level)
+	if not glow_materials.has(key):
+		var mat := StandardMaterial3D.new()
+		mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+		mat.albedo_color = Color(tint, .09 if level == 1 else .2)
+		glow_materials[key] = mat
+	return glow_materials[key]
 
 # --- Structure turns ------------------------------------------------------------------------
 
 func select_rig(index: int) -> void:
 	if rigs.is_empty(): return
 	selected = clampi(index, 0, rigs.size() - 1)
-	for part in pieces:
-		part.highlight(rigs[selected].node.is_ancestor_of(part))
+	refresh_glow()
 
 func boxes_overlap(a: MeshInstance3D, b: MeshInstance3D) -> bool:
 	# Oriented-box SAT, with a small construction clearance at docking edges.
