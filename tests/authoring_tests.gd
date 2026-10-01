@@ -34,6 +34,10 @@ static func walk(g: Node3D, direction: Vector3, distance: float) -> void:
 			g._process(0)
 			break
 
+## Keeps walking in the current (transported) direction, e.g. after waiting at a path end.
+static func walk_on(g: Node3D, distance: float) -> void:
+	walk(g, g.walker.forward, distance)
+
 static func run(g: Node3D) -> Array[String]:
 	finished = false
 	var failures: Array[String] = []
@@ -57,55 +61,68 @@ static func run(g: Node3D) -> Array[String]:
 	finished = true
 	return failures
 
-## The Ring: side, not path, is the variable. The stair changes sides on the same bridge.
+## The Ring: two bridges on one turning ring. The upper bridge is walkable only on top, the
+## lower one only underneath; the fixed stair joins a top to an underside.
 static func ring_cases(g: Node3D, failures: Array[String]) -> void:
 	var ring_initial: Dictionary = g.snapshot()
-	var top: SurfacePiece = g.paths[g.definition.get_node("Ring/SpokeTop")]
-	var under: SurfacePiece = g.paths[g.definition.get_node("Ring/SpokeUnder")]
-	var expected := {"Entry": [2, -1], "Stair": [1, 1], "Balcony": [-1, 0], "Terrace": [-1, -1]}
+	var upper: SurfacePiece = g.paths[g.definition.get_node("Ring/UpperBridge")]
+	var lower: SurfacePiece = g.paths[g.definition.get_node("Ring/LowerBridge")]
+	# Ring state that joins each fixed piece to the upper / lower bridge (-1: never).
+	var expected := {"Entry": [2, -1], "Stair": [1, 3], "Balcony": [-1, 2], "Terrace": [-1, -1]}
 	for state in range(4):
 		var data: Dictionary = ring_initial.duplicate(true)
 		data.states[0] = state
 		g.restore(data)
-		if top.neighbours.has(under) or under.neighbours.has(top): failures.append("Ring faces must never join directly")
+		if upper.neighbours.has(lower) or lower.neighbours.has(upper): failures.append("Ring bridges must never join directly")
 		for name in expected:
 			var fixed: SurfacePiece = g.paths[g.definition.get_node(name)]
-			if top.neighbours.has(fixed) != (expected[name][0] == state) or under.neighbours.has(fixed) != (expected[name][1] == state): failures.append("Ring state %s has the wrong connection to %s" % [state, name])
+			if upper.neighbours.has(fixed) != (expected[name][0] == state) or lower.neighbours.has(fixed) != (expected[name][1] == state): failures.append("Ring state %s has the wrong connection to %s" % [state, name])
 	g.restore(ring_initial)
-	# Remote turn: an empty bridge cannot be boarded once it leaves the entry.
-	H.turn(g, 0, -1, failures)
-	walk(g, Vector3.RIGHT, 6)
-	if g.walker.support.get_parent().name != "Entry": failures.append("Ring must not be boardable after a remote turn")
-	# Wrong side: riding the top face to the balcony leaves the terrace overhead.
+	# Remote turns: neither bridge can be boarded once the upper one leaves the entry.
+	for turns in [1, 2]:
+		g.restart()
+		for i in range(turns): H.turn(g, 0, -1, failures)
+		walk(g, Vector3.RIGHT, 6)
+		if g.walker.support.get_parent().name != "Entry": failures.append("Ring entry must board only the upper bridge (%s turns)" % turns)
+	# Wrong side: riding the upper bridge to the balcony leaves the terrace overhead.
 	g.restart()
 	walk(g, Vector3.RIGHT, 5)
-	if g.walker.support != top: failures.append("Ring entry must board the bridge top")
+	if g.walker.support != upper: failures.append("Ring entry must board the upper bridge")
 	H.turn(g, 0, -1, failures); H.turn(g, 0, -1, failures)
 	walk(g, Vector3.RIGHT, 12)
-	if g.won or g.walker.support != top: failures.append("Ring top face must not reach the terrace")
-	# Recovery from the wrong side is physical: turn back and walk off.
+	if g.won or g.walker.support != upper: failures.append("Upper bridge must not reach the terrace")
 	H.turn(g, 0, 1, failures); H.turn(g, 0, 1, failures)
 	walk(g, Vector3.RIGHT, 3)
 	if g.walker.support.get_parent().name != "Entry": failures.append("Ring wrong side must recover to the entry")
-	# Waiting on the fixed stair while the empty bridge turns strands the player there.
+	# Staying aboard while the lower bridge comes to the stair carries the player away from it.
 	g.restart()
 	walk(g, Vector3.RIGHT, 5); H.turn(g, 0, -1, failures)
-	walk(g, Vector3.RIGHT, 3.2)
-	if g.walker.support.get_parent().name != "Stair": failures.append("Ring bridge tip must lead onto the stair: " + str(g.walker.support.get_parent().name))
-	H.turn(g, 0, -1, failures)
+	H.turn(g, 0, -1, failures); H.turn(g, 0, -1, failures)
 	walk(g, Vector3.RIGHT, 6)
-	if g.walker.support.get_parent().name != "Stair" or g.won: failures.append("Turning the empty bridge must strand the stair")
-	# Solution in both turn directions: change sides at the stair, then ride underneath.
+	if g.walker.support != upper or g.won: failures.append("Remaining aboard must not reach the stair or the lower bridge")
+	# Solution in both waiting directions: ride to the stair, wait on it while the empty ring
+	# brings the lower bridge, go under, and ride back to the starting arrangement.
 	for direction in [-1, 1]:
 		g.restart()
 		walk(g, Vector3.RIGHT, 5); H.turn(g, 0, -1, failures)
-		walk(g, Vector3.RIGHT, 6)
-		if g.walker.support != under: failures.append("Ring stair must return to the same bridge's underside")
+		walk(g, Vector3.RIGHT, 7)
+		if g.walker.support.get_parent().name != "Stair": failures.append("The upper bridge has no underside: the stair must end there")
+		for i in range(2): H.turn(g, 0, direction, failures)
+		walk_on(g, 4)
+		if g.walker.support != lower: failures.append("Waiting on the stair must lead onto the lower bridge's underside (%s): %s" % [direction, g.walker.support.get_parent().name])
 		var hanging: Dictionary = g.snapshot()
 		for i in range(1 if direction < 0 else 3): H.turn(g, 0, direction, failures)
-		if g.walker.support != under or g.walker.foot != hanging.player.foot: failures.append("Ring must carry the player underneath in local pose")
-		walk(g, Vector3.RIGHT, 18)
+		if g.walker.support != lower or g.walker.foot != hanging.player.foot: failures.append("Ring must carry the player underneath in local pose")
+		walk(g, Vector3.LEFT, 18)
 		if not g.won: failures.append("Ring route must complete turning %s: %s %s" % [direction, g.walker.support.get_parent().name, g.walker.foot])
+
+static func solve_ring(g: Node3D, failures: Array[String]) -> void:
+	g.restart()
+	walk(g, Vector3.RIGHT, 5); H.turn(g, 0, -1, failures)
+	walk(g, Vector3.RIGHT, 7)
+	H.turn(g, 0, -1, failures); H.turn(g, 0, -1, failures)
+	walk_on(g, 4); H.turn(g, 0, -1, failures)
+	walk(g, Vector3.LEFT, 18)
 
 ## Generic runtime behaviour, exercised on The Ring.
 static func runtime_cases(g: Node3D, failures: Array[String]) -> void:
@@ -125,10 +142,8 @@ static func runtime_cases(g: Node3D, failures: Array[String]) -> void:
 	g.undo()
 	if g.snapshot() != aboard: failures.append("Undo must restore camera, path and states")
 	# Completion survives serialization; incompatible or invalid saves are rejected atomically.
-	g.restart()
-	walk(g, Vector3.RIGHT, 5); H.turn(g, 0, -1, failures)
-	walk(g, Vector3.RIGHT, 6); H.turn(g, 0, -1, failures)
-	walk(g, Vector3.RIGHT, 18)
+	solve_ring(g, failures)
+	if not g.won: failures.append("Ring solution helper must complete")
 	var saved: Dictionary = bytes_to_var(var_to_bytes(g.progress_data()))
 	g.build_level(); g.apply_progress(saved)
 	if not g.won or g.walker.support != g.goal: failures.append("Completion save did not restore")
@@ -144,8 +159,8 @@ static func runtime_cases(g: Node3D, failures: Array[String]) -> void:
 	g.restart()
 	var source_transforms := {}
 	for c in g.data_source.components(): source_transforms[str(g.data_source.get_path_to(c))] = c.transform
-	if not g.apply_launch({"level": "the_ring", "marker": "Ring/SpokeUnder", "states": {"Ring": 1}}): failures.append("Play From Here must support an inverted/transformed path")
-	if g.walker.support.get_parent().name != "SpokeUnder" or g.rigs[0].state != 1: failures.append("Play From Here used the wrong path/state")
+	if not g.apply_launch({"level": "the_ring", "marker": "Ring/LowerBridge", "states": {"Ring": 3}}): failures.append("Play From Here must support an inverted/transformed path")
+	if g.walker.support.get_parent().name != "LowerBridge" or g.rigs[0].state != 3: failures.append("Play From Here used the wrong path/state")
 	for c in g.data_source.components():
 		if source_transforms[str(g.data_source.get_path_to(c))] != c.transform: failures.append("Runtime/preview must not mutate authored transforms")
 	var launch_before: Dictionary = g.snapshot()
@@ -171,7 +186,7 @@ static func socket_cases(g: Node3D, failures: Array[String]) -> void:
 			"position": changed.position += Vector3.ONE
 		if Links.compatible(a, changed): failures.append("Socket ignored " + property)
 	g.build_level()
-	var top: SurfacePiece = g.paths[g.definition.get_node("Ring/SpokeTop")]
+	var top: SurfacePiece = g.paths[g.definition.get_node("Ring/UpperBridge")]
 	var aperture: Dictionary = g.start.connection_apertures.filter(func(value): return value.other == top)[0]
 	aperture.width = .5
 	var crossing: Vector3 = aperture.point + aperture.direction * .05

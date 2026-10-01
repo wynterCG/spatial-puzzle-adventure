@@ -6,7 +6,7 @@ How to work in this repository. The [spec](spec.md) owns every design decision; 
 
 The project restarted on 1 October 2026 from the ELSEWHERE spec. The earlier prototype (positioning studies, the connected courtyard chapter, the Lantern Fold, the procedural monument, the portal gallery, camera experiments and their docs) is archived read-only in `legacy/`. The last runnable prototype is the git tag `prototype-final`. Use the archive as reference; do not import from it, and do not revive its procedural layout builders.
 
-Current phase: spec §54 **Phase 1 — Prove Puzzle Depth**. The only monument is The Ring, which makes *which side of the bridge* the variable, using a turntable and a fixed side-change stair. The authored Turning Frame conversion is archived in `legacy/monuments/`; spec §41–42 still names the Turning Frame as a design target, so a fresh version may return as a new monument. The next real work is new monuments with distinct spatial ideas (candidates: Appendix A of the spec), each tested against §16 and §51.
+Current phase: spec §54 **Phase 1 — Prove Puzzle Depth**. The only monument is The Ring: two bridges on one turntable, walkable on opposite faces, joined only through a fixed stair where the player must wait while the empty ring turns. The authored Turning Frame conversion is archived in `legacy/monuments/`; spec §41–42 still names the Turning Frame as a design target, so a fresh version may return as a new monument. The next real work is new monuments with distinct spatial ideas (candidates: Appendix A of the spec), each tested against §16 and §51.
 
 ## Layout
 
