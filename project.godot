@@ -13,7 +13,7 @@ config_version=5
 config/name="Elsewhere — An architectural journey"
 config/description="From outside, reshape the world. From inside, discover how to cross it."
 run/main_scene="res://scenes/positioning.tscn"
-config/features=PackedStringArray("4.6", "GL Compatibility")
+config/features=PackedStringArray("4.7", "GL Compatibility")
 
 [display]
 
