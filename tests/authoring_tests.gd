@@ -73,19 +73,22 @@ static func run(g: Node3D) -> Array[String]:
 	interaction_cases(g, failures)
 	fixture_cases(g, failures)
 	curve_cases(g, failures)
+	seam_cases(g, failures)
 	print("AUTHORING CASES: ring v3 16-configuration table, dead ends, solution both ways, sweep clearance, 6-turn/16-action minimum, tower necessity, authored camera (no orbit, zoom, bounded pan, Home, Tab, legacy snapshots, turntable heading, ground follow, seam continuity), diegetic selection (pick, click, hover glow, no HUD list), carried pose, settled graph, undo, serialized saves, Play From Here, socket contract and apertures, interactions/conditions, checkpoints, two-state hinge, blocked sweep, validation, 90/180 degree curves, visible deck = walkable region, comfort settings, locomotion bench")
 	finished = true
 	return failures
 
 ## On a wide terrace the light completes the monument from anywhere across the deck.
 static func goal_reach_cases(g: Node3D, failures: Array[String]) -> void:
-	for across in [-.75, 0.0, .75]:
+	for across in [-1.0, -.75, 0.0, .75, 1.0]:
 		g.build_level()
 		# build_level replaces every piece, so look the terrace up after it.
 		var terrace := piece(g, "Terrace")
 		var half_width: float = terrace.half.z
 		g.architectural = false
-		g.walker.place(terrace, Vector3(terrace.half.x - .5, terrace.half.y, across * half_width), Vector3.UP, Vector3.LEFT)
+		# Start 4 m (x1: 1 m) short of the light, clear of the planter beside the +z edge.
+		var goal_x: float = terrace.to_local(g.goal_marker.global_position).x
+		g.walker.place(terrace, Vector3(goal_x + H.m(1), terrace.half.y, across * half_width), Vector3.UP, Vector3.LEFT)
 		walk(g, Vector3.LEFT, terrace.half.x * 2)
 		if not g.won: failures.append("Walking the terrace at %.0f%% of its half-width must reach the light" % (across * 100))
 	g.build_level()
@@ -224,6 +227,7 @@ static func selection_cases(g: Node3D, failures: Array[String]) -> void:
 	var arm_core: MeshInstance3D = g.definition.get_node("InnerWheel/InnerTopTip")
 	if g.hovered != ring or band_mesh.material_overlay == null: failures.append("Hovering the ring must make it glow")
 	if arm_core.material_overlay == null or arm_core.material_overlay == band_mesh.material_overlay: failures.append("The selected structure must glow distinctly from the hovered one")
+	elif not is_equal_approx(arm_core.material_overlay.get_shader_parameter("width"), .085 * maxf(1.0, g.overview.size / g.MARKER_REFERENCE)): failures.append("The selection outline must keep its on-screen width at any framing")
 	hover.position = screen.call(entry)
 	g._unhandled_input(hover)
 	if g.hovered != -1 or band_mesh.material_overlay != null: failures.append("Leaving the ring must clear its hover glow")
@@ -247,6 +251,31 @@ static func sweep_cases(g: Node3D, failures: Array[String]) -> void:
 		if Time.get_ticks_msec() - started > 500: failures.append("%s sweep check took over 500 ms" % entry.node.name)
 	if g.definition.overview_local_offset().length() < g.definition.overview_distance() - .001 or g.definition.overview_distance() < g.definition.overview_size * 3 - .001: failures.append("The overview camera must stand at least 3x the framing away")
 	if g.overview.far < g.definition.overview_distance() + 2000: failures.append("The overview far plane must reach past the composition and backdrop")
+
+## A seam the sockets accept (within position tolerance) is always crossable: a deck 1 cm out of
+## level must not trap the player at its end.
+static func seam_cases(g: Node3D, failures: Array[String]) -> void:
+	var fixture := ElsewhereLevel.new()
+	fixture.name = "Level"; fixture.level_id = "offset_seam_test"
+	var near = C.new()
+	near.name = "Near"; near.dimensions = Vector3(4, .4, 2)
+	fixture.add_child(near)
+	var start_marker = C.new()
+	start_marker.kind = C.Kind.START; start_marker.name = "Start"; start_marker.path = NodePath("..")
+	start_marker.position.x = -1.5
+	near.add_child(start_marker)
+	var far = C.new()
+	far.name = "Far"; far.dimensions = Vector3(4, .4, 2)
+	far.position = Vector3(4, .01, 0)
+	fixture.add_child(far)
+	var goal_marker = C.new()
+	goal_marker.kind = C.Kind.GOAL; goal_marker.name = "Goal"; goal_marker.path = NodePath("..")
+	goal_marker.position.x = 1
+	far.add_child(goal_marker)
+	g.remove_child(g.data_source); g.data_source.queue_free()
+	g.add_child(fixture); g.data_source = fixture; fixture.hide(); g.build_level()
+	walk(g, Vector3.RIGHT, 8)
+	if not g.won: failures.append("A seam 1 cm out of level must be crossable: stopped on " + name_of(g))
 
 ## Spec §52: FOV and gravity-transition pacing are player settings; reduced motion is gentle.
 static func comfort_cases(g: Node3D, failures: Array[String]) -> void:
@@ -302,6 +331,10 @@ static func atmosphere_cases(g: Node3D, failures: Array[String]) -> void:
 	old.set_value("comfort", "fov", 72.0)
 	g.apply_preferences(old)
 	if not is_equal_approx(g.walker.fov, 60.0): failures.append("An FOV saved before v2 must not override the new default")
+	var deliberate := ConfigFile.new()
+	deliberate.set_value("comfort", "fov", 90.0)
+	g.apply_preferences(deliberate)
+	if not is_equal_approx(g.walker.fov, 90.0): failures.append("A pre-v2 FOV other than the old default was a choice and must be kept")
 	var chosen := ConfigFile.new()
 	chosen.set_value("comfort", "version", g.PREFERENCES_VERSION); chosen.set_value("comfort", "fov", 80.0)
 	g.apply_preferences(chosen)

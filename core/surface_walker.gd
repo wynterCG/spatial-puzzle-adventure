@@ -209,9 +209,10 @@ func advance(local_direction: Vector3, distance: float) -> float:
 		if not other.allows_point(local, up) or not pose_is_clear(other, local, up):
 			continue
 		# Contact tolerance accepts a point a little short of the seam; snapping it onto the
-		# neighbour would hop further than asked. Stop at this deck's end instead and cross on
-		# the next sub-step.
-		if start.distance_to(other.to_global(other.constrain_to_path(local))) > distance + .0001:
+		# neighbour would hop further forward than asked. Stop at this deck's end instead and
+		# cross on the next sub-step. Measured along travel, so a seam slightly out of level
+		# (within socket tolerance) still crosses.
+		if (other.to_global(other.constrain_to_path(local)) - start).dot((support.global_basis * direction).normalized()) > distance + .0001:
 			continue
 		var to_other := other.global_basis.inverse() * support.global_basis
 		forward = to_other * forward

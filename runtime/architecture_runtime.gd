@@ -171,6 +171,7 @@ func zoom_overview(steps: float) -> void:
 		return
 	overview_zoom = clampf(overview_zoom * exp(-steps * .12), ZOOM_MIN, ZOOM_MAX)
 	update_camera()
+	refresh_glow()
 
 func pan_overview(amount: Vector2) -> void:
 	if not architectural or paused or blocks_play():
@@ -325,15 +326,16 @@ func refresh_glow() -> void:
 			visual.material_overlay = overlay
 
 ## An outline, not a fill: the structure's faces stay readable. Hover is thin and dim,
-## selection slightly thicker and brighter.
+## selection slightly thicker and brighter. The width follows the framing, like the marker, so
+## the outline keeps its on-screen size on monumental compositions.
 func glow_material(tint: Color, level: int) -> ShaderMaterial:
 	var key := str(tint) + str(level)
 	if not glow_materials.has(key):
 		var mat := ShaderMaterial.new()
 		mat.shader = OUTLINE
 		mat.set_shader_parameter("color", tint.darkened(.2) if level == 1 else tint.lightened(.2))
-		mat.set_shader_parameter("width", .045 if level == 1 else .085)
 		glow_materials[key] = mat
+	glow_materials[key].set_shader_parameter("width", (.045 if level == 1 else .085) * maxf(1.0, overview.size / MARKER_REFERENCE))
 	return glow_materials[key]
 
 # --- Structure turns ------------------------------------------------------------------------
@@ -559,8 +561,10 @@ func load_preferences() -> void:
 func apply_preferences(settings: ConfigFile) -> void:
 	walker.reduced_motion = settings.get_value("comfort", "reduced_motion", false)
 	walker.sensitivity = settings.get_value("comfort", "sensitivity", 0.0022)
-	var chosen_fov: bool = settings.get_value("comfort", "version", 1) >= PREFERENCES_VERSION
-	walker.fov = clampf(settings.get_value("comfort", "fov", walker.profile.fov), 60, 95) if chosen_fov else walker.profile.fov
+	# Before v2 the old 72 default was saved on every change; any other value was chosen.
+	var saved_fov: float = settings.get_value("comfort", "fov", walker.profile.fov)
+	var chosen_fov: bool = settings.get_value("comfort", "version", 1) >= PREFERENCES_VERSION or not is_equal_approx(saved_fov, 72.0)
+	walker.fov = clampf(saved_fov, 60, 95) if chosen_fov else walker.profile.fov
 	walker.turn_rate = settings.get_value("comfort", "turn_rate", walker.profile.max_gravity_turn_rate)
 	walker.sync_pose(1)
 	hud.sync_preferences()

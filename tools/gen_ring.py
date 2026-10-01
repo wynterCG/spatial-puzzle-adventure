@@ -151,8 +151,9 @@ comp('Balcony', 'Level', kind=0, label='"Balcony underside"', position=p3(10, -1
 node('BalconyGuide', 'Level', 'MeshInstance3D', position=v3(10 * SCALE, -SCALE - TRIM, 0), mesh='SubResource("BalconyGuideMesh")', material_override='SubResource("GoalLight")', cast_shadow=0)
 comp('FarCurve', 'Level', kind=1, label='"Terrace curve"', position=p3(12, 3, 0), rotation=v3(0, -PI / 2, 0), radius=s(2.0), dimensions=p3(2, .26, 1.6), tint=DARK)
 comp('Terrace', 'Level', kind=0, label='"Terrace"', position=p3(10, 3, 0), dimensions=p3(4, .8, 1.6), tint=DARK)
-# The light completes the monument from anywhere across the wide terrace.
-comp('Goal', 'Level/Terrace', kind=5, position=p3(-1.4, 0, 0), path='NodePath("..")', trigger_radius=s(.8), tint=col(.86, .36, .62))
+# The light completes the monument from anywhere across the wide terrace, edges included
+# (radius > the terrace half-width, 0.8 x SCALE).
+comp('Goal', 'Level/Terrace', kind=5, position=p3(-1.4, 0, 0), path='NodePath("..")', trigger_radius=s(1.0), tint=col(.86, .36, .62))
 node('LightShaft', 'Level/Terrace/Goal', 'MeshInstance3D', position=p3(-0.35, 23.8, 0), mesh='SubResource("BeamMesh")', material_override='SubResource("GoalLight")', cast_shadow=0)
 node('Threshold', 'Level/Terrace/Goal', 'MeshInstance3D', position=v3(-0.35 * SCALE, 0.02, 0), mesh='SubResource("ThresholdMesh")', material_override='SubResource("GoalLight")', cast_shadow=0)
 for n, z in (('TerraceJambL', -1.15), ('TerraceJambR', 1.15)):
