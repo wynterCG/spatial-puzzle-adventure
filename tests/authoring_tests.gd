@@ -197,6 +197,54 @@ static func run(g: Node3D) -> Array[String]:
 	if g.progress_path() == "user://authored-turning_frame.save": failures.append("Levels need separate saves")
 	g.apply_progress(saved)
 	if g.data_source.level_id != "bell_cradle" or not g.won: failures.append("Cross-level saves must not change the level")
+	# The ring: side, not path, is the variable. The stair changes sides on the same bridge.
+	load_level(g, "the_ring")
+	if not Validate.validate(g.definition).errors.is_empty(): failures.append("Ring validation failed: " + str(Validate.validate(g.definition).errors))
+	var ring_initial: Dictionary = g.snapshot()
+	var top: SurfacePiece = g.paths[g.definition.get_node("Ring/SpokeTop")]
+	var under: SurfacePiece = g.paths[g.definition.get_node("Ring/SpokeUnder")]
+	var expected := {"Entry": [2, -1], "Stair": [1, 1], "Balcony": [-1, 0], "Terrace": [-1, -1]}
+	for state in range(4):
+		var data: Dictionary = ring_initial.duplicate(true)
+		data.states[0] = state
+		g.restore(data)
+		for name in expected:
+			var fixed: SurfacePiece = g.paths[g.definition.get_node(name)]
+			if top.neighbours.has(fixed) != (expected[name][0] == state) or under.neighbours.has(fixed) != (expected[name][1] == state): failures.append("Ring state %s has the wrong connection to %s" % [state, name])
+	g.restore(ring_initial)
+	# Remote turn: an empty bridge cannot be boarded once it leaves the entry.
+	H.turn(g, 0, -1, failures)
+	walk(g, Vector3.RIGHT, 6)
+	if g.walker.support.get_parent().name != "Entry": failures.append("Ring must not be boardable after a remote turn")
+	# Wrong side: riding the top face to the balcony leaves the terrace overhead.
+	g.restart()
+	walk(g, Vector3.RIGHT, 5)
+	if g.walker.support != top: failures.append("Ring entry must board the bridge top")
+	H.turn(g, 0, -1, failures); H.turn(g, 0, -1, failures)
+	walk(g, Vector3.RIGHT, 12)
+	if g.won or g.walker.support != top: failures.append("Ring top face must not reach the terrace")
+	# Waiting on the fixed stair while the empty bridge turns strands the player there.
+	g.restart()
+	walk(g, Vector3.RIGHT, 5); H.turn(g, 0, -1, failures)
+	walk(g, Vector3.RIGHT, 3.2)
+	if g.walker.support.get_parent().name != "Stair": failures.append("Ring bridge tip must lead onto the stair: " + str(g.walker.support.get_parent().name))
+	H.turn(g, 0, -1, failures)
+	walk(g, Vector3.RIGHT, 6)
+	if g.walker.support.get_parent().name != "Stair" or g.won: failures.append("Turning the empty bridge must strand the stair")
+	# Solution in both turn directions: change sides at the stair, then ride underneath.
+	for direction in [-1, 1]:
+		g.restart()
+		walk(g, Vector3.RIGHT, 5); H.turn(g, 0, -1, failures)
+		walk(g, Vector3.RIGHT, 6)
+		if g.walker.support != under: failures.append("Ring stair must return to the same bridge's underside")
+		var hanging: Dictionary = g.snapshot()
+		for i in range(1 if direction < 0 else 3): H.turn(g, 0, direction, failures)
+		if g.walker.support != under or g.walker.foot != hanging.player.foot: failures.append("Ring must carry the player underneath in local pose")
+		walk(g, Vector3.RIGHT, 18)
+		if not g.won: failures.append("Ring route must complete turning %s: %s %s" % [direction, g.walker.support.get_parent().name, g.walker.foot])
+	var ring_save: Dictionary = bytes_to_var(var_to_bytes(g.progress_data()))
+	g.build_level(); g.apply_progress(ring_save)
+	if not g.won or g.walker.support.get_parent().name != "Terrace": failures.append("Ring completion save did not restore")
 	# Different relationship: prepare the receiver before its clearance closes.
 	load_level(g, "folded_observatory")
 	if g.rigs[1].angles.size() != 2: failures.append("Receiver should expose exactly two legal states")
@@ -267,6 +315,6 @@ static func run(g: Node3D) -> Array[String]:
 	if not g.won: failures.append("Traversal-only scene must restore its save")
 	g.continue_exploring(); walk(g, Vector3.LEFT, 12)
 	if g.walker.support != g.start: failures.append("Quarter-curve route must be physically reversible")
-	print("AUTHORING CASES: three scene-authored solutions, wrong paths, order/clearance, two-state rotation, socket apertures, settled graph, carrier pose, interactions/conditions, checkpoints, undo, serialized saves, Play From Here, validation, 90/180 degree curves")
+	print("AUTHORING CASES: four scene-authored solutions, ring sides, wrong paths, order/clearance, two-state rotation, socket apertures, settled graph, carrier pose, interactions/conditions, checkpoints, undo, serialized saves, Play From Here, validation, 90/180 degree curves")
 	finished = true
 	return failures

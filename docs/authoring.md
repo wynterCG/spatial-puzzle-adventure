@@ -18,14 +18,17 @@ For a new level, duplicate one of the scenes in `monuments/`, change **Level > l
 | Scene | Spatial decision | Authoring coverage |
 |---|---|---|
 | `turning_frame.tscn` | Choose the longer passage before the roll; aligning from the wrong path is insufficient | Separate passages, 180° curve, passenger rotation |
+| `the_ring.tscn` | Ride the bridge to the stair, change to its underside, and turn it again while hanging beneath | Vertical-axis turntable, top and underside faces of one bridge, fixed 180° side-change stair, decorative ring mesh, three states with distinct roles |
 | `bell_cradle.tscn` | Leave the moving arm at the fixed belfry before turning it again | Vertical belfry, radial cradle, checkpoint, fixed gravity transfer and a custom torus mesh independent of path logic |
 | `folded_observatory.tscn` | Prepare the receiver before docking fingers occupy its sweep | Folding gallery, narrow bent receiver, two-state hinge, custom rectangular walk regions and collision boxes |
 
-These are playable blockouts using three proven positioning dependencies, not three claims of new puzzle mechanics or finished architecture. Their solutions and important counterexamples are tested. Their visual identity, difficulty and human comprehension remain design work.
+The Turning Frame, Bell Cradle and Folded Observatory reuse three proven positioning dependencies. The Ring is the first Phase 1 study of a different variable, which face of a structure carries you. None of them is a claim of finished architecture or validated puzzle depth. Their solutions and important counterexamples are tested. Their visual identity, difficulty and human comprehension remain design work.
 
 ![Bell cradle blockout](images/authoring-bell-cradle.png)
 
-Also see the [folded observatory blockout](images/authoring-observatory.png) and the [isolated editor state preview](images/authoring-state-preview.png).
+![The ring blockout, solved](images/the-ring-overview.png)
+
+Also see [the ring from its underside](images/the-ring-underside.png), the [folded observatory blockout](images/authoring-observatory.png) and the [isolated editor state preview](images/authoring-state-preview.png).
 
 ## Components and coordinates
 

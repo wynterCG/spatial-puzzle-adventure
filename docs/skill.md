@@ -6,7 +6,7 @@ How to work in this repository. The [spec](spec.md) owns every design decision; 
 
 The project restarted on 1 October 2026 from the ELSEWHERE spec. The earlier prototype (positioning studies, the connected courtyard chapter, the Lantern Fold, the procedural monument, the portal gallery, camera experiments and their docs) is archived read-only in `legacy/`. The last runnable prototype is the git tag `prototype-final`. Use the archive as reference; do not import from it, and do not revive its procedural layout builders.
 
-Current phase: spec §54 **Phase 1 — Prove Puzzle Depth**. The Turning Frame blockout exists. Bell Cradle and Folded Observatory are authoring examples that reuse known positioning dependencies, not proof of *different* spatial concepts. The next real work is new monuments with distinct spatial ideas (candidates: Appendix A of the spec), each tested against §16 and §51.
+Current phase: spec §54 **Phase 1 — Prove Puzzle Depth**. The Turning Frame and The Ring blockouts exist (The Ring makes *which side of the bridge* the variable, using a turntable and a fixed side-change stair). Bell Cradle and Folded Observatory are authoring examples that reuse known positioning dependencies, not proof of *different* spatial concepts. The next real work is new monuments with distinct spatial ideas (candidates: Appendix A of the spec), each tested against §16 and §51.
 
 ## Layout
 
@@ -20,6 +20,8 @@ Current phase: spec §54 **Phase 1 — Prove Puzzle Depth**. The Turning Frame b
 | `addons/elsewhere_authoring/` | First-party editor plugin: state preview, socket/normal display, validation, Play From Here (§48) |
 | `docs/` | `spec.md`, this guide, `authoring.md` (component reference), `authoring-friction.md`, `concept/`, `images/`. Has a `.gdignore` |
 | `legacy/` | Frozen archive with a `.gdignore`; Godot never loads it |
+
+Turntable (vertical-axis) structures can dock with fixed architecture only through narrow radial bridges: a wide or tangential piece sweeps its corners through anything touching its edge. Keep docking widths around 1.6 m at radius ≥ 6 m, as in The Ring and Bell Cradle. Tests must finish tweens with `H.turn` (it steps the tween to completion), not a fixed time.
 
 Spec-to-code map: §46 library → `authoring/components/`; §48 tools → the plugin; §50 data model → `ElsewhereLevel` + `ElsewhereComponent` tree; §12–14, §18–19 → `architecture_runtime.gd` + `monument.gd`; §9–11 → `update_camera` / `transport_ground` / orbit layer.
 

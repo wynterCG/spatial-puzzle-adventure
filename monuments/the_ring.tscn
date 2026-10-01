@@ -1,0 +1,173 @@
+[gd_scene load_steps=9 format=3]
+
+[ext_resource type="Script" path="res://runtime/monument.gd" id="1"]
+[ext_resource type="Script" path="res://authoring/level.gd" id="2"]
+[ext_resource type="Script" path="res://authoring/component.gd" id="3"]
+
+[sub_resource type="TorusMesh" id="RingMesh"]
+inner_radius = 6.1
+outer_radius = 6.9
+rings = 96
+ring_segments = 16
+
+[sub_resource type="StandardMaterial3D" id="RingMaterial"]
+albedo_color = Color(0.13, 0.12, 0.15, 1)
+metallic = 0.3
+roughness = 0.6
+
+[sub_resource type="StandardMaterial3D" id="Magenta"]
+albedo_color = Color(0.86, 0.36, 0.62, 1)
+emission_enabled = true
+emission = Color(0.86, 0.36, 0.62, 1)
+emission_energy_multiplier = 1.6
+
+[sub_resource type="BoxMesh" id="Strip"]
+size = Vector3(0.12, 0.04, 1.62)
+
+[sub_resource type="BoxMesh" id="TowerStrip"]
+size = Vector3(0.06, 15, 0.3)
+
+[node name="Puzzle" type="Node3D"]
+script = ExtResource("1")
+
+[node name="Level" type="Node3D" parent="."]
+script = ExtResource("2")
+level_id = "the_ring"
+title = "The ring"
+question = "Which side of the bridge needs to carry you?"
+explanation = "The far balcony meets only the underside of the turning bridge, and the terrace sits above it. Ride the bridge to the curved stair, follow the stair under and back onto the same bridge, then turn it again while you hang beneath it."
+overview_focus = Vector3(1, 0.5, -1)
+overview_size = 36.0
+hints = PackedStringArray("Compare which side of the bridge reaches the far balcony.", "The curved stair does not lead anywhere new. It leads under.", "Board, turn the bridge to the stair, follow the stair onto the bridge's underside, then turn the bridge to the balcony.")
+
+[node name="Entry" type="Node3D" parent="Level"]
+script = ExtResource("3")
+kind = 0
+label = "Entry bridge"
+position = Vector3(-10, 1, 0)
+dimensions = Vector3(4, 0.8, 1.6)
+tint = Color(0.23, 0.23, 0.26, 1)
+
+[node name="PlayerStart" type="Node3D" parent="Level/Entry"]
+script = ExtResource("3")
+kind = 4
+position = Vector3(-1.2, 0, 0)
+path = NodePath("..")
+
+[node name="Tower" type="Node3D" parent="Level"]
+script = ExtResource("3")
+kind = 8
+position = Vector3(0, 2, 0)
+dimensions = Vector3(2.4, 18, 2.4)
+tint = Color(0.17, 0.17, 0.2, 1)
+
+[node name="TowerLight" type="MeshInstance3D" parent="Level/Tower"]
+position = Vector3(-1.22, 0.5, 0)
+mesh = SubResource("TowerStrip")
+material_override = SubResource("Magenta")
+
+[node name="Ring" type="Node3D" parent="Level"]
+script = ExtResource("3")
+kind = 3
+label = "The ring"
+axis = Vector3(0, 1, 0)
+initial_state = 2
+duration = 1.2
+tint = Color(0.86, 0.36, 0.62, 1)
+
+[node name="RingArt" type="MeshInstance3D" parent="Level/Ring"]
+mesh = SubResource("RingMesh")
+material_override = SubResource("RingMaterial")
+
+[node name="SpokeTop" type="Node3D" parent="Level/Ring"]
+script = ExtResource("3")
+kind = 0
+label = "Bridge, top"
+position = Vector3(5.25, 1, 0)
+dimensions = Vector3(5.5, 0.8, 1.6)
+tint = Color(0.3, 0.27, 0.31, 1)
+
+[node name="SpokeUnder" type="Node3D" parent="Level/Ring"]
+script = ExtResource("3")
+kind = 0
+label = "Bridge, underside"
+position = Vector3(5.25, -1, 0)
+rotation = Vector3(3.141592653589793, 0, 0)
+dimensions = Vector3(5.5, 0.8, 1.6)
+tint = Color(0.3, 0.27, 0.31, 1)
+
+[node name="SpokeCore" type="Node3D" parent="Level/Ring"]
+script = ExtResource("3")
+kind = 8
+position = Vector3(5.2, 0, 0)
+dimensions = Vector3(5, 0.4, 1.2)
+tint = Color(0.13, 0.12, 0.15, 1)
+
+[node name="TipLight" type="MeshInstance3D" parent="Level/Ring"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7.85, 0, 0)
+mesh = SubResource("Strip")
+material_override = SubResource("Magenta")
+
+[node name="Stair" type="Node3D" parent="Level"]
+script = ExtResource("3")
+kind = 1
+label = "Curved stair"
+position = Vector3(0, 1, -8)
+radius = 1.0
+dimensions = Vector3(2, 0.26, 1.6)
+tint = Color(0.23, 0.23, 0.26, 1)
+
+[node name="Balcony" type="Node3D" parent="Level"]
+script = ExtResource("3")
+kind = 0
+label = "Balcony underside"
+position = Vector3(10, -1, 0)
+rotation = Vector3(3.141592653589793, 0, 0)
+dimensions = Vector3(4, 0.8, 1.6)
+tint = Color(0.23, 0.23, 0.26, 1)
+
+[node name="FarCurve" type="Node3D" parent="Level"]
+script = ExtResource("3")
+kind = 1
+label = "Terrace curve"
+position = Vector3(12, 3, 0)
+rotation = Vector3(0, -1.5707963267948966, 0)
+radius = 2.0
+dimensions = Vector3(2, 0.26, 1.6)
+tint = Color(0.23, 0.23, 0.26, 1)
+
+[node name="Terrace" type="Node3D" parent="Level"]
+script = ExtResource("3")
+kind = 0
+label = "Terrace"
+position = Vector3(10, 3, 0)
+dimensions = Vector3(4, 0.8, 1.6)
+tint = Color(0.23, 0.23, 0.26, 1)
+
+[node name="Goal" type="Node3D" parent="Level/Terrace"]
+script = ExtResource("3")
+kind = 5
+position = Vector3(-1.4, 0, 0)
+path = NodePath("..")
+tint = Color(0.86, 0.36, 0.62, 1)
+
+[node name="Planter" type="Node3D" parent="Level"]
+script = ExtResource("3")
+kind = 8
+position = Vector3(10.6, 2.8, 1.4)
+dimensions = Vector3(1.6, 0.8, 1.2)
+tint = Color(0.23, 0.23, 0.26, 1)
+
+[node name="TreeTrunk" type="Node3D" parent="Level"]
+script = ExtResource("3")
+kind = 8
+position = Vector3(10.6, 4.1, 1.4)
+dimensions = Vector3(0.25, 1.8, 0.25)
+tint = Color(0.32, 0.24, 0.2, 1)
+
+[node name="TreeCanopy" type="Node3D" parent="Level"]
+script = ExtResource("3")
+kind = 8
+position = Vector3(10.6, 5.4, 1.4)
+dimensions = Vector3(1.6, 1.1, 1.6)
+tint = Color(0.86, 0.5, 0.68, 1)

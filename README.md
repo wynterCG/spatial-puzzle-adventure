@@ -10,7 +10,7 @@ A first-person architectural puzzle adventure. Explore small monumental sci-fi s
 
 ## Status
 
-Pre-production, Phase 1 (prove puzzle depth). The playable content is three blockout monuments built with the scene-authoring foundation: **The Turning Frame**, **The Bell Cradle** and **The Folded Observatory**.
+Pre-production, Phase 1 (prove puzzle depth). The playable content is four blockout monuments built with the scene-authoring foundation: **The Turning Frame**, **The Ring**, **The Bell Cradle** and **The Folded Observatory**.
 
 ## Run
 

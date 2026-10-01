@@ -8,4 +8,5 @@ static func turn(g: Node3D, index: int, direction: int, failures: Array[String])
 	if not g.busy:
 		failures.append("Expected turn of structure %s: %s" % [index, g.message])
 	else:
-		g.tween.custom_step(1.0)
+		# Finish the turn regardless of its authored duration.
+		g.tween.custom_step(60.0)
