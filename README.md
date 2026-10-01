@@ -1,52 +1,53 @@
 # Elsewhere
 
-**Where do I need to be before I transform the space?**
+**Where do I need to be before I change the space?**
 
-**Scene authoring is now available.** Open `scenes/authored/turning_frame.tscn` in Godot, edit the Level's gameplay components, and use the **Elsewhere** dock for state preview, socket/ground visualization, validation and Play From Here. Two additional authored blockouts—the Bell Cradle and Folded Observatory—use the same runtime. [Authoring guide](docs/level-authoring.md).
+A first-person architectural puzzle adventure. Explore small monumental sci-fi structures in first person, then pull back into an isometric view to reshape them. Gravity follows authored paths around walls and undersides; if you stand on a structure while it turns, it carries you.
 
-**The turning frame** is a new, separate architectural study: one rounded frame, one moving assembly and one lantern. Choose the passage that must carry you before turning the frame. Open **Escape > The turning frame**, or run `scenes/monument.tscn`. All earlier puzzles remain available. [Study and visual review](docs/monument-study.md).
+![Elsewhere concept board](docs/concept/elsewhere-concept-board.png)
 
-**Chapter 1 / The far light** is now a playable blockout: a compact turning courtyard where the gallery used to enter becomes the obstruction that must be withdrawn. Three distinctly coloured assemblies share one architectural space, ending at the light seen from the start. It uses first person and isometric camera B. [Chapter details](docs/chapter-one.md).
+*Concept board: a mood reference, not a final look.*
 
-The immediate comparison is whether the new frame communicates the puzzle more clearly than the courtyard. Human playtesting comes before vertical-slice production. The [game vision](docs/game-vision.md) and [chapter plan](docs/first-chapter-plan.md) define what to observe.
+## Status
 
-**The Lantern Fold** is a complete prototype puzzle with one continuous route, two interacting machines, an underside approach and a final lantern. Choose the path that must carry you and prepare the receiving walkway before the docking arms occupy its turning clearance. H offers optional hints; Z and R let you recover or restart.
+Pre-production, Phase 1 (prove puzzle depth). The playable content is three blockout monuments built with the scene-authoring foundation: **The Turning Frame**, **The Bell Cradle** and **The Folded Observatory**.
 
-The three original studies remain separately playable:
+## Run
 
-1. **Choose your deck:** reach the right walking path before rolling the carrier.
-2. **The quiet landing:** step off onto fixed ground so an empty carrier can bring a different path to you.
-3. **Prepare the receiver:** arrange the receiver before docking arms occupy its turning clearance.
-
-Impossible geometry is optional. The original gallery experiment is available separately from the menu, with its own saved progress.
-
-Open **project.godot** in Godot 4.6 and press **F5**. F5 opens the chapter or resumes its separate chapter save. Escape opens the chapter, Lantern Fold, all three studies, and settings. Ordinary edges stop movement; only marked curves change gravity while walking.
+Open `project.godot` in **Godot 4.7** and press **F5** to play the Turning Frame. Press Escape to pick another monument or change comfort settings.
 
 | Action | Default |
 |---|---|
 | Walk / look | WASD / mouse |
-| Architectural / traversal | Tab |
-| Select structure | 1 / 2 / 3 |
-| Rotate | Q / E |
-| Undo / restart study | Z / R |
-| Hint / studies and settings | H / Escape |
-| Orbit overview / zoom | Right mouse drag / wheel |
-| Reset overview framing | Home |
+| First person ↔ isometric | Tab |
+| Interact | F |
+| Select structure | 1–9 |
+| Rotate structure | Q / E |
+| Orbit / zoom isometric view | Right-drag / wheel |
+| Reset isometric framing | Home |
+| Undo / restart | Z / R |
+| Checkpoint / hint | Backspace / H |
+| Debug info / menu | F3 / Escape |
 
-First person is the default traversal view, with movement and look following the occupied surface. Isometric view stays above the current ground to help you reorient and transform the architecture. The experimental third-person modes remain available in settings.
+## Project layout
 
-Isometric view follows changes in the ground direction, the behavior selected after the A/B playtest. A horizontal turntable carries the character without orbiting the camera; tilts and curved ground carry the camera with them. Manual orbit is separate, with bounded elevation and zoom; Tab preserves the chosen view. [Camera decision and comparison history](docs/isometric-camera-experiment.md).
+```
+core/          traversal on authored surfaces and gravity curves
+authoring/     scene components (paths, curves, sockets, rotators, markers) and validation
+runtime/       generic runtime, the monument runtime and the HUD
+monuments/     one scene per monument
+tests/         headless self-test
+addons/elsewhere_authoring/   editor dock: state preview, validation, Play From Here
+docs/          spec, development guide, authoring reference, concept art
+legacy/        archived prototype (read-only; ignored by Godot)
+```
 
-![Chapter 1 turning courtyard](docs/chapter-courtyard.png)
+## Docs
 
-- [Complete puzzle layout and solution](docs/lantern-fold.md)
+- [Specification](docs/spec.md): design authority
+- [Development guide](docs/skill.md): layout, invariants, workflow, verification
+- [Authoring reference](docs/authoring.md): building a monument in the editor
+- [Authoring friction log](docs/authoring-friction.md)
+- [Legacy prototype](legacy/README.md): the last runnable version is the `prototype-final` tag
 
-- [Art and level-design direction](docs/art-direction.md)
-- [Current specification](docs/spec.md)
-- [Development guide](docs/skill.md)
-- [Verification and visual evidence](docs/validation.md)
-- [Reasoning playtest](docs/playtest.md)
-- [Optional gallery experiment](docs/gallery-study.md)
-- [Original concept, preserved](docs/original-concept.md)
-
-Godot MCP Pro 1.17.1 is used locally for development. The proprietary addon, credentials and machine-specific configuration are excluded from Git; no addon is required to play a fresh clone.
+The Godot MCP Pro addon, credentials and machine-specific configuration are local only and excluded from Git. A fresh clone needs no addon to play.

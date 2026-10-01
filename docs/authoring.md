@@ -1,35 +1,35 @@
 # Elsewhere level authoring
 
-Implemented Phase 0/1 foundation, 1 October 2026. The complete [user proposal](level-authoring-proposal.md) is preserved separately. This is a scene-authoring workflow inside Godot, not a production or player-facing level editor.
+Implemented foundation, 1 October 2026. This is a scene-authoring workflow inside Godot (spec §44–48), not a production or player-facing level editor. The original authoring proposal is archived in `legacy/docs/level-authoring-proposal.md`.
 
 ## Start here
 
-1. Reload the project, then open `scenes/authored/turning_frame.tscn`. The **Elsewhere Authoring** plugin is enabled in the project. If the dock is absent, enable it under Project Settings > Plugins. Local overrides must include it too.
-2. Expand **Level** in the Scene tree. Select a path, curved transition, structure or marker and edit its data in the Inspector. These are real saved scene nodes; the old procedural puzzles remain separate.
+1. Reload the project, then open `monuments/turning_frame.tscn`. The **Elsewhere Authoring** plugin is enabled in the project. If the dock is absent, enable it under Project Settings > Plugins. Local overrides must include it too.
+2. Expand **Level** in the Scene tree. Select a path, curved transition, structure or marker and edit its data in the Inspector. These are real saved scene nodes.
 3. Use **Refresh preview and validate** in the Elsewhere dock. Its preview shows the authored initial states, while the main editing viewport shows the base pose used to position children.
 4. Choose a structure state in the dock. This changes an isolated preview copy; it does not rotate, save or dirty the authored nodes. Green contacts are joined, amber are open, red are invalid/inactive; blue lines show ground normals and gold lines show travel direction.
 5. Select an active path, PlayerStart or Checkpoint, then press **Play From Selected Path / Marker**. It saves the scene, applies the preview states and starts at that location with matching gravity. Normal progress is neither loaded nor written during this debug launch. A later normal F6 runs normally. Path selection uses its centre (or the beginning of a curve); use a marker for an exact position.
-6. F6 runs the authored scene from its normal start/save. In the running game's Escape menu, the three authored examples are also available.
+6. F6 runs the authored scene from its normal start/save; F5 runs the Turning Frame. The running game's Escape menu lists every scene in `monuments/`.
 
-For a new level, duplicate one of the authored scenes, change **Level > level_id** to a unique stable identifier, and edit the composition. Increment **revision** when changes invalidate saved contacts or state indices. Give it its own title, question, explanation and optional hints. No new gameplay script or hardcoded layout index is needed. F6 can play an unlisted scene; menu curation remains manual.
+For a new level, duplicate one of the scenes in `monuments/`, change **Level > level_id** to a unique stable identifier, and edit the composition. Increment **revision** when changes invalidate saved contacts or state indices. Give it its own title, question, explanation and optional hints. No new gameplay script is needed. Any scene saved in `monuments/` appears in the menu automatically.
 
 ## Example monuments
 
 | Scene | Spatial decision | Authoring coverage |
 |---|---|---|
-| `turning_frame.tscn` | Choose the longer passage before the roll; aligning from the wrong path is insufficient | Authored conversion of the existing monument, separate passages, 180° curve, passenger rotation |
+| `turning_frame.tscn` | Choose the longer passage before the roll; aligning from the wrong path is insufficient | Separate passages, 180° curve, passenger rotation |
 | `bell_cradle.tscn` | Leave the moving arm at the fixed belfry before turning it again | Vertical belfry, radial cradle, checkpoint, fixed gravity transfer and a custom torus mesh independent of path logic |
 | `folded_observatory.tscn` | Prepare the receiver before docking fingers occupy its sweep | Folding gallery, narrow bent receiver, two-state hinge, custom rectangular walk regions and collision boxes |
 
 These are playable blockouts using three proven positioning dependencies, not three claims of new puzzle mechanics or finished architecture. Their solutions and important counterexamples are tested. Their visual identity, difficulty and human comprehension remain design work.
 
-![Bell cradle blockout](authoring-bell-cradle.png)
+![Bell cradle blockout](images/authoring-bell-cradle.png)
 
-Also see the [folded observatory blockout](authoring-observatory.png) and the [isolated editor state preview](authoring-state-preview.png).
+Also see the [folded observatory blockout](images/authoring-observatory.png) and the [isolated editor state preview](images/authoring-state-preview.png).
 
 ## Components and coordinates
 
-Drag the small scenes in `scenes/authoring_components/` into a level, or add an `ElsewhereComponent` and select its **kind**. Inspector fields are filtered by kind. Paths, art and sockets inherit the transform of their parent structure; a rotating component's origin is its pivot.
+Drag the small scenes in `authoring/components/` into a level, or add an `ElsewhereComponent` and select its **kind**. Inspector fields are filtered by kind. Paths, art and sockets inherit the transform of their parent structure; a rotating component's origin is its pivot.
 
 | Component | Data and use |
 |---|---|
@@ -61,13 +61,13 @@ Sockets require compatible types and widths, opposite outward travel directions,
 
 Angles define allowed states explicitly. Cyclic states traverse the list in the chosen direction; noncyclic states reject attempts beyond the list ends. Sweep sampling stays at most 1.5° apart (at least 60 samples), including turns larger than 90°. Rejected turns preserve state and undo history. This remains sampled clearance, not a continuous collision proof.
 
-Each authored level writes `user://authored-<level_id>.save`. Level ID and revision guard against incompatible saves. Structure states, occupied path, local player pose, camera, path activity, interactions, completion, checkpoint and undo history persist. Active connections are recomputed from the settled geometry. Existing chapter, study and gallery saves remain separate.
+Each authored level writes `user://authored-<level_id>.save`. Level ID and revision guard against incompatible saves. Structure states, occupied path, local player pose, camera, path activity, interactions, completion, checkpoint and undo history persist. Active connections are recomputed from the settled geometry. Archived prototype saves (`legacy/`) use different files and are never read.
 
 ## Validation and limits
 
 Validation reports missing/invalid starts and goals, marker/socket contact errors, invalid widths/frames, bad references, invalid state arrays, unsupported scaling/nested pivots and open contacts. An open socket is a warning because a puzzle is expected to disconnect routes. Validation does not prove solvability or fun. Preview shows current contacts, not future solutions. Runtime still checks clearance before every attempted turn.
 
-The new monuments deliberately reuse known dependencies so authoring defects can be separated from puzzle-design experiments. Use the [reasoning playtest](playtest.md), then record where authoring friction repeats. Do not infer a mature construction grammar merely from three mechanically passing scenes.
+The new monuments deliberately reuse known dependencies so authoring defects can be separated from puzzle-design experiments. Use a reasoning playtest (the archived protocol is in `legacy/docs/playtest.md`), then record where authoring friction repeats in [authoring-friction.md](authoring-friction.md). Do not infer a mature construction grammar merely from three mechanically passing scenes.
 
 ## Scope decisions
 
@@ -75,16 +75,16 @@ The new monuments deliberately reuse known dependencies so authoring defects can
 |---|---|
 | Scene components, small blockout library, editor path/normal displays, isolated state preview, socket display, validation, Play From Here, normal save/undo/checkpoints | Socket snapping, reachable-path highlighting, editor sweep volumes, named designer snapshots, a larger production library and a dedicated authoring UI |
 
-Mesh modelling, arbitrary physics construction, generated puzzles, automatic solving, player-facing editing and sharing/Workshop remain outside this phase, as requested in the proposal.
+Mesh modelling, arbitrary physics construction, generated puzzles, automatic solving, player-facing editing and sharing/Workshop remain outside this phase, per spec §45, §47 and §53.
 
 ## Verification
 
-Run the existing positioning and gallery suites, plus:
+Run:
 
 ```powershell
-& $godot --headless --path . scenes/authored/turning_frame.tscn -- --self-test
+& $godot --headless --path . monuments/turning_frame.tscn -- --self-test
 ```
 
 Require exit 0, `AUTHORING SELF TEST PASS`, and no script errors. The suite exercises all three scenes, wrong routes and ordering, both frame rolls, two-state rotation, no intermediate connections, socket type/width/direction/normal/activity and apertures, interactions/conditions, occupied-ground protection, checkpoint reload, save isolation, revision/contact rejection, undo, Play From Here and forward/reverse 90°/180° traversal. It fails if execution aborts before the final assertion.
 
-The editor helper uses Godot's documented [EditorPlugin API](https://docs.godotengine.org/en/4.6/classes/class_editorplugin.html) and [EditorInterface API](https://docs.godotengine.org/en/4.6/classes/class_editorinterface.html). Test live editor launch, preview immutability and debug save suppression as well as headless gameplay.
+The editor helper uses Godot's documented [EditorPlugin API](https://docs.godotengine.org/en/4.7/classes/class_editorplugin.html) and [EditorInterface API](https://docs.godotengine.org/en/4.7/classes/class_editorinterface.html). Test live editor launch, preview immutability and debug save suppression as well as headless gameplay.
