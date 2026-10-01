@@ -35,7 +35,7 @@ sub('StandardMaterial3D', 'GoalLight', albedo_color=col(1, .93, .85), emission_e
 sub('BoxMesh', 'BeamMesh', size=v3(.64, 160, .64))
 sub('BoxMesh', 'PlateMesh', size=v3(g(1.2), .04, g(1.2)))
 
-DOOR_W, DOOR_H, REACH = 1.6, 2.6, 2.0
+DOOR_W, DOOR_H, REACH = .8, 1.4, 2.0
 def doorway(name, parent, at, out):
     comp(name, parent, kind=9, label='"%s"' % name, position=p3(*at), path='NodePath("..")',
          travel_direction=v3(*out), ground_normal=v3(0, 1, 0), width=num(g(DOOR_W)), aperture_height=num(g(DOOR_H)),

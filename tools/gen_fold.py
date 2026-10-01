@@ -42,6 +42,8 @@ def node(name, parent, typ='Node3D', script=None, **props):
 def comp(name, parent, **props): node(name, parent, script='3', **props)
 
 DARK = col(.23, .23, .26); STONE = col(.17, .17, .2); FRAME = col(.15, .14, .18)
+# Doorways: x1 width and height; reach to prime one.
+DOOR_W, DOOR_H, REACH = .8, 1.4, 2.0
 sub('StandardMaterial3D', 'GoalLight', albedo_color=col(1, .93, .85), emission_enabled='true', emission=col(1, .91, .82), emission_energy_multiplier=2.5)
 sub('BoxMesh', 'BeamMesh', size=v3(.64, 160, .64))
 sub('BoxMesh', 'PlateMesh', size=v3(g(1.2), .04, g(1.2)))
@@ -55,13 +57,13 @@ sub('BoxMesh', 'OuterStripe', size=v3(g(8), .08, g(.6)))
 sub('BoxMesh', 'DeckEdge', size=v3(g(8), .06, g(.08)))
 sub('BoxMesh', 'RimAcross', size=v3(.08, .12, g(2.4)))
 sub('BoxMesh', 'RimUp', size=v3(.08, g(2.6), .12))
-sub('CylinderMesh', 'SignDisc', top_radius=num(g(.45)), bottom_radius=num(g(.45)), height=num(g(.08)), radial_segments=32)
-sub('BoxMesh', 'SignDiamond', size=p3(.08, .6, .6))
-sub('BoxMesh', 'SignBar', size=p3(.08, .15, .8))
+# Signs are sized to the doorway (SIGN = 1 for a 1.6-wide doorway).
+SIGN = DOOR_W / 1.6
+sub('CylinderMesh', 'SignDisc', top_radius=num(g(.45 * SIGN)), bottom_radius=num(g(.45 * SIGN)), height=num(g(.08)), radial_segments=32)
+sub('BoxMesh', 'SignDiamond', size=p3(.08, .6 * SIGN, .6 * SIGN))
+sub('BoxMesh', 'SignBar', size=p3(.08, .15 * SIGN, .8 * SIGN))
 ACCENT = col(.55, .9, 1)
 
-# Doorways: x1 width and height; reach to prime one.
-DOOR_W, DOOR_H, REACH = 1.6, 2.6, 2.0
 def doorway(name, parent, at, out, up=(0, 1, 0)):
     comp(name, parent, kind=9, label='"%s"' % name, position=p3(*at), path='NodePath("..")',
          travel_direction=v3(*out), ground_normal=v3(*up), width=num(g(DOOR_W)), aperture_height=num(g(DOOR_H)),
@@ -69,13 +71,13 @@ def doorway(name, parent, at, out, up=(0, 1, 0)):
     # A sign above the lintel, flat in the doorway's plane (these doorways face along X): disc
     # for A, diamond for B, two bars for C. Readable in both views.
     holder = '%s/%s' % (parent, name)
-    top = g(DOOR_H + .75)
+    top = g(DOOR_H + .75 * SIGN)
     if name == 'A':
         node('Sign', holder, 'MeshInstance3D', position=v3(0, top, 0), rotation=v3(0, 0, PI / 2), mesh='SubResource("SignDisc")', material_override='SubResource("SignLight")', cast_shadow=0)
     elif name == 'B':
         node('Sign', holder, 'MeshInstance3D', position=v3(0, top, 0), rotation=v3(PI / 4, 0, 0), mesh='SubResource("SignDiamond")', material_override='SubResource("SignLight")', cast_shadow=0)
     else:
-        for k, dy in (('SignUpper', .18), ('SignLower', -.18)):
+        for k, dy in (('SignUpper', .18 * SIGN), ('SignLower', -.18 * SIGN)):
             node(k, holder, 'MeshInstance3D', position=v3(0, top + g(dy), 0), mesh='SubResource("SignBar")', material_override='SubResource("SignLight")', cast_shadow=0)
 
 QUESTION = "Which doorway should you join before you turn the frame?"
