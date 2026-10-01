@@ -30,6 +30,8 @@ var bob_phase := 0.0
 ## Debug readouts (F3): current speed cap and the view's rotation rate, deg/s.
 var speed_cap := 0.0
 var view_rate := 0.0
+## Isometric-only size of the traveller (the runtime sets it from the framing); 1 in first person.
+var marker_scale := 1.0
 var speed: float:
 	get: return profile.walk_speed
 var camera: Camera3D
@@ -278,7 +280,8 @@ func sync_pose(delta: float) -> void:
 		view_ground = view_ground.slerp(target, 1.0 - exp(-delta * profile.view_ease_rate)).orthonormalized()
 	var up := (support.global_basis * normal).normalized()
 	var contact := support.to_global(foot)
-	avatar.global_transform = Transform3D(support.global_basis * target, contact)
+	# The isometric marker is drawn larger on big compositions; first person keeps it at 1.
+	avatar.global_transform = Transform3D((support.global_basis * target).scaled(Vector3.ONE * marker_scale), contact)
 	camera.cull_mask = 19
 	var bob := 0.0
 	if not reduced_motion and not support.transports_controls():

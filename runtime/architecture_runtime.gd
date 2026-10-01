@@ -15,6 +15,8 @@ const PAN_LIMIT := .5 # fraction of the authored framing size the view may slide
 ## (a 0.26 m curve deck) can never fall between two samples.
 const SWEEP_STEP := .25
 var sweep_tolerance := .04
+## Framing size at which the traveller is drawn life-size in the isometric view.
+const MARKER_REFERENCE := 36.0
 var world: Node3D
 var pieces: Array[SurfacePiece] = []
 var rigs: Array[Dictionary] = []
@@ -162,6 +164,9 @@ func update_camera(_delta := 0.0) -> void:
 	# Pan slides the camera parallel to the screen, so the authored angle never changes.
 	overview.position += overview.global_basis.x * overview_pan.x + overview.global_basis.y * overview_pan.y
 
+func update_marker_scale() -> void:
+	walker.marker_scale = maxf(1.0, overview.size / MARKER_REFERENCE) if architectural else 1.0
+
 func zoom_overview(steps: float) -> void:
 	if not architectural or paused or busy or blocks_play():
 		return
@@ -199,6 +204,7 @@ func _process(delta: float) -> void:
 			message = "Connection reached. What needed to happen first?"
 			Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 			save_progress()
+	update_marker_scale()
 	walker.sync_pose(delta)
 	walker.avatar.visible = architectural
 	update_camera(delta)
@@ -257,6 +263,7 @@ func _notification(what: int) -> void:
 func toggle_view() -> void:
 	architectural = not architectural
 	walker.moving = false
+	update_marker_scale()
 	walker.sync_pose(1)
 	update_camera()
 	if architectural:

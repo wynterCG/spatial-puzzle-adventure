@@ -390,6 +390,15 @@ static func camera_cases(g: Node3D, failures: Array[String]) -> void:
 		previous_frame = g.camera_frame
 	if not seam_checked: failures.append("Camera seam check did not reach the tower")
 	if name_of(g) != "TowerUnder" or g.camera_frame.y.dot(Vector3.DOWN) < .999: failures.append("After the curl the camera must be upside down with the player")
+	# The isometric marker keeps its on-screen size at any framing; first person is unscaled.
+	g.restart()
+	if not g.architectural: g.toggle_view()
+	g.zoom_overview(-20)
+	g.update_marker_scale(); g.walker.sync_pose(1)
+	var expected_scale := maxf(1.0, g.overview.size / g.MARKER_REFERENCE)
+	if not is_equal_approx(g.walker.avatar.global_basis.get_scale().x, expected_scale): failures.append("Isometric marker must scale with the framing")
+	g.toggle_view()
+	if not is_equal_approx(g.walker.avatar.global_basis.get_scale().x, 1.0): failures.append("First person must use an unscaled avatar")
 	g.build_level()
 
 ## Generic runtime behaviour, exercised on The Ring.
