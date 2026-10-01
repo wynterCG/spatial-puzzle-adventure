@@ -53,6 +53,12 @@ Use custom MeshInstance3D nodes or imported scene geometry alongside behaviour n
 
 Walkable surfaces render as a light inlay inside a dark rim (`SurfacePiece.PAVING_RIM`, 0.12 m) across their width; the rim is still walkable, so keep it narrow. Joined passages stay continuous along their length.
 
+## First-person clearance
+
+The eye is 1.55 m above the walking surface and must stay 0.1 m clear of every wall at every reachable spot, in every rotor configuration. Make doorways at least 0.4 m wider than the path through them, and keep jambs and door glows outside that width. When a path ends at a wall, end the walk region at least 0.1 m short of it. After any geometry change, run `tests/eye_clearance_probe.gd` (see [skill.md](skill.md)); it lists every clipping place.
+
+Gravity curves set walking speed: speed is capped at the comfort turn rate × radius (Normal: 110°/s, so a 1 m curve is walked at about 1.9 m/s and a 2 m curve at full speed). Use radius ≥ 2 m where a curve should not slow the player.
+
 ## Readable movable structures
 
 Players select by pointing at the structure in isometric; there is no HUD list. Give every rotator a distinct **tint**: it colours the hover and selection glow, and the monument's accent lights on that assembly should use the same colour. Put accent lights only on things that move; use warm white for information (guide lines, sightline targets) and destinations, and keep static architecture neutral. Any visible mesh under a rotator is clickable, including decorative art, so give each assembly enough visible mass to point at.
@@ -95,8 +101,9 @@ Run:
 
 ```powershell
 & $godot --headless --path . monuments/the_ring.tscn -- --self-test
+& $godot --headless --path . -s res://tests/eye_clearance_probe.gd -- res://monuments/the_ring.tscn
 ```
 
-Require exit 0, `AUTHORING SELF TEST PASS`, and no script errors. The suite exercises The Ring and both fixtures: wrong sides and ordering, both turn directions, two-state rotation, no intermediate connections, socket type/width/direction/normal/activity and apertures, interactions/conditions, occupied-ground protection, checkpoint reload, save isolation, revision/contact rejection, undo, Play From Here and forward/reverse 90°/180° traversal. It fails if execution aborts before the final assertion.
+Require exit 0, `AUTHORING SELF TEST PASS`, and no script errors. The suite exercises The Ring and both fixtures: wrong sides and ordering, both turn directions, two-state rotation, no intermediate connections, socket type/width/direction/normal/activity and apertures, interactions/conditions, occupied-ground protection, checkpoint reload, save isolation, revision/contact rejection, undo, Play From Here, forward/reverse 90°/180° traversal, visible decks matching walk regions, comfort settings, and the first-person locomotion bench. It fails if execution aborts before the final assertion.
 
 The editor helper uses Godot's documented [EditorPlugin API](https://docs.godotengine.org/en/4.7/classes/class_editorplugin.html) and [EditorInterface API](https://docs.godotengine.org/en/4.7/classes/class_editorinterface.html). Test live editor launch, preview immutability and debug save suppression as well as headless gameplay.

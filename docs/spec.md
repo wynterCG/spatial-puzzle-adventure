@@ -293,7 +293,7 @@ Authored traversal allows:
 
 Visual design must make the path boundaries believable.
 
-Avoid large surfaces that appear freely traversable when invisible gameplay restrictions say otherwise.
+Avoid large surfaces that appear freely traversable when invisible gameplay restrictions say otherwise. **A surface presented as walkable matches its authored walkable region.** Walls, trims, supports, parapets and other structural mass may surround it. Make boundaries readable through silhouette, material, deck thickness and lighting before adding physical lips.
 
 ---
 
@@ -1617,4 +1617,5 @@ As of 1 October 2026, on branch `feature/elsewhere-spec`. Details of how each sy
 | §33 Minimal UI | Basic: debug details hidden behind F3 |
 | §35–36 Audio and music | Not started |
 | §38 Player character | Placeholder avatar |
-| §52 Comfort: sensitivity, reduced motion, camera reset | Implemented. FOV, remapping UI and transition speed not started |
+| §6–7 First-person locomotion (momentum, ground-frame input, eased gravity curves, sliding) | Implemented and benchmarked on The Ring's route ([locomotion pass](designs/2026-10-01-locomotion-pass.md)); not yet hand-playtested |
+| §52 Comfort: sensitivity, FOV, gravity-transition speed, reduced motion, camera reset | Implemented. Remapping UI not started |
