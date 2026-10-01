@@ -202,11 +202,12 @@ func z_ports(part: SurfacePiece) -> void:
 	for side in [-1.0, 1.0]:
 		port(part, Vector3(0, part.half.y, side * part.half.z))
 
-func finish_layout() -> void:
+func finish_layout(add_beacon := true) -> void:
 	for entry in rigs:
 		for part in pieces:
 			if entry.node.is_ancestor_of(part):
 				entry.solids.append_array(part.solid_meshes)
+	if not add_beacon: return
 	var beacon := Piece.box(goal, Vector3(0, goal.half.y + 0.55, 0), Vector3(0.35, 1.1, 0.35), Piece.material(Color("eac991"), 0.4))
 	# The goal is a small light, with free space around it rather than a wall.
 	var orb := MeshInstance3D.new()

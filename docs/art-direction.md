@@ -16,6 +16,8 @@ Keep recurring references across changes of ground. Let traversal reveal the sam
 
 ## Readability
 
+The user endorsed the turning frame as a coherent architectural object. Preserve its silhouette and central void. Arrival belongs to the rounded end; give the destination a distinct architectural landmark instead of a similar small platform. The current refinement uses a projecting balcony, slender pier and suspended light. Keep complexity in the relationship between occupied passage and configuration; any future second use of the same frame must establish a concrete dependency before adding geometry.
+
 Use strong silhouettes, controlled detail and selective lighting. Movable pieces have distinct, persistent assembly colours, reinforced by shape and labels. Do not encode XYZ or change identity when gravity changes. Fixed architecture, walking surfaces and mechanical joints must remain distinguishable in both views.
 
 The current sample uses terracotta, violet and teal for the three moving assemblies; blue-grey for fixed structure; ivory paving; brass joints. This is a sample palette to test, not a claim of validated accessibility.

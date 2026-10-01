@@ -10,6 +10,10 @@ Test the reference's visual economy with one dominant frame, one central opening
 
 Blue-grey identifies the fixed end and destination; violet identifies the complete moving frame. Ivory paving and end contacts retain their established meanings. The first-person route is two units wide on flat ground, with the existing rounded path's narrower paving and edge trim. This is a geometry study, not a finalized theme or material treatment.
 
+Following the user's positive review, the single-frame composition remains the direction to develop. The destination now projects from a tall, slender fixed pier with a suspended lantern, replacing the generic two-post arch and floor beacon. Its blue-grey construction repeats the fixed rounded end's material. Low violet kerbs outline both moving passages outside their existing walking regions. No additional carrier, path, puzzle state or interaction was introduced.
+
+In the default overview the detached structure on the left is the **destination**; arrival is already part of the rounded end on the right. The earlier confusion between them is readability feedback, not a reason to add another entrance platform. The new destination silhouette must still be tested with a player.
+
 ## Positional decision
 
 **Which passage needs to carry you?**
@@ -44,6 +48,6 @@ The fixed radius-three return connects ground at Y=3 and Y=-3, at Z=-2. The uppe
 
 ![First-person underside](monument-underside.png)
 
-The overview exposes the opening, rounded end, separate passages and offset destination. At walking height the underside remains visually sparse: substantial beams alone have not yet established a rich inhabited interior. Keep this limitation visible during review rather than filling the opening with props.
+The overview exposes the opening, rounded end, separate passages and offset destination. The suspended light is visible from arrival, while the extended fixed pier remains a landmark from underneath. The raised kerbs give each passage physical boundaries at walking height. The underside still lacks a rich inhabited interior; these refinements do not establish immersion. Keep this limitation visible during review rather than filling the opening with props.
 
 Before extending this into a chapter, ask a player to predict which passage reaches the light and explain why rotating from arrival is insufficient. Judge whether the fixed/moving seam and underside paving are readable in both views. Mechanical tests and selected screenshots do not establish human understanding or comfort.
