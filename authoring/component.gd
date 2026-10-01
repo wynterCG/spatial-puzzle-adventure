@@ -36,7 +36,7 @@ enum Kind { PATH, CURVE, SOCKET, ROTATOR, START, GOAL, INTERACTION, CHECKPOINT, 
 @export var locked := false
 @export_group("Start / goal / checkpoint")
 @export var forward := Vector3.RIGHT
-@export_range(.1, 3) var trigger_radius := .8
+@export_range(.1, 12) var trigger_radius := .8
 @export_group("Interaction")
 @export_enum("Toggle path", "Toggle rotation lock") var effect := 0
 @export var target: NodePath
