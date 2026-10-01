@@ -185,7 +185,6 @@ func _process(delta: float) -> void:
 		if pan != Vector2.ZERO: pan_overview(pan * overview.size * .6 * minf(delta, .1))
 	if not architectural and not paused and not busy and not blocks_play():
 		var movement := Input.get_vector("left", "right", "forward", "back")
-		walker.align_movement_to_camera(movement)
 		walker.walk(movement, minf(delta, 0.1))
 		if not won and reached_goal():
 			won = true
@@ -195,7 +194,7 @@ func _process(delta: float) -> void:
 			Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 			save_progress()
 	walker.sync_pose(delta)
-	walker.avatar.visible = architectural or walker.third_person
+	walker.avatar.visible = architectural
 	update_camera(delta)
 	walker.update_overview_visibility(overview, architectural)
 	hud.refresh()
@@ -533,11 +532,8 @@ func connection_text() -> String:
 func load_preferences() -> void:
 	var settings := ConfigFile.new()
 	settings.load("user://settings.cfg")
-	# First person is the game's traversal perspective (spec §6).
-	walker.third_person = false
 	walker.reduced_motion = settings.get_value("comfort", "reduced_motion", false)
 	walker.sensitivity = settings.get_value("comfort", "sensitivity", 0.0022)
-	walker.camera_initialized = false
 	walker.sync_pose(1)
 	hud.sync_preferences()
 

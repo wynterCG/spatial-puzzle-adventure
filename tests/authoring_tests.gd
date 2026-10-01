@@ -45,7 +45,6 @@ static func run(g: Node3D) -> Array[String]:
 	if g.walker.support == null:
 		failures.append("Authored scene did not build a valid start")
 		return failures
-	g.walker.set_third_person(false)
 	g.walker.reduced_motion = false
 	if g.data_source.level_id != "the_ring":
 		failures.append("Self-test must be launched from monuments/the_ring.tscn")

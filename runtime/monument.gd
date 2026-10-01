@@ -119,7 +119,6 @@ func build_level() -> void:
 		port(part, part.to_local(socket.position), part.global_basis.inverse() * socket.normal)
 	finish_layout()
 	walker.pieces = pieces; walker.camera_obstacles = obstacles
-	walker.camera_initialized = false; walker.world_orbit_initialized = false
 	place_at_marker(start_marker)
 	focus = definition.overview_focus; overview_size = definition.overview_size
 	camera_bias = Basis.IDENTITY
