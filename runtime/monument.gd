@@ -166,6 +166,19 @@ func update_links() -> void:
 					b.connection_apertures.append({"other": a, "point": sockets[j].position, "direction": sockets[j].direction, "normal": sockets[j].normal, "width": sockets[j].width})
 					ports[i].joined = true; ports[j].joined = true
 	for port_data in ports: port_data.mark.material_override = Piece.material(Color("8fc4b5") if port_data.joined else Color("c5ac83"), .25)
+	refresh_state_art()
+
+## Presentation bound to structure states (authoring/state_art.gd): shown while its structure
+## rests in a listed state, hidden mid-turn; particles under it stop emitting while hidden.
+func refresh_state_art() -> void:
+	for art in definition.find_children("*", "Node3D", true, false):
+		if not art is ElsewhereStateArt: continue
+		var structure: Node = art.get_node_or_null(art.structure)
+		var shown := false
+		for entry in rigs:
+			if entry.node == structure: shown = not busy and entry.state in art.states
+		art.visible = shown
+		for particles in art.find_children("*", "CPUParticles3D", true, false): particles.emitting = shown
 
 func _process(delta: float) -> void:
 	if walker == null or walker.support == null: return
