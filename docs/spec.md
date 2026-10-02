@@ -1614,7 +1614,7 @@ As of 1 October 2026, on branch `feature/elsewhere-spec`. Details of how each sy
 | §48 Socket snapping | Not started |
 | §49 Later tools (reachability, sweep visualization, snapshots) | Not started; validation reports structural errors only |
 | §42 Turning Frame | Prototype conversion archived in `legacy/monuments/`; a fresh Turning Frame is not started |
-| §54 Phase 1: 2–3 further monuments with *different* spatial concepts | 1 in progress: **The Ring v3**, at ×4 monumental scale (two independent rotors, a hollow tower hiding a side-changer, first-person sightline clue; minimum 6 turns pinned by tests). Blockout tested mechanically and checked against an information-design checklist; not playtested. Bell Cradle and Folded Observatory are now test fixtures only |
+| §54 Phase 1: 2–3 further monuments with *different* spatial concepts | 2 in progress. **The Spillway** ([design](designs/2026-10-02-the-spillway.md)): a suspended reservoir entered by rolling over on its sluice drum, riding beneath and then above its weir arm, and descending inside its own waterfall; minimum 5 turns pinned by tests; production-intent blockout with world-down cues and state-bound water; not playtested. **The Ring v3**, at ×4 monumental scale (two independent rotors, a hollow tower hiding a side-changer, first-person sightline clue; minimum 6 turns pinned by tests). Blockout tested mechanically and checked against an information-design checklist; not playtested. Bell Cradle and Folded Observatory are now test fixtures only |
 | §24–32 Art direction, materials, emissive accents, background world | Not started (blockout colours only) |
 | §33 Minimal UI | Basic: debug details hidden behind F3 |
 | §35–36 Audio and music | Not started |

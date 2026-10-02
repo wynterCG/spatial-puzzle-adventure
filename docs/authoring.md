@@ -18,10 +18,11 @@ For a new level, duplicate one of the scenes in `monuments/`, change **Level > l
 | Scene | Spatial decision | Authoring coverage |
 |---|---|---|
 | `the_ring.tscn` | Align the inner wheel behind the ring arm, enter the hollow tower, curl underneath, turn the inner wheel again from inside, leave under the same ring arm and ride the ring to the exit ([design](designs/2026-10-01-the-ring-v3.md)) | Two independent vertical-axis rotors (inner wheel, ring), narrow necks at the tower doors for sweep clearance, explicit sockets on region paths, a fixed interior route hidden by a decorative CSG shell, first-person cues (guide line, sightline slot), authored composition |
+| `the_spillway.tscn` | Swing the arm west, stand on the sluice drum and roll it over to hang beneath the keeper's landing, ride the arm north beneath it, wrap onto the north gallery, board the arm from above, swing it west again and go down the throat to the sanctuary ([design](designs/2026-10-02-the-spillway.md)) | A carrying rotor about X (the drum) whose opposite faces both bridge, a rotor about Y walkable on top and underneath, a rotor-owned 90° curl with a tail docking a fixed vertical stair, a fixed 90° curl round a rim onto an underside, state-bound water, world-down cues (falls, drips, vines, pendants, far towers), path lamps on every walkable surface, a composition test |
 | `tests/fixtures/bell_cradle.tscn` (test fixture) | Leave the moving arm at the fixed belfry before turning it again | Vertical belfry, radial cradle, checkpoint, fixed gravity transfer and a custom torus mesh independent of path logic |
 | `tests/fixtures/folded_observatory.tscn` (test fixture) | Prepare the receiver before docking fingers occupy its sweep | Folding gallery, narrow bent receiver, two-state hinge, custom rectangular walk regions and collision boxes |
 
-The Ring is the only monument: the first Phase 1 study of a different variable, which face of a structure carries you. The two fixtures reuse prototype positioning dependencies and exist only to exercise checkpoints, hinges and blocked sweeps; they are not in the game menu. None of these is a claim of finished architecture or validated puzzle depth. Their solutions and important counterexamples are tested. Their visual identity, difficulty and human comprehension remain design work.
+The Ring is the first Phase 1 study of a different variable, which face of a structure carries you. The Spillway is the second and the first production-intent level: a place first, whose machines (a rolling sluice gate, a measuring gantry) become traversable. The two fixtures reuse prototype positioning dependencies and exist only to exercise checkpoints, hinges and blocked sweeps; they are not in the game menu. None of these is a claim of finished architecture or validated puzzle depth. Their solutions and important counterexamples are tested. Their visual identity, difficulty and human comprehension remain design work.
 
 ![Bell cradle blockout](images/authoring-bell-cradle.png)
 
@@ -77,6 +78,13 @@ Player size, eye height, body padding, eye clearance and the camera's near plane
 The eye is 1.55 m above the walking surface and must stay 0.1 m clear of every wall at every reachable spot, in every rotor configuration. Make doorways at least 0.4 m wider than the path through them, and keep jambs and door glows outside that width. When a path ends at a wall, end the walk region at least 0.1 m short of it. After any geometry change, run `tests/eye_clearance_probe.gd` (see [skill.md](skill.md)); it lists every clipping place.
 
 Gravity curves set walking speed: speed is capped at the comfort turn rate × radius. At Normal (110°/s) and 4.5 m/s walking, any radius ≥ 2.4 m is walked at full speed; the monument-scale rule (≥ 3 m) already covers it.
+
+## Orientation and state-bound art
+
+- **Two lamp languages.** *Path lamps* are squat warm bollards fixed perpendicular to a walkable surface (upside down under undersides, sideways on vertical paths): "you can inhabit this". *World-gravity elements* (chains, pendants, drips, vines, falls) always hang toward true world-down: "this is which way the world is". Keep them visibly different.
+- **World-down cues** make inversion felt: falling water, sinking mist and drips (`CPUParticles3D` with `local_coords` off), hanging vines and pendants, upright far towers. Put them where the player will be upside down, and ship them in the blockout. Use non-box meshes for them: the eye-clearance probe and line of sight only consider boxes.
+- **State-bound art** (`authoring/state_art.gd`, `ElsewhereStateArt`): a `Node3D` whose children show only while `structure` rests in one of `states` (hidden mid-turn; particles stop emitting). Use it for presentation that answers a transformation (water pouring through an open gate). It never changes what joins.
+- **Falling water**: `world/water.gdshader` on a `QuadMesh` sheet or a `CylinderMesh` column (UV.y runs down).
 
 ## Readable movable structures
 
