@@ -9,6 +9,7 @@ extends SceneTree
 const CLEAR := .1
 const STEP := .1
 var g
+var has_csg := false
 
 func _initialize() -> void:
 	var args := OS.get_cmdline_user_args()
@@ -20,7 +21,9 @@ func _initialize() -> void:
 	root.add_child(g)
 	await process_frame
 	for csg in g.find_children("*", "CSGShape3D", true, false):
-		if not csg.get_parent() is CSGShape3D: csg.use_collision = true
+		if not csg.get_parent() is CSGShape3D:
+			csg.use_collision = true
+			has_csg = true
 	for i in range(4): await physics_frame
 	var boxes: Array = g.find_children("*", "MeshInstance3D", true, false).filter(func(mesh): return mesh.mesh is BoxMesh and mesh.is_visible_in_tree())
 	var hits := {}
@@ -62,17 +65,28 @@ func probe(boxes: Array, hits: Dictionary) -> void:
 				for x in range(int(region.size.x / STEP) + 1):
 					for z in range(int(region.size.y / STEP) + 1):
 						points.append(Vector3(region.position.x + x * STEP, part.half.y, region.position.y + z * STEP))
+		# Reachable eyes first, then only the boxes whose bounds come near them (same result,
+		# far fewer tests on large monuments).
+		var eyes: Array[Vector3] = []
 		for point in points:
 			var up: Vector3 = part.surface_frame(point).y
 			# Only poses the walker can reach; its body test already keeps the head off other decks.
 			if not part.allows_point(part.constrain_to_path(point), up) or not g.walker.pose_is_clear(part, point, up): continue
-			var eye: Vector3 = part.to_global(point) + (part.global_basis * up).normalized() * eye_height
+			eyes.append(part.to_global(point) + (part.global_basis * up).normalized() * eye_height)
+		if eyes.is_empty(): continue
+		var reach := AABB(eyes[0], Vector3.ZERO)
+		for eye in eyes: reach = reach.expand(eye)
+		reach = reach.grow(CLEAR)
+		var near: Array = []
+		for mesh in boxes:
+			if not part.is_ancestor_of(mesh) and (mesh.global_transform * mesh.get_aabb()).intersects(reach): near.append(mesh)
+		for eye in eyes:
 			var hit := ""
-			query.transform = Transform3D(Basis.IDENTITY, eye)
-			for found in space.intersect_shape(query, 4):
-				if found.collider is CSGShape3D: hit = str(found.collider.name)
-			for mesh in boxes:
-				if part.is_ancestor_of(mesh): continue
+			if has_csg:
+				query.transform = Transform3D(Basis.IDENTITY, eye)
+				for found in space.intersect_shape(query, 4):
+					if found.collider is CSGShape3D: hit = str(found.collider.name)
+			for mesh in near:
 				if AABB(-mesh.mesh.size * .5, mesh.mesh.size).grow(CLEAR).has_point(mesh.to_local(eye)):
 					hit = "%s/%s" % [mesh.get_parent().name, mesh.name]
 			if hit != "":
