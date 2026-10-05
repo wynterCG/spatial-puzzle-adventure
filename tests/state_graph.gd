@@ -31,8 +31,9 @@ static func set_states(g: Node3D, config: Array) -> void:
 	g.update_links()
 
 ## Minimum cost from the start configuration and piece to the goal piece, or -1 if unreachable.
-## A 0-1 search: costs are 0 or 1 per move kind (turn_cost, walk_cost).
-static func minimum(g: Node3D, table: Dictionary, start_config: Array, start_piece: SurfacePiece, goal_piece: SurfacePiece, turn_cost: int, walk_cost: int) -> int:
+## A 0-1 search: costs are 0 or 1 per move kind (turn_cost, walk_cost). `rotors` limits which
+## rotors may turn (empty: all), to show that a solution needs a structure.
+static func minimum(g: Node3D, table: Dictionary, start_config: Array, start_piece: SurfacePiece, goal_piece: SurfacePiece, turn_cost: int, walk_cost: int, rotors: Array = []) -> int:
 	var start: Array = [start_config, g.pieces.find(start_piece)]
 	var goal: int = g.pieces.find(goal_piece)
 	var best := {str(start): 0}
@@ -43,6 +44,7 @@ static func minimum(g: Node3D, table: Dictionary, start_config: Array, start_pie
 		if current[1] == goal: return cost
 		var moves: Array = []
 		for k in range(g.rigs.size()):
+			if not rotors.is_empty() and not k in rotors: continue
 			for direction in [-1, 1]:
 				var config: Array = current[0].duplicate()
 				config[k] = posmod(config[k] + direction, g.rigs[k].angles.size())

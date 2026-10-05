@@ -10,6 +10,8 @@ const Graph = preload("res://tests/state_graph.gd")
 const Bench = preload("res://tests/locomotion_bench.gd")
 const LinkTests = preload("res://tests/link_tests.gd")
 const ThresholdTests = preload("res://tests/threshold_tests.gd")
+const StateArt = preload("res://authoring/state_art.gd")
+const SpillwayTests = preload("res://tests/spillway_tests.gd")
 static var finished := false
 
 static func load_level(g: Node3D, scene_path: String) -> void:
@@ -76,9 +78,11 @@ static func run(g: Node3D) -> Array[String]:
 	fixture_cases(g, failures)
 	curve_cases(g, failures)
 	seam_cases(g, failures)
+	state_art_cases(g, failures)
+	SpillwayTests.run(g, failures)
 	LinkTests.run(g, failures)
 	ThresholdTests.run(g, failures)
-	print("AUTHORING CASES: ring v3 16-configuration table, dead ends, solution both ways, sweep clearance, 6-turn/16-action minimum, tower necessity, authored camera (no orbit, zoom, bounded pan, Home, Tab, legacy snapshots, turntable heading, ground follow, seam continuity), diegetic selection (pick, click, hover glow, no HUD list), carried pose, settled graph, undo, serialized saves, Play From Here, socket contract and apertures, interactions/conditions, checkpoints, two-state hinge, blocked sweep, validation, 90/180 degree curves, visible deck = walkable region, comfort settings, locomotion bench, spatial links, the threshold")
+	print("AUTHORING CASES: ring v3 16-configuration table, dead ends, solution both ways, sweep clearance, 6-turn/16-action minimum, tower necessity, authored camera (no orbit, zoom, bounded pan, Home, Tab, legacy snapshots, turntable heading, ground follow, seam continuity), diegetic selection (pick, click, hover glow, no HUD list), carried pose, settled graph, undo, serialized saves, Play From Here, socket contract and apertures, interactions/conditions, checkpoints, two-state hinge, blocked sweep, validation, 90/180 degree curves, visible deck = walkable region, comfort settings, locomotion bench, state-bound art, the spillway, spatial links, the threshold")
 	finished = true
 	return failures
 
@@ -102,6 +106,34 @@ static func rig_index(g: Node3D, name: String) -> int:
 	for i in range(g.rigs.size()):
 		if g.rigs[i].node.name == name: return i
 	return -1
+
+## Presentation bound to a structure's state (authoring/state_art.gd) shows only while that
+## structure rests in one of its states: not mid-turn, and correct again after undo and restart.
+static func state_art_cases(g: Node3D, failures: Array[String]) -> void:
+	load_level(g, "res://monuments/the_ring.tscn")
+	var art = StateArt.new()
+	art.name = "TestStateArt"
+	art.structure = NodePath("../Ring")
+	art.states = PackedInt32Array([3])
+	g.data_source.add_child(art)
+	g.build_level()
+	var shown := func() -> bool: return g.definition.get_node("TestStateArt").visible
+	var ring := rig_index(g, "Ring")
+	if shown.call(): failures.append("State art is hidden while its structure rests elsewhere (Ring starts in state 2)")
+	g.architectural = true
+	g.select_rig(ring)
+	g.rotate_selected(1)
+	if shown.call(): failures.append("State art stays hidden while its structure is turning")
+	g.tween.custom_step(60.0)
+	if not shown.call(): failures.append("State art shows once its structure settles in a listed state")
+	g.undo()
+	if shown.call(): failures.append("Undo restores the state art with the structure")
+	H.turn(g, ring, 1, failures)
+	g.restart()
+	if shown.call(): failures.append("Restart restores the state art with the structure")
+	g.data_source.remove_child(art)
+	art.free()
+	g.build_level()
 
 static func piece(g: Node3D, path: String) -> SurfacePiece:
 	return g.paths[g.definition.get_node(path)]
