@@ -5,12 +5,18 @@ extends RefCounted
 const C = preload("res://authoring/component.gd")
 const Validate = preload("res://authoring/validation.gd")
 const H = preload("res://tests/test_helpers.gd")
+const Table = preload("res://authoring/connection_table.gd")
+const Graph = preload("res://tests/state_graph.gd")
 const RING := "res://monuments/the_ring.tscn"
+const THRESHOLD := "res://monuments/the_threshold.tscn"
 
 static func run(g: Node3D, failures: Array[String]) -> void:
 	slide_cases(g, failures)
 	cyclic_cases(g, failures)
 	slide_validation_cases(failures)
+	table_cases(g, failures)
+	ring_table_cases(g, failures)
+	launch_cases(g, failures)
 
 static func path(name: String, at: Vector3, size := Vector3(4, .4, 2)) -> Node3D:
 	var c = C.new()
@@ -43,6 +49,10 @@ static func lift_level(blocker := false) -> Node3D:
 	lift.duration = 1.0
 	level.add_child(lift)
 	lift.add_child(path("Deck", Vector3.ZERO))
+	# A lever that closes the middle gallery (for Play From Here's interaction values).
+	var lever = C.new()
+	lever.name = "Lever"; lever.kind = C.Kind.INTERACTION; lever.target = NodePath("../Middle"); lever.position = Vector3(-5, 0, 0)
+	level.add_child(lever)
 	if blocker:
 		var wall = C.new()
 		wall.name = "Blocker"; wall.kind = C.Kind.GEOMETRY; wall.dimensions = Vector3(3, .4, 3); wall.position = Vector3(0, 6, 0)
@@ -160,3 +170,78 @@ static func slide_validation_cases(failures: Array[String]) -> void:
 	var report := Validate.validate(cyclic)
 	if not report.errors.is_empty() or not report.warnings.any(func(w): return "cyclic" in w): failures.append("A cyclic slide is allowed but warned about")
 	cyclic.free()
+
+static func load_scene_level(g: Node3D, scene_path: String) -> void:
+	var scene = load(scene_path).instantiate()
+	var source = scene.get_node("Level")
+	scene.remove_child(source)
+	source.owner = null
+	for child in source.find_children("*", "", true, false): child.owner = null
+	scene.free()
+	use_level(g, source)
+
+## Base (authored) transforms and current states of every structure, keyed by level path.
+static func bases(g: Node3D) -> Dictionary:
+	var result := {}
+	for entry in g.rigs: result[str(g.definition.get_path_to(entry.node))] = entry.base
+	return result
+
+static func states(g: Node3D) -> Dictionary:
+	var result := {}
+	for entry in g.rigs: result[str(g.definition.get_path_to(entry.node))] = entry.state
+	return result
+
+## The dock's connection table: what joins now, what each state of a structure adds, removes
+## and strands, and where the player can walk from a path right now.
+static func table_cases(g: Node3D, failures: Array[String]) -> void:
+	use_level(g, lift_level())
+	var level: Node3D = g.definition
+	var lift: Node3D = level.get_node("Lift")
+	var now := states(g)
+	Table.pose(level, now, bases(g))
+	if Table.joins(level) != [["Deck", "Low"]]: failures.append("Connection table: in Low the deck joins the low gallery: " + str(Table.joins(level)))
+	var rows: Array = Table.by_state(level, lift, now, bases(g))
+	if rows.size() != 3 or rows.map(func(row): return row.name) != ["Low", "Middle", "High"]: failures.append("Connection table: one named row per state: " + str(rows))
+	else:
+		if rows[0].added != [] or rows[0].removed != [] or rows[0].unchanged != [["Deck", "Low"]]: failures.append("Connection table: the current state changes nothing: " + str(rows[0]))
+		if rows[1].added != [["Deck", "Middle"]] or rows[1].removed != [["Deck", "Low"]]: failures.append("Connection table: Middle adds Deck-Middle and removes Deck-Low: " + str(rows[1]))
+		if rows[1].stranded != ["High", "Low"]: failures.append("Connection table: in Middle the low and high galleries are left unjoined: " + str(rows[1].stranded))
+		if rows[2].added != [["Deck", "High"]]: failures.append("Connection table: High adds Deck-High: " + str(rows[2]))
+	if Table.joins(level) != [["Deck", "Low"]]: failures.append("Connection table: reading every state leaves the current pose alone")
+	var low: Node3D = level.get_node("Low")
+	var high: Node3D = level.get_node("High")
+	if Table.reachable(level, low) != ["Deck", "Low"]: failures.append("Reachable from the low gallery in Low: " + str(Table.reachable(level, low)))
+	Table.pose(level, {"Lift": 2}, bases(g))
+	if Table.reachable(level, low) != ["Low"] or Table.reachable(level, high) != ["Deck", "High"]: failures.append("Reachable in High: low alone, high with the deck")
+	Table.pose(level, now, bases(g))
+
+## The table agrees with the runtime in every one of The Ring's 16 configurations.
+static func ring_table_cases(g: Node3D, failures: Array[String]) -> void:
+	load_scene_level(g, RING)
+	var base := bases(g)
+	for config in Graph.adjacency(g):
+		Graph.set_states(g, config)
+		var runtime: Array = []
+		for part in g.pieces:
+			for other in part.neighbours:
+				var pair: Array = [Table.label(part.get_parent()), Table.label(other.get_parent())]
+				pair.sort()
+				if not pair in runtime: runtime.append(pair)
+		runtime.sort()
+		Table.pose(g.definition, states(g), base)
+		if Table.joins(g.definition) != runtime: failures.append("Connection table matches the runtime in The Ring %s: %s vs %s" % [config, Table.joins(g.definition), runtime])
+
+## Play From Here can start with interactions set and a link made, not only states and a place.
+static func launch_cases(g: Node3D, failures: Array[String]) -> void:
+	use_level(g, lift_level())
+	var payload := {"level": "lift_test", "marker": "Low", "states": {"Lift": 1}, "interactions": {"Lever": true}}
+	if not g.apply_launch(payload): failures.append("A launch with interaction values is accepted: " + g.message)
+	if g.rigs[0].state != 1 or not g.interaction_values.get("Lever", false) or g.definition.get_node("Middle").active: failures.append("The launch applies the state and the lever (middle gallery closed)")
+	use_level(g, lift_level())
+	if g.apply_launch({"level": "lift_test", "marker": "Low", "interactions": {"Nowhere": true}}): failures.append("A launch naming an unknown interaction is refused")
+	load_scene_level(g, THRESHOLD)
+	var ids: Array = g.thresholds.keys().filter(func(id): return g.threshold_label(id) in ["Ledge door", "Under door"])
+	if not g.apply_launch({"level": "the_threshold", "marker": "Entry", "link": ids}): failures.append("A launch with a link pair is accepted: " + g.message)
+	if g.link.size() != 2 or not g.link.all(func(id): return id in ids) or g.paths[g.definition.get_node("Sleeve/Ledge")].remote_links.is_empty(): failures.append("The launch makes the link")
+	load_scene_level(g, THRESHOLD)
+	if g.apply_launch({"level": "the_threshold", "marker": "Entry", "link": [ids[0], ids[0]]}): failures.append("A launch linking a doorway to itself is refused")

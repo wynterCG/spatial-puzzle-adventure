@@ -670,6 +670,25 @@ func _apply_launch(data: Dictionary) -> bool:
 	if marker.kind in [C.Kind.START, C.Kind.CHECKPOINT]: place_at_marker(marker)
 	elif paths.has(marker): walker.place(paths[marker], Vector3(0, paths[marker].half.y, 0) if marker.kind == C.Kind.PATH else Vector3.ZERO, Vector3.UP, Vector3.RIGHT if marker.kind == C.Kind.PATH else Vector3.FORWARD)
 	else: return false
+	# Interaction values the author set in the dock: a changed value applies its effect once.
+	var values: Dictionary = data.get("interactions", {})
+	for id in values:
+		var c = definition.get_node_or_null(id)
+		if not c is C or c.kind != C.Kind.INTERACTION or not interaction_values.has(id): return false
+		if bool(values[id]) == interaction_values[id]: continue
+		var target = c.get_node(c.target)
+		if c.effect == 0: set_path_active(target, not target.active)
+		else:
+			for entry in rigs:
+				if entry.node == target: entry.locked = not entry.locked
+		interaction_values[id] = bool(values[id])
+	# The active Spatial Link pair, if one was chosen.
+	var pair: Array = data.get("link", [])
+	if not pair.is_empty():
+		if pair.size() != 2 or pair[0] == pair[1] or not pair.all(func(id): return thresholds.has(id)) or not compatible(pair[0], pair[1]): return false
+		link = pair.duplicate()
+		for id in link: discovered[id] = true
+		refresh_thresholds()
 	if not walker.support.allows_point(walker.foot, walker.normal) or not walker.pose_is_clear(walker.support, walker.foot, walker.normal): return false
 	camera_frame = walker.support.global_basis * walker.support.surface_frame(walker.foot)
 	update_links(); update_camera(); walker.sync_pose(1)

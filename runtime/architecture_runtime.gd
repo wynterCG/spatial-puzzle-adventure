@@ -607,7 +607,9 @@ func connection_text() -> String:
 	var names: Array[String] = []
 	for part in walker.support.neighbours:
 		names.append(part.title)
-	return "Ground: " + walker.support.title + "\n" + ("No joined path here" if names.is_empty() else "Joined: " + ", ".join(names))
+	var states: Array[String] = []
+	for entry in rigs: states.append("%s: %s" % [entry.get("label", entry.node.name), state_name(entry, entry.state)])
+	return "Ground: " + walker.support.title + "\n" + ("No joined path here" if names.is_empty() else "Joined: " + ", ".join(names)) + ("\nStructures: " + ", ".join(states) if not states.is_empty() else "")
 
 # --- Preferences and progress ---------------------------------------------------------------
 
