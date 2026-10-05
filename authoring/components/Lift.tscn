@@ -1,0 +1,18 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://authoring/component.gd" id="1"]
+
+[node name="Lift" type="Node3D"]
+script = ExtResource("1")
+kind = 3
+label = "Lift"
+motion = 1
+offsets = PackedVector3Array(0, 0, 0, 0, 4, 0, 0, 8, 0)
+state_names = PackedStringArray("Low", "Middle", "High")
+wrap_states = false
+duration = 1.6
+
+[node name="Deck" type="Node3D" parent="."]
+script = ExtResource("1")
+label = "Lift deck"
+dimensions = Vector3(4, 0.4, 4)

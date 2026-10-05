@@ -7,6 +7,7 @@ const Validate = preload("res://authoring/validation.gd")
 const H = preload("res://tests/test_helpers.gd")
 const Table = preload("res://authoring/connection_table.gd")
 const Graph = preload("res://tests/state_graph.gd")
+const Ring = preload("res://authoring/blockout_ring.gd")
 const RING := "res://monuments/the_ring.tscn"
 const THRESHOLD := "res://monuments/the_threshold.tscn"
 
@@ -17,6 +18,8 @@ static func run(g: Node3D, failures: Array[String]) -> void:
 	table_cases(g, failures)
 	ring_table_cases(g, failures)
 	launch_cases(g, failures)
+	ring_cases(g, failures)
+	piece_cases(failures)
 
 static func path(name: String, at: Vector3, size := Vector3(4, .4, 2)) -> Node3D:
 	var c = C.new()
@@ -245,3 +248,53 @@ static func launch_cases(g: Node3D, failures: Array[String]) -> void:
 	if g.link.size() != 2 or not g.link.all(func(id): return id in ids) or g.paths[g.definition.get_node("Sleeve/Ledge")].remote_links.is_empty(): failures.append("The launch makes the link")
 	load_scene_level(g, THRESHOLD)
 	if g.apply_launch({"level": "the_threshold", "marker": "Entry", "link": [ids[0], ids[0]]}): failures.append("A launch linking a doorway to itself is refused")
+
+## The parametric Ring rebuilds only its GeneratedGeometry: box GEOMETRY components that line of
+## sight, the eye probe and sweeps all see. Openings are real gaps; hand-added children survive.
+static func ring_cases(g: Node3D, failures: Array[String]) -> void:
+	var level := ElsewhereLevel.new()
+	level.name = "Level"; level.level_id = "ring_test"
+	var floor_path := path("Floor", Vector3.ZERO, Vector3(40, .4, 40))
+	floor_path.end_sockets = false
+	floor_path.add_child(marker(C.Kind.START, "Start", 0))
+	floor_path.add_child(marker(C.Kind.GOAL, "Goal", 15))
+	level.add_child(floor_path)
+	var ring = Ring.new()
+	ring.name = "Ring"
+	level.add_child(ring)
+	var lamp := Node3D.new()
+	lamp.name = "HandAddedLamp"
+	ring.add_child(lamp)
+	ring.radius = 6; ring.thickness = .6; ring.height = 8; ring.segments = 16
+	var one: Array[Vector4] = [Vector4(0, 1.6, .5, 3)]
+	var two: Array[Vector4] = [Vector4(0, 1.6, .5, 3), Vector4(4, 1.6, .5, 3)]
+	ring.openings = one
+	ring.regenerate()
+	var generated: Node = ring.get_node_or_null("GeneratedGeometry")
+	var boxes: Array = generated.get_children() if generated else []
+	if boxes.size() != 15 + 4 or not boxes.all(func(b): return b is C and b.kind == C.Kind.GEOMETRY): failures.append("A 16-segment ring with one opening is 15 segments and 4 boxes round the gap: %d" % boxes.size())
+	ring.openings = two
+	ring.regenerate()
+	if ring.get_node("GeneratedGeometry").get_child_count() != 14 + 8: failures.append("Regenerating replaces the generated boxes")
+	if ring.get_node_or_null("HandAddedLamp") == null: failures.append("Regenerating keeps hand-added children")
+	ring.openings = one
+	ring.regenerate()
+	use_level(g, level)
+	var solids: Array = g.obstacles.duplicate()
+	var eye := Vector3(0, 1.5, 0)
+	if not H.visible(eye, Vector3(12, 1.5, 0), solids, []): failures.append("Line of sight passes through the ring's opening")
+	if H.visible(eye, Vector3(0, 1.5, 12), solids, []): failures.append("The ring's wall blocks line of sight")
+	if H.visible(eye, Vector3(12, 5, 0), solids, []): failures.append("Above the opening the wall blocks line of sight")
+
+## The drag-in pieces load, and the gameplay ones are what their names say.
+static func piece_cases(failures: Array[String]) -> void:
+	for name in ["Ring", "Lift", "SpatialThreshold", "StateArt", "PathLamp", "HangingPendant"]:
+		var packed = load("res://authoring/components/%s.tscn" % name)
+		if packed == null: failures.append("Missing drag-in piece " + name); continue
+		var piece = packed.instantiate()
+		match name:
+			"Ring": if not piece is ElsewhereRing: failures.append("Ring.tscn is an ElsewhereRing")
+			"Lift": if not (piece is C and piece.kind == C.Kind.ROTATOR and piece.motion == C.Motion.SLIDE and not piece.wrap_states and piece.find_child("Deck") is C): failures.append("Lift.tscn is a non-cyclic sliding structure with a deck")
+			"SpatialThreshold": if not (piece is C and piece.kind == C.Kind.THRESHOLD): failures.append("SpatialThreshold.tscn is a doorway")
+			"StateArt": if not piece is ElsewhereStateArt: failures.append("StateArt.tscn is state-bound art")
+		piece.free()

@@ -1,0 +1,38 @@
+[gd_scene load_steps=5 format=3]
+
+[sub_resource type="CylinderMesh" id="Chain"]
+top_radius = 0.04
+bottom_radius = 0.04
+height = 1.0
+radial_segments = 5
+
+[sub_resource type="StandardMaterial3D" id="ChainMat"]
+albedo_color = Color(0.23, 0.24, 0.25, 1)
+roughness = 0.5
+metallic = 0.6
+
+[sub_resource type="SphereMesh" id="Lamp"]
+radius = 0.45
+height = 0.9
+radial_segments = 12
+rings = 6
+
+[sub_resource type="StandardMaterial3D" id="Cool"]
+albedo_color = Color(0.91, 0.95, 1, 1)
+emission_enabled = true
+emission = Color(0.91, 0.95, 1, 1)
+emission_energy_multiplier = 2.0
+
+[node name="HangingPendant" type="Node3D"]
+
+[node name="Chain" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 12, 0, 0, 0, 1, 0, -6, 0)
+mesh = SubResource("Chain")
+material_override = SubResource("ChainMat")
+cast_shadow = 0
+
+[node name="Lamp" type="MeshInstance3D" parent="."]
+position = Vector3(0, -12.45, 0)
+mesh = SubResource("Lamp")
+material_override = SubResource("Cool")
+cast_shadow = 0
