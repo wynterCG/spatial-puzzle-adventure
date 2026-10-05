@@ -385,17 +385,30 @@ func sweep_reach(entry: Dictionary) -> float:
 		reach = maxf(reach, moving.global_position.distance_to(pivot) + (moving.mesh as BoxMesh).size.length() * .5)
 	return reach
 
-## Sweep samples by arc length: the farthest solid moves at most SWEEP_STEP between samples.
-func sweep_samples(entry: Dictionary, interval: Vector2) -> int:
-	var angle := absf(interval.y - interval.x)
-	return maxi(60, maxi(int(ceil(angle / deg_to_rad(1.5))), int(ceil(angle * sweep_reach(entry) / SWEEP_STEP))))
+## How far the farthest solid travels in one step: arc length for a rotation, distance for a slide.
+func sweep_travel(entry: Dictionary, direction: int) -> float:
+	if entry.get("motion", 0) == ElsewhereComponent.Motion.SLIDE:
+		return state_transform(entry, entry.state).origin.distance_to(state_transform(entry, next_state(entry, entry.state, direction)).origin)
+	var interval := rotation_interval(entry, direction)
+	return absf(interval.y - interval.x) * sweep_reach(entry)
+
+## Sweep samples: the farthest solid moves at most SWEEP_STEP between samples (and a rotation at
+## most 1.5 degrees).
+func sweep_samples(entry: Dictionary, direction: int) -> int:
+	var samples := maxi(60, int(ceil(sweep_travel(entry, direction) / SWEEP_STEP)))
+	if entry.get("motion", 0) == ElsewhereComponent.Motion.ROTATE:
+		var interval := rotation_interval(entry, direction)
+		samples = maxi(samples, int(ceil(absf(interval.y - interval.x) / deg_to_rad(1.5))))
+	return samples
 
 func turn_obstruction(index: int, direction: int) -> String:
 	var entry := rigs[index]
 	if entry.get("locked", false): return "This structure is locked."
-	if next_rotation_state(entry, direction) == entry.state: return "There is no further authored state in that direction."
+	if next_rotation_state(entry, direction) == entry.state:
+		var end := "first" if direction < 0 else "last"
+		return "%s is at its %s state (%s)." % [entry.get("label", "The structure"), end, state_name(entry, entry.state)]
 	if not entry.get("carries_player", true) and entry.node.is_ancestor_of(walker.support): return "Step onto fixed ground before moving this structure."
-	var original: Basis = entry.node.basis
+	var original: Transform3D = entry.node.transform
 	var fixed: Array[MeshInstance3D] = []
 	for part in pieces:
 		if not entry.node.is_ancestor_of(part):
@@ -415,10 +428,10 @@ func turn_obstruction(index: int, direction: int) -> String:
 		if stationary.global_position.distance_squared_to(pivot) <= pow(sweep_radius + radius, 2):
 			candidates.append(stationary)
 	var result := ""
-	var interval := rotation_interval(entry, direction)
-	var samples := sweep_samples(entry, interval)
+	var samples := sweep_samples(entry, direction)
+	var from: int = entry.state
 	for step in range(1, samples + 1):
-		entry.node.basis = rotation_basis(entry, lerpf(interval.x, interval.y, float(step) / samples))
+		entry.node.transform = motion_transform(entry, from, direction, float(step) / samples)
 		for moving in entry.solids:
 			for stationary in candidates:
 				if boxes_overlap(moving, stationary):
@@ -437,24 +450,61 @@ func turn_obstruction(index: int, direction: int) -> String:
 			result = "Your position is inside the turning structure's sweep."
 		if not result.is_empty():
 			break
-	entry.node.basis = original
+	entry.node.transform = original
 	return result
+
+# --- Transformable structures --------------------------------------------------------------
+# The runtime never knows what a structure is (a ring, a lift, a gate). It asks how many states it
+# has, its pose in a state, and its pose part-way through a step. A carried player rides along
+# because it stands on a piece under the structure's node, whatever the motion.
+
+func state_count(entry: Dictionary) -> int:
+	if entry.get("motion", 0) == ElsewhereComponent.Motion.SLIDE: return entry.offsets.size()
+	return entry.get("angles", PackedFloat32Array([0, 90, 180, 270])).size()
+
+func state_transform(entry: Dictionary, state: int) -> Transform3D:
+	var base: Transform3D = entry.get("base", Transform3D(entry.get("base_basis", Basis.IDENTITY), entry.node.position))
+	if entry.get("motion", 0) == ElsewhereComponent.Motion.SLIDE: return Transform3D(base.basis, base.origin + base.basis * entry.offsets[state])
+	return Transform3D(rotation_basis(entry, deg_to_rad(entry.get("angles", PackedFloat32Array([0, 90, 180, 270]))[state])), base.origin)
+
+## Pose a fraction `f` of the way through one step from `from_state` in `direction`.
+func motion_transform(entry: Dictionary, from_state: int, direction: int, f: float) -> Transform3D:
+	if entry.get("motion", 0) == ElsewhereComponent.Motion.SLIDE:
+		var a := state_transform(entry, from_state)
+		var b := state_transform(entry, next_state(entry, from_state, direction))
+		return Transform3D(a.basis, a.origin.lerp(b.origin, f))
+	var interval := rotation_interval(entry, direction, from_state)
+	return Transform3D(rotation_basis(entry, lerpf(interval.x, interval.y, f)), state_transform(entry, from_state).origin)
+
+## Sets a structure to a state at once (restore, launch, tests).
+func restore_state(entry: Dictionary, state: int) -> void:
+	entry.state = state
+	entry.node.transform = state_transform(entry, state)
+	update_links()
+
+func state_name(entry: Dictionary, state: int) -> String:
+	var names: PackedStringArray = entry.get("state_names", PackedStringArray())
+	return names[state] if state < names.size() and not names[state].is_empty() else "state %d" % state
+
+func next_state(entry: Dictionary, from_state: int, direction: int) -> int:
+	var count := state_count(entry)
+	return posmod(from_state + direction, count) if entry.get("wrap_states", true) else clampi(from_state + direction, 0, count - 1)
+
+func next_rotation_state(entry: Dictionary, direction: int) -> int:
+	return next_state(entry, entry.state, direction)
 
 func rotation_basis(entry: Dictionary, angle: float) -> Basis:
 	return entry.get("base_basis", Basis.IDENTITY) * Basis(entry.axis.normalized(), angle)
 
-func rotation_interval(entry: Dictionary, direction: int) -> Vector2:
+func rotation_interval(entry: Dictionary, direction: int, from_state := -1) -> Vector2:
+	if from_state < 0: from_state = entry.state
 	var angles: PackedFloat32Array = entry.get("angles", PackedFloat32Array([0, 90, 180, 270]))
-	var from := deg_to_rad(angles[entry.state])
-	var to := deg_to_rad(angles[next_rotation_state(entry, direction)])
+	var from := deg_to_rad(angles[from_state])
+	var to := deg_to_rad(angles[next_state(entry, from_state, direction)])
 	if not entry.get("wrap_states", true): return Vector2(from, to)
 	if direction > 0 and to <= from: to += TAU
 	if direction < 0 and to >= from: to -= TAU
 	return Vector2(from, to)
-
-func next_rotation_state(entry: Dictionary, direction: int) -> int:
-	var count: int = entry.get("angles", [0, 90, 180, 270]).size()
-	return posmod(entry.state + direction, count) if entry.get("wrap_states", true) else clampi(entry.state + direction, 0, count - 1)
 
 func rotate_selected(direction: int) -> void:
 	if busy or paused or blocks_play() or not architectural or rigs.is_empty():
@@ -465,12 +515,12 @@ func rotate_selected(direction: int) -> void:
 		return
 	history.append(snapshot())
 	var entry := rigs[selected]
-	var interval := rotation_interval(entry, direction)
+	var from: int = entry.state
 	entry.state = next_rotation_state(entry, direction)
 	busy = true
 	update_links()
 	tween = create_tween().set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
-	tween.tween_method(func(angle: float): entry.node.basis = rotation_basis(entry, angle); update_camera(), interval.x, interval.y, 0.0 if walker.reduced_motion else entry.get("duration", .8))
+	tween.tween_method(func(f: float): entry.node.transform = motion_transform(entry, from, direction, f); update_camera(), 0.0, 1.0, 0.0 if walker.reduced_motion else entry.get("duration", .8))
 	tween.tween_callback(func():
 		busy = false
 		update_links()
@@ -496,8 +546,7 @@ func restore(data: Dictionary) -> void:
 	won = false
 	for i in range(rigs.size()):
 		rigs[i].state = data.states[i]
-		var angles: PackedFloat32Array = rigs[i].get("angles", PackedFloat32Array([0, 90, 180, 270]))
-		rigs[i].node.basis = rotation_basis(rigs[i], deg_to_rad(angles[data.states[i]]))
+		rigs[i].node.transform = state_transform(rigs[i], data.states[i])
 	walker.restore(data.player, world)
 	camera_bias = data.camera_bias
 	var ground := walker.support.global_basis * walker.support.surface_frame(walker.foot)

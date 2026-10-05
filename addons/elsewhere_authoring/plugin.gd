@@ -120,16 +120,16 @@ func refresh_preview() -> void:
 	preview.show()
 	for c in preview.components():
 		c.rebuild_preview()
-		if c.kind == C.Kind.ROTATOR and not c.angles.is_empty():
+		if c.kind == C.Kind.ROTATOR and c.state_count() > 0:
 			var id := str(preview.get_path_to(c))
-			var index: int = clampi(preview_states.get(id, c.initial_state), 0, c.angles.size() - 1)
-			c.basis = c.basis * Basis(c.axis.normalized(), deg_to_rad(c.angles[index]))
+			var index: int = clampi(preview_states.get(id, c.initial_state), 0, c.state_count() - 1)
+			c.transform = c.state_local_transform(c.transform, index)
 			var row := HBoxContainer.new()
 			var name_label := Label.new()
 			name_label.text = str(c.name)
 			row.add_child(name_label)
 			var selector := OptionButton.new()
-			for i in range(c.angles.size()): selector.add_item("State %s / %s°" % [i, c.angles[i]])
+			for i in range(c.state_count()): selector.add_item("%d / %s" % [i, c.state_label(i) if not c.state_names.is_empty() else ("%s°" % c.angles[i] if c.motion == C.Motion.ROTATE else str(c.offsets[i]))])
 			selector.select(index)
 			selector.item_selected.connect(func(value: int): preview_states[id] = value; call_deferred("refresh_preview"))
 			row.add_child(selector)

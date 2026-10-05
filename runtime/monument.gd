@@ -103,7 +103,7 @@ func build_level() -> void:
 		return
 	for c in definition.components():
 		if c.kind == C.Kind.ROTATOR:
-			rigs.append({"node": c, "axis": c.axis.normalized(), "state": c.initial_state, "base_basis": c.basis, "angles": c.angles, "wrap_states": c.wrap_states, "duration": c.duration, "carries_player": c.carries_player, "locked": c.locked, "label": c.label if not c.label.is_empty() else str(c.name), "tint": c.tint, "solids": []})
+			rigs.append({"node": c, "axis": c.axis.normalized(), "state": c.initial_state, "base_basis": c.basis, "base": c.transform, "motion": c.motion, "offsets": c.offsets, "state_names": c.state_names, "angles": c.angles, "wrap_states": c.wrap_states, "duration": c.duration, "carries_player": c.carries_player, "locked": c.locked, "label": c.label if not c.label.is_empty() else str(c.name), "tint": c.tint, "solids": []})
 		elif c.kind in [C.Kind.PATH, C.Kind.CURVE]:
 			var part: SurfacePiece
 			if c.kind == C.Kind.PATH:
@@ -153,7 +153,7 @@ func build_level() -> void:
 			Piece.box(c, Vector3(0, .45, 0), Vector3(.3, .9, .3), Piece.material(c.tint, .2))
 			if c.kind == C.Kind.INTERACTION: interaction_values[str(definition.get_path_to(c))] = c.initial_value
 	for entry in rigs:
-		entry.node.basis = rotation_basis(entry, deg_to_rad(entry.angles[entry.state]))
+		entry.node.transform = state_transform(entry, entry.state)
 		for mesh in obstacles:
 			if entry.node.is_ancestor_of(mesh): entry.solids.append(mesh)
 	start = paths[start_marker.get_node(start_marker.path)]
@@ -631,7 +631,7 @@ func valid_snapshot(data: Dictionary) -> bool:
 	if not data.has_all(["states", "player", "camera_bias", "path_active", "locks", "interactions", "selected"]): return false
 	if data.states.size() != rigs.size() or data.locks.size() != rigs.size() or data.selected < 0 or (not rigs.is_empty() and data.selected >= rigs.size()): return false
 	for i in range(rigs.size()):
-		if data.states[i] < 0 or data.states[i] >= rigs[i].angles.size(): return false
+		if data.states[i] < 0 or data.states[i] >= state_count(rigs[i]): return false
 	for c in paths:
 		if not data.path_active.has(str(definition.get_path_to(c))): return false
 	if not data.player.has_all(["piece", "foot", "normal", "forward", "pitch"]): return false
@@ -663,8 +663,8 @@ func _apply_launch(data: Dictionary) -> bool:
 	for entry in rigs:
 		var id := str(definition.get_path_to(entry.node))
 		var state: int = data.get("states", {}).get(id, entry.state)
-		if state < 0 or state >= entry.angles.size(): return false
-		entry.state = state; entry.node.basis = rotation_basis(entry, deg_to_rad(entry.angles[state]))
+		if state < 0 or state >= state_count(entry): return false
+		entry.state = state; entry.node.transform = state_transform(entry, state)
 	var marker = definition.get_node_or_null(data.get("marker", ""))
 	if not marker is C or not marker.active: return false
 	if marker.kind in [C.Kind.START, C.Kind.CHECKPOINT]: place_at_marker(marker)

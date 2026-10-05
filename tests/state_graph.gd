@@ -11,7 +11,7 @@ static func adjacency(g: Node3D) -> Dictionary:
 	for entry in g.rigs:
 		var next: Array = []
 		for config in configs:
-			for state in range(entry.angles.size()): next.append(config + [state])
+			for state in range(g.state_count(entry)): next.append(config + [state])
 		configs = next
 	var table := {}
 	for config in configs:
@@ -27,7 +27,7 @@ static func set_states(g: Node3D, config: Array) -> void:
 	for k in range(g.rigs.size()):
 		var entry: Dictionary = g.rigs[k]
 		entry.state = config[k]
-		entry.node.basis = g.rotation_basis(entry, deg_to_rad(entry.angles[config[k]]))
+		entry.node.transform = g.state_transform(entry, config[k])
 	g.update_links()
 
 ## Minimum cost from the start configuration and piece to the goal piece, or -1 if unreachable.
@@ -47,7 +47,8 @@ static func minimum(g: Node3D, table: Dictionary, start_config: Array, start_pie
 			if not rotors.is_empty() and not k in rotors: continue
 			for direction in [-1, 1]:
 				var config: Array = current[0].duplicate()
-				config[k] = posmod(config[k] + direction, g.rigs[k].angles.size())
+				config[k] = g.next_state(g.rigs[k], config[k], direction)
+				if config[k] == current[0][k]: continue
 				moves.append([[config, current[1]], turn_cost])
 		for other in table[current[0]][current[1]]:
 			moves.append([[current[0], other], walk_cost])

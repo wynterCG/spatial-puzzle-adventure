@@ -50,7 +50,7 @@ static func configs(g: Node3D) -> Array:
 	for entry in g.rigs:
 		var grown: Array = []
 		for config in result:
-			for state in range(entry.angles.size()): grown.append(config + [state])
+			for state in range(g.state_count(entry)): grown.append(config + [state])
 		result = grown
 	return result
 
@@ -83,7 +83,8 @@ static func minimum(g: Node3D, sight: Dictionary, start_piece: SurfacePiece, goa
 			for k in range(g.rigs.size()):
 				for direction in [-1, 1]:
 					var turned: Array = config.duplicate()
-					turned[k] = posmod(turned[k] + direction, g.rigs[k].angles.size())
+					turned[k] = g.next_state(g.rigs[k], turned[k], direction)
+					if turned[k] == config[k]: continue
 					moves.append([1, [turned, state[1], state[2], state[3]], {"turns": 1}, "turn %s to %d" % [g.rigs[k].node.name, turned[k]]])
 		if links_allowed and state[2] != "":
 			for target in sight[config].get(state[2], []):

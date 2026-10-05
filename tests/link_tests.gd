@@ -357,14 +357,14 @@ static func door_centre(g: Node3D, label: String) -> Vector3:
 static func set_frame(g: Node3D, state: int) -> void:
 	var frame: Dictionary = g.rigs[0]
 	frame.state = state
-	frame.node.basis = g.rotation_basis(frame, deg_to_rad(frame.angles[state]))
+	frame.node.transform = g.state_transform(frame, state)
 	g.update_links()
 
 ## Which doorways each piece can see in each frame state: from any sampled walkable point
 ## ("piece") and from inside each doorway's reach ("at"). Looking anywhere (the player can turn).
 static func sight_table(g: Node3D) -> Dictionary:
 	var table := {}
-	for state in range(g.rigs[0].angles.size()):
+	for state in range(g.state_count(g.rigs[0])):
 		set_frame(g, state)
 		for name in ["Entry", "Frame/FrameDeck", "GoalWall"]:
 			var part: SurfacePiece = g.paths[g.definition.get_node(name)]

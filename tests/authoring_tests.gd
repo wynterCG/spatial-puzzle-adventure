@@ -12,6 +12,7 @@ const LinkTests = preload("res://tests/link_tests.gd")
 const ThresholdTests = preload("res://tests/threshold_tests.gd")
 const StateArt = preload("res://authoring/state_art.gd")
 const SpillwayTests = preload("res://tests/spillway_tests.gd")
+const ToolkitTests = preload("res://tests/toolkit_tests.gd")
 static var finished := false
 
 static func load_level(g: Node3D, scene_path: String) -> void:
@@ -82,7 +83,8 @@ static func run(g: Node3D) -> Array[String]:
 	SpillwayTests.run(g, failures)
 	LinkTests.run(g, failures)
 	ThresholdTests.run(g, failures)
-	print("AUTHORING CASES: ring v3 16-configuration table, dead ends, solution both ways, sweep clearance, 6-turn/16-action minimum, tower necessity, authored camera (no orbit, zoom, bounded pan, Home, Tab, legacy snapshots, turntable heading, ground follow, seam continuity), diegetic selection (pick, click, hover glow, no HUD list), carried pose, settled graph, undo, serialized saves, Play From Here, socket contract and apertures, interactions/conditions, checkpoints, two-state hinge, blocked sweep, validation, 90/180 degree curves, visible deck = walkable region, comfort settings, locomotion bench, state-bound art, the spillway, spatial links, the threshold")
+	ToolkitTests.run(g, failures)
+	print("AUTHORING CASES: ring v3 16-configuration table, dead ends, solution both ways, sweep clearance, 6-turn/16-action minimum, tower necessity, authored camera (no orbit, zoom, bounded pan, Home, Tab, legacy snapshots, turntable heading, ground follow, seam continuity), diegetic selection (pick, click, hover glow, no HUD list), carried pose, settled graph, undo, serialized saves, Play From Here, socket contract and apertures, interactions/conditions, checkpoints, two-state hinge, blocked sweep, validation, 90/180 degree curves, visible deck = walkable region, comfort settings, locomotion bench, state-bound art, the spillway, spatial links, the threshold, authoring toolkit")
 	finished = true
 	return failures
 
@@ -278,9 +280,8 @@ static func sweep_cases(g: Node3D, failures: Array[String]) -> void:
 	if not is_equal_approx(g.sweep_tolerance, g.definition.sweep_tolerance): failures.append("The runtime must use the level's sweep tolerance")
 	for entry in g.rigs:
 		for direction in [-1, 1]:
-			var interval: Vector2 = g.rotation_interval(entry, direction)
-			var samples: int = g.sweep_samples(entry, interval)
-			var step: float = g.sweep_reach(entry) * absf(interval.y - interval.x) / samples
+			var samples: int = g.sweep_samples(entry, direction)
+			var step: float = g.sweep_travel(entry, direction) / samples
 			if samples < 60 or step > g.SWEEP_STEP + .000001: failures.append("%s sweep moves %.3f m between samples" % [entry.node.name, step])
 		var started := Time.get_ticks_msec()
 		g.turn_obstruction(g.rigs.find(entry), 1)

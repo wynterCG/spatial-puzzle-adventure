@@ -17,12 +17,21 @@ static func validate(level: Node3D) -> Dictionary:
 		if c.kind == C.Kind.CURVE and (not is_finite(c.radius) or c.radius < .5 or c.tail < 0): errors.append(id + ": invalid curve radius or tail.")
 		if c.kind == C.Kind.ROTATOR:
 			rotations += 1
-			if c.axis.length() < .99 or c.angles.size() < 2 or c.initial_state < 0 or c.initial_state >= c.angles.size(): errors.append(id + ": invalid axis, states or initial state.")
-			var seen: Array = []
-			for angle in c.angles:
-				var normalized := fposmod(float(angle), 360)
-				if not is_finite(angle) or normalized in seen: errors.append(id + ": angles must be finite and distinct modulo 360.")
-				seen.append(normalized)
+			if c.state_count() < 2 or c.initial_state < 0 or c.initial_state >= c.state_count(): errors.append(id + ": a transformable structure needs at least two states and an initial state among them.")
+			if c.motion == C.Motion.ROTATE:
+				if c.axis.length() < .99: errors.append(id + ": invalid rotation axis.")
+				var seen: Array = []
+				for angle in c.angles:
+					var normalized := fposmod(float(angle), 360)
+					if not is_finite(angle) or normalized in seen: errors.append(id + ": angles must be finite and distinct modulo 360.")
+					seen.append(normalized)
+			else:
+				for i in range(c.offsets.size()):
+					if not c.offsets[i].is_finite(): errors.append(id + ": slide offsets must be finite.")
+					for j in range(i):
+						if c.offsets[i].is_equal_approx(c.offsets[j]): errors.append(id + ": slide offsets must be distinct (states %d and %d match)." % [j, i])
+				if c.wrap_states: warnings.append(id + ": a cyclic slide glides from its last state straight back to its first; turn off Cyclic states unless that is intended.")
+			if not c.state_names.is_empty() and c.state_names.size() != c.state_count(): errors.append(id + ": give one state name per state (%d names, %d states)." % [c.state_names.size(), c.state_count()])
 			var ancestor: Node = c.get_parent()
 			while ancestor != level and ancestor != null:
 				if ancestor is C and ancestor.kind == C.Kind.ROTATOR: errors.append(id + ": nested rotating structures are not supported in Phase 1.")
@@ -56,7 +65,7 @@ static func validate(level: Node3D) -> Dictionary:
 			if not target is C or not level.is_ancestor_of(target) or (target.kind != expected and not (c.effect == 0 and target.kind == C.Kind.CURVE)): errors.append(id + ": interaction target must be a compatible component in this level.")
 			if c.condition_state >= 0:
 				var condition = c.get_node_or_null(c.condition_structure)
-				if not condition is C or not level.is_ancestor_of(condition) or condition.kind != C.Kind.ROTATOR or c.condition_state >= condition.angles.size(): errors.append(id + ": invalid required structure state.")
+				if not condition is C or not level.is_ancestor_of(condition) or condition.kind != C.Kind.ROTATOR or c.condition_state >= condition.state_count(): errors.append(id + ": invalid required structure state.")
 	if starts.size() != 1: errors.append("Author exactly one PlayerStart.")
 	if goals.size() != 1: errors.append("Author exactly one Goal.")
 	if rotations == 0: warnings.append("No rotatable structure: valid traversal study, but no transformation puzzle.")

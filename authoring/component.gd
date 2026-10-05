@@ -2,7 +2,9 @@
 class_name ElsewhereComponent
 extends Node3D
 ## Authoring data. Geometry and gameplay remain independent children.
+# ROTATOR is the legacy serialized ID; editor name: Transformable Structure (it rotates or slides).
 enum Kind { PATH, CURVE, SOCKET, ROTATOR, START, GOAL, INTERACTION, CHECKPOINT, GEOMETRY, THRESHOLD }
+enum Motion { ROTATE, SLIDE }
 @export var kind: Kind = Kind.PATH:
 	set(value): kind = value; notify_property_list_changed()
 @export var label := ""
@@ -26,11 +28,25 @@ enum Kind { PATH, CURVE, SOCKET, ROTATOR, START, GOAL, INTERACTION, CHECKPOINT, 
 @export var socket_type := "walk"
 @export_range(.001, .1) var position_tolerance := .03
 @export_range(.1, 10) var angular_tolerance := 2.0
-@export_group("Rotation / carrier")
+@export_group("Transformable structure")
+## Rotate: each state is an angle about `axis`. Slide: each state is an offset from the base pose,
+## in the structure's own frame (a lift, a sliding bridge).
+@export var motion: Motion = Motion.ROTATE:
+	set(value):
+		# A fresh choice in the editor picks the usual cycling; loading a scene never does.
+		if is_node_ready() and value != motion: wrap_states = value == Motion.ROTATE
+		motion = value; notify_property_list_changed()
 @export var axis := Vector3.RIGHT
 @export var angles := PackedFloat32Array([0, 90, 180, 270])
+@export var offsets := PackedVector3Array([Vector3.ZERO, Vector3(0, 4, 0)])
+## Optional descriptive names, one per state ("Docked West", "Raised", "Goal Alignment").
+@export var state_names := PackedStringArray()
 @export var initial_state := 0
+## Serialized as wrap_states; shown as "Cyclic states". Off: Q/E stop at the first and last state.
 @export var wrap_states := true
+@export var cyclic_states: bool:
+	get: return wrap_states
+	set(value): wrap_states = value
 @export_range(.1, 5) var duration := .8
 @export var carries_player := true
 @export var locked := false
@@ -65,7 +81,7 @@ func _validate_property(property: Dictionary) -> void:
 		Kind.PATH: ["dimensions", "blockout", "tint", "end_sockets", "socket_type", "regions", "collision_boxes"],
 		Kind.CURVE: ["dimensions", "blockout", "tint", "end_sockets", "radius", "arc_degrees", "tail", "socket_type"],
 		Kind.SOCKET: ["path", "travel_direction", "ground_normal", "width", "socket_type", "position_tolerance", "angular_tolerance"],
-		Kind.ROTATOR: ["axis", "angles", "initial_state", "wrap_states", "duration", "carries_player", "locked", "tint"],
+		Kind.ROTATOR: ["motion", "axis", "angles", "offsets", "state_names", "initial_state", "cyclic_states", "duration", "carries_player", "locked", "tint"],
 		Kind.START: ["path", "forward", "ground_normal"],
 		Kind.GOAL: ["path", "trigger_radius", "tint"],
 		Kind.CHECKPOINT: ["path", "trigger_radius", "tint"],
@@ -77,6 +93,25 @@ func _validate_property(property: Dictionary) -> void:
 	for names in fields.values(): all.append_array(names)
 	if property.name in all and not property.name in fields[kind]:
 		property.usage &= ~PROPERTY_USAGE_EDITOR
+	if kind == Kind.ROTATOR and property.name == ("offsets" if motion == Motion.ROTATE else "angles"):
+		property.usage &= ~PROPERTY_USAGE_EDITOR
+	# wrap_states is stored; cyclic_states is its editor face and never stored.
+	if property.name == "wrap_states": property.usage &= ~PROPERTY_USAGE_EDITOR
+	if property.name == "cyclic_states": property.usage &= ~PROPERTY_USAGE_STORAGE
+
+## Number of states of a Transformable Structure.
+func state_count() -> int:
+	return offsets.size() if motion == Motion.SLIDE else angles.size()
+
+## Local transform of a Transformable Structure in `state`, from its base (authored) transform.
+## The runtime and the editor preview both use it.
+func state_local_transform(base: Transform3D, state: int) -> Transform3D:
+	if motion == Motion.SLIDE: return Transform3D(base.basis, base.origin + base.basis * offsets[state])
+	return Transform3D(base.basis * Basis(axis.normalized(), deg_to_rad(angles[state])), base.origin)
+
+## The state's descriptive name, or its index.
+func state_label(state: int) -> String:
+	return state_names[state] if state < state_names.size() and not state_names[state].is_empty() else "State %d" % state
 
 func _ready() -> void:
 	if Engine.is_editor_hint(): rebuild_preview()

@@ -32,11 +32,11 @@ func _initialize() -> void:
 	for entry in g.rigs:
 		var grown: Array = []
 		for config in configs:
-			for state in range(entry.angles.size()): grown.append(config + [state])
+			for state in range(g.state_count(entry)): grown.append(config + [state])
 		configs = grown
 	for config in configs:
 		for i in range(g.rigs.size()):
-			g.rigs[i].node.basis = g.rotation_basis(g.rigs[i], deg_to_rad(g.rigs[i].angles[config[i]]))
+			g.rigs[i].node.transform = g.state_transform(g.rigs[i], config[i])
 		probe(boxes, hits)
 	print("EYE CLEARANCE: %s, %d configurations, %d clipping places" % [scene_path, configs.size(), hits.size()])
 	for key in hits: print("  %s (%d poses)" % [key, hits[key]])
