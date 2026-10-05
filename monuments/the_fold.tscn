@@ -1,0 +1,356 @@
+[gd_scene load_steps=18 format=3]
+
+[ext_resource type="Script" path="res://runtime/monument.gd" id="1"]
+[ext_resource type="Script" path="res://authoring/level.gd" id="2"]
+[ext_resource type="Script" path="res://authoring/component.gd" id="3"]
+
+[sub_resource type="StandardMaterial3D" id="GoalLight"]
+albedo_color = Color(1, 0.93, 0.85, 1)
+emission_enabled = true
+emission = Color(1, 0.91, 0.82, 1)
+emission_energy_multiplier = 2.5
+
+[sub_resource type="BoxMesh" id="BeamMesh"]
+size = Vector3(0.64, 160, 0.64)
+
+[sub_resource type="BoxMesh" id="PlateMesh"]
+size = Vector3(4.8, 0.04, 4.8)
+
+[sub_resource type="StandardMaterial3D" id="Lantern"]
+albedo_color = Color(1, 0.72, 0.42, 1)
+emission_enabled = true
+emission = Color(1, 0.66, 0.34, 1)
+emission_energy_multiplier = 2.2
+
+[sub_resource type="StandardMaterial3D" id="DeckMark"]
+albedo_color = Color(0.55, 0.9, 1, 1)
+emission_enabled = true
+emission = Color(0.5, 0.88, 1, 1)
+emission_energy_multiplier = 1.4
+
+[sub_resource type="StandardMaterial3D" id="SignLight"]
+albedo_color = Color(0.95, 0.95, 1, 1)
+emission_enabled = true
+emission = Color(0.9, 0.93, 1, 1)
+emission_energy_multiplier = 1.6
+
+[sub_resource type="BoxMesh" id="LanternMesh"]
+size = Vector3(2.4, 2.4, 2.4)
+
+[sub_resource type="BoxMesh" id="OuterStripe"]
+size = Vector3(32, 0.08, 2.4)
+
+[sub_resource type="BoxMesh" id="DeckEdge"]
+size = Vector3(32, 0.06, 0.32)
+
+[sub_resource type="BoxMesh" id="RimAcross"]
+size = Vector3(0.08, 0.12, 9.6)
+
+[sub_resource type="BoxMesh" id="RimUp"]
+size = Vector3(0.08, 10.4, 0.12)
+
+[sub_resource type="CylinderMesh" id="SignDisc"]
+top_radius = 0.9
+bottom_radius = 0.9
+height = 0.32
+radial_segments = 32
+
+[sub_resource type="BoxMesh" id="SignDiamond"]
+size = Vector3(0.32, 1.2, 1.2)
+
+[sub_resource type="BoxMesh" id="SignBar"]
+size = Vector3(0.32, 0.3, 1.6)
+
+[node name="Puzzle" type="Node3D"]
+script = ExtResource("1")
+
+[node name="Level" type="Node3D" parent="."]
+script = ExtResource("2")
+level_id = "the_fold"
+revision = 1
+title = "The fold"
+question = "Which doorway should you join before you turn the frame?"
+explanation = "Join the entry doorway to the doorway on the frame while you can still see it, then turn the frame: the doorway goes with it, and the same link now opens onto a deck that has become a wall. From there the fixed slot shows the last doorway; join it to the frame's doorway and walk through."
+overview_focus = Vector3(12, 0, -4)
+overview_size = 160
+overview_azimuth_degrees = -50
+overview_elevation_degrees = 40
+sweep_tolerance = 0.16
+discovery_range = 160
+hints = PackedStringArray("A link stays with the architecture that holds its doorway.", "Join A to B first. Turning the frame afterwards carries B, and the link, with it.", "Link A to B, turn the frame once, walk through A, look back out through B and the slot, link B to C, cross.")
+
+[node name="Entry" type="Node3D" parent="Level"]
+script = ExtResource("3")
+kind = 0
+label = "Entry"
+position = Vector3(-44, -12, 0)
+dimensions = Vector3(24, 3.2, 9.6)
+end_sockets = false
+tint = Color(0.23, 0.23, 0.26, 1)
+
+[node name="PlayerStart" type="Node3D" parent="Level/Entry"]
+script = ExtResource("3")
+kind = 4
+position = Vector3(-8, 0, 0)
+path = NodePath("..")
+
+[node name="A" type="Node3D" parent="Level/Entry"]
+script = ExtResource("3")
+kind = 9
+label = "A"
+position = Vector3(12, 0, 0)
+path = NodePath("..")
+travel_direction = Vector3(1, 0, 0)
+ground_normal = Vector3(0, 1, 0)
+width = 3.2
+aperture_height = 5.6
+trigger_radius = 8
+link_group = "fold"
+tint = Color(0.55, 0.9, 1, 1)
+
+[node name="Sign" type="MeshInstance3D" parent="Level/Entry/A"]
+position = Vector3(0, 7.1, 0)
+rotation = Vector3(0, 0, 1.5708)
+mesh = SubResource("SignDisc")
+material_override = SubResource("SignLight")
+cast_shadow = 0
+
+[node name="EntryPier" type="Node3D" parent="Level"]
+script = ExtResource("3")
+kind = 8
+position = Vector3(-44, -115.2, 0)
+dimensions = Vector3(4.8, 200, 4.8)
+tint = Color(0.17, 0.17, 0.2, 1)
+
+[node name="LanternPost" type="Node3D" parent="Level"]
+script = ExtResource("3")
+kind = 8
+position = Vector3(-53.6, -5.6, 7.2)
+dimensions = Vector3(1.2, 12.8, 1.2)
+tint = Color(0.17, 0.17, 0.2, 1)
+
+[node name="Lantern" type="MeshInstance3D" parent="Level/LanternPost"]
+position = Vector3(0, 7.6, 0)
+mesh = SubResource("LanternMesh")
+material_override = SubResource("Lantern")
+cast_shadow = 0
+
+[node name="Frame" type="Node3D" parent="Level"]
+script = ExtResource("3")
+kind = 3
+label = "The frame"
+axis = Vector3(1, 0, 0)
+initial_state = 0
+duration = 1.8
+tint = Color(0.55, 0.9, 1, 1)
+
+[node name="FrameDeck" type="Node3D" parent="Level/Frame"]
+script = ExtResource("3")
+kind = 0
+label = "Frame deck"
+position = Vector3(0, -12, 0)
+dimensions = Vector3(32, 3.2, 9.6)
+end_sockets = false
+tint = Color(0.23, 0.23, 0.26, 1)
+
+[node name="B" type="Node3D" parent="Level/Frame/FrameDeck"]
+script = ExtResource("3")
+kind = 9
+label = "B"
+position = Vector3(16, 0, 0)
+path = NodePath("..")
+travel_direction = Vector3(1, 0, 0)
+ground_normal = Vector3(0, 1, 0)
+width = 3.2
+aperture_height = 5.6
+trigger_radius = 8
+link_group = "fold"
+tint = Color(0.55, 0.9, 1, 1)
+
+[node name="Sign" type="MeshInstance3D" parent="Level/Frame/FrameDeck/B"]
+position = Vector3(0, 7.1, 0)
+rotation = Vector3(0.785398, 0, 0)
+mesh = SubResource("SignDiamond")
+material_override = SubResource("SignLight")
+cast_shadow = 0
+
+[node name="FrameBottom" type="Node3D" parent="Level/Frame"]
+script = ExtResource("3")
+kind = 8
+position = Vector3(0, -15.2, 0)
+dimensions = Vector3(32, 3.2, 30.4)
+tint = Color(0.15, 0.14, 0.18, 1)
+
+[node name="DeckStripe" type="MeshInstance3D" parent="Level/Frame"]
+position = Vector3(0, -16.85, 0)
+mesh = SubResource("OuterStripe")
+material_override = SubResource("DeckMark")
+cast_shadow = 0
+
+[node name="DeckEdgeNorth" type="MeshInstance3D" parent="Level/Frame"]
+position = Vector3(0, -11.97, -5)
+mesh = SubResource("DeckEdge")
+material_override = SubResource("DeckMark")
+cast_shadow = 0
+
+[node name="DeckEdgeSouth" type="MeshInstance3D" parent="Level/Frame"]
+position = Vector3(0, -11.97, 5)
+mesh = SubResource("DeckEdge")
+material_override = SubResource("DeckMark")
+cast_shadow = 0
+
+[node name="FrameTop" type="Node3D" parent="Level/Frame"]
+script = ExtResource("3")
+kind = 8
+position = Vector3(0, 13.6, 0)
+dimensions = Vector3(32, 3.2, 30.4)
+tint = Color(0.15, 0.14, 0.18, 1)
+
+[node name="FrameNorth" type="Node3D" parent="Level/Frame"]
+script = ExtResource("3")
+kind = 8
+position = Vector3(0, 0, -13.6)
+dimensions = Vector3(32, 24, 3.2)
+tint = Color(0.15, 0.14, 0.18, 1)
+
+[node name="FrameSouth" type="Node3D" parent="Level/Frame"]
+script = ExtResource("3")
+kind = 8
+position = Vector3(0, 0, 13.6)
+dimensions = Vector3(32, 24, 3.2)
+tint = Color(0.15, 0.14, 0.18, 1)
+
+[node name="WestCapTop" type="Node3D" parent="Level/Frame"]
+script = ExtResource("3")
+kind = 8
+position = Vector3(-16.8, 6.8, 0)
+dimensions = Vector3(1.6, 16.8, 30.4)
+tint = Color(0.15, 0.14, 0.18, 1)
+
+[node name="WestCapBottom" type="Node3D" parent="Level/Frame"]
+script = ExtResource("3")
+kind = 8
+position = Vector3(-16.8, -13.6, 0)
+dimensions = Vector3(1.6, 3.2, 30.4)
+tint = Color(0.15, 0.14, 0.18, 1)
+
+[node name="WestCapNorth" type="Node3D" parent="Level/Frame"]
+script = ExtResource("3")
+kind = 8
+position = Vector3(-16.8, -6.8, -10)
+dimensions = Vector3(1.6, 10.4, 10.4)
+tint = Color(0.15, 0.14, 0.18, 1)
+
+[node name="WestCapSouth" type="Node3D" parent="Level/Frame"]
+script = ExtResource("3")
+kind = 8
+position = Vector3(-16.8, -6.8, 10)
+dimensions = Vector3(1.6, 10.4, 10.4)
+tint = Color(0.15, 0.14, 0.18, 1)
+
+[node name="RimTop" type="MeshInstance3D" parent="Level/Frame"]
+position = Vector3(-17.66, -1.6, 0)
+mesh = SubResource("RimAcross")
+material_override = SubResource("Lantern")
+cast_shadow = 0
+
+[node name="RimBottom" type="MeshInstance3D" parent="Level/Frame"]
+position = Vector3(-17.66, -12, 0)
+mesh = SubResource("RimAcross")
+material_override = SubResource("Lantern")
+cast_shadow = 0
+
+[node name="RimNorth" type="MeshInstance3D" parent="Level/Frame"]
+position = Vector3(-17.66, -6.8, -4.8)
+mesh = SubResource("RimUp")
+material_override = SubResource("Lantern")
+cast_shadow = 0
+
+[node name="RimSouth" type="MeshInstance3D" parent="Level/Frame"]
+position = Vector3(-17.66, -6.8, 4.8)
+mesh = SubResource("RimUp")
+material_override = SubResource("Lantern")
+cast_shadow = 0
+
+[node name="ScreenTop" type="Node3D" parent="Level"]
+script = ExtResource("3")
+kind = 8
+position = Vector3(20.8, 18.8, 0)
+dimensions = Vector3(1.6, 26.4, 64)
+tint = Color(0.17, 0.17, 0.2, 1)
+
+[node name="ScreenBottom" type="Node3D" parent="Level"]
+script = ExtResource("3")
+kind = 8
+position = Vector3(20.8, -18.8, 0)
+dimensions = Vector3(1.6, 26.4, 64)
+tint = Color(0.17, 0.17, 0.2, 1)
+
+[node name="ScreenNorth" type="Node3D" parent="Level"]
+script = ExtResource("3")
+kind = 8
+position = Vector3(20.8, 0, -22)
+dimensions = Vector3(1.6, 11.2, 20)
+tint = Color(0.17, 0.17, 0.2, 1)
+
+[node name="ScreenSouth" type="Node3D" parent="Level"]
+script = ExtResource("3")
+kind = 8
+position = Vector3(20.8, 0, 11.6)
+dimensions = Vector3(1.6, 11.2, 40.8)
+tint = Color(0.17, 0.17, 0.2, 1)
+
+[node name="GoalWall" type="Node3D" parent="Level"]
+script = ExtResource("3")
+kind = 0
+label = "Goal terrace"
+transform = Transform3D(1, 0, 0, 0, 0.000000, -1.000000, 0, 1.000000, 0.000000, 72, 0, -13.24)
+dimensions = Vector3(32, 3.2, 20)
+end_sockets = false
+tint = Color(0.23, 0.23, 0.26, 1)
+
+[node name="Goal" type="Node3D" parent="Level/GoalWall"]
+script = ExtResource("3")
+kind = 5
+position = Vector3(10, 0, 0)
+path = NodePath("..")
+trigger_radius = 4.8
+tint = Color(0.55, 0.9, 1, 1)
+
+[node name="Plate" type="MeshInstance3D" parent="Level/GoalWall/Goal"]
+position = Vector3(0, 0.02, 0)
+mesh = SubResource("PlateMesh")
+material_override = SubResource("GoalLight")
+cast_shadow = 0
+
+[node name="LightShaft" type="MeshInstance3D" parent="Level/GoalWall/Goal"]
+position = Vector3(0, 90, 0)
+mesh = SubResource("BeamMesh")
+material_override = SubResource("GoalLight")
+cast_shadow = 0
+
+[node name="C" type="Node3D" parent="Level/GoalWall"]
+script = ExtResource("3")
+kind = 9
+label = "C"
+position = Vector3(-16, 0, 0)
+path = NodePath("..")
+travel_direction = Vector3(-1, 0, 0)
+ground_normal = Vector3(0, 1, 0)
+width = 3.2
+aperture_height = 5.6
+trigger_radius = 8
+link_group = "fold"
+tint = Color(0.55, 0.9, 1, 1)
+
+[node name="SignUpper" type="MeshInstance3D" parent="Level/GoalWall/C"]
+position = Vector3(0, 7.46, 0)
+mesh = SubResource("SignBar")
+material_override = SubResource("SignLight")
+cast_shadow = 0
+
+[node name="SignLower" type="MeshInstance3D" parent="Level/GoalWall/C"]
+position = Vector3(0, 6.74, 0)
+mesh = SubResource("SignBar")
+material_override = SubResource("SignLight")
+cast_shadow = 0

@@ -73,6 +73,7 @@ func _ready() -> void:
 	walker = Walker.new()
 	add_child(walker)
 	walker.changed_surface.connect(crossed_seam)
+	walker.linked_crossing.connect(crossed_link)
 	overview = Camera3D.new()
 	add_child(overview)
 	overview.projection = Camera3D.PROJECTION_ORTHOGONAL
@@ -117,6 +118,9 @@ func apply_progress(_data: Dictionary) -> void: pass
 func run_tests() -> void: get_tree().quit(0)
 ## A short contextual prompt for something usable right now (first person only); empty otherwise.
 func interaction_prompt() -> String: return ""
+## Aiming mark at the centre of the first-person view (Spatial Links): "" hidden, "idle" at a
+## doorway, "aimed" while a doorway can be linked.
+func reticle_state() -> String: return ""
 
 # --- Construction helpers -------------------------------------------------------------------
 
@@ -141,6 +145,11 @@ func crossed_seam() -> void:
 	var ground := walker.support.global_basis * walker.support.surface_frame(walker.foot)
 	camera_frame = transport_ground(camera_frame, ground.y)
 	camera_bias = ground.inverse() * camera_frame
+
+## A Spatial Link crossing rotates the player's whole frame; carry the isometric composition
+## with it, so the overview stays continuous relative to the doorway.
+func crossed_link(rotation: Basis) -> void:
+	camera_frame = (rotation * camera_frame).orthonormalized()
 
 func transport_ground(frame: Basis, next_up: Vector3) -> Basis:
 	var up := next_up.normalized()

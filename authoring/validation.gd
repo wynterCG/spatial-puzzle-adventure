@@ -27,7 +27,7 @@ static func validate(level: Node3D) -> Dictionary:
 			while ancestor != level and ancestor != null:
 				if ancestor is C and ancestor.kind == C.Kind.ROTATOR: errors.append(id + ": nested rotating structures are not supported in Phase 1.")
 				ancestor = ancestor.get_parent()
-		if c.kind in [C.Kind.START, C.Kind.GOAL, C.Kind.CHECKPOINT, C.Kind.SOCKET]:
+		if c.kind in [C.Kind.START, C.Kind.GOAL, C.Kind.CHECKPOINT, C.Kind.SOCKET, C.Kind.THRESHOLD]:
 			var path = c.get_node_or_null(c.path)
 			if not path is C or not path.kind in [C.Kind.PATH, C.Kind.CURVE]:
 				errors.append(id + ": assign a valid path reference.")
@@ -36,15 +36,20 @@ static func validate(level: Node3D) -> Dictionary:
 				var point: Vector3 = path.to_local(c.global_position)
 				var normal: Vector3 = path.global_basis.inverse() * c.global_basis * c.ground_normal
 				if not valid_contact(path, point, normal): errors.append(id + ": marker/socket is not on its path with matching ground.")
-				if c.kind == C.Kind.SOCKET:
+				if c.kind in [C.Kind.SOCKET, C.Kind.THRESHOLD]:
 					var side: Vector3 = path.global_basis.inverse() * c.global_basis * c.travel_direction.cross(c.ground_normal).normalized() * c.width / 2
 					if not valid_contact(path, point + side, normal) or not valid_contact(path, point - side, normal): errors.append(id + ": socket opening extends beyond its walking region.")
 				if c.kind == C.Kind.START and not path.active: errors.append(id + ": starting path is inactive.")
+				if c.kind == C.Kind.THRESHOLD:
+					# A doorway stands at the edge of its walking region: just beyond it is not ground.
+					var beyond: Vector3 = path.global_basis.inverse() * c.global_basis * c.travel_direction.normalized() * .1
+					if valid_contact(path, point + beyond, normal): errors.append(id + ": a threshold must stand at the edge of its path.")
 			if c.kind == C.Kind.START:
 				starts.append(c)
 				if c.forward.length() < .99 or absf(c.forward.normalized().dot(c.ground_normal.normalized())) > .01: errors.append(id + ": forward must be a nonzero ground tangent.")
 			if c.kind == C.Kind.GOAL: goals.append(c)
-			if c.kind == C.Kind.SOCKET and (c.width <= 0 or c.ground_normal.length() < .99 or c.travel_direction.length() < .99 or absf(c.ground_normal.normalized().dot(c.travel_direction.normalized())) > .01): errors.append(id + ": invalid width or socket frame.")
+			if c.kind == C.Kind.THRESHOLD and (c.aperture_height <= 0 or c.link_group.is_empty()): errors.append(id + ": a threshold needs a positive aperture height and a link group.")
+			if c.kind in [C.Kind.SOCKET, C.Kind.THRESHOLD] and (c.width <= 0 or c.ground_normal.length() < .99 or c.travel_direction.length() < .99 or absf(c.ground_normal.normalized().dot(c.travel_direction.normalized())) > .01): errors.append(id + ": invalid width or socket frame.")
 		if c.kind == C.Kind.INTERACTION:
 			var target = c.get_node_or_null(c.target)
 			var expected := C.Kind.PATH if c.effect == 0 else C.Kind.ROTATOR
@@ -56,6 +61,10 @@ static func validate(level: Node3D) -> Dictionary:
 	if goals.size() != 1: errors.append("Author exactly one Goal.")
 	if rotations == 0: warnings.append("No rotatable structure: valid traversal study, but no transformation puzzle.")
 	var sockets := Links.descriptors(level)
+	for threshold in Links.thresholds(level):
+		for socket in sockets:
+			if socket.path == threshold.path and socket.position.distance_to(threshold.position) < threshold.width / 2:
+				errors.append(threshold.id + ": a threshold's edge must not also be an ordinary socket (turn off end_sockets there).")
 	for socket in sockets:
 		var joined := false
 		for other in sockets:

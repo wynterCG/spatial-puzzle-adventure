@@ -31,5 +31,18 @@ static func descriptors(level: Node3D) -> Array[Dictionary]:
 				result.append(make(item, path, Vector3.ZERO, item.travel_direction, item.ground_normal, item.width))
 	return result
 
+## Spatial Link thresholds (experimental). Socket-shaped descriptors plus link data; they never
+## join ordinary sockets. Read from current transforms, so a threshold on a rotor moves with it.
+static func thresholds(level: Node3D) -> Array[Dictionary]:
+	var result: Array[Dictionary] = []
+	for item in level.components():
+		if item.kind != ElsewhereComponent.Kind.THRESHOLD: continue
+		var path = item.get_node_or_null(item.path)
+		if not path is ElsewhereComponent: continue
+		var descriptor := make(item, path, Vector3.ZERO, item.travel_direction, item.ground_normal, item.width)
+		descriptor.merge({"id": str(level.get_path_to(item)), "height": item.aperture_height, "group": item.link_group})
+		result.append(descriptor)
+	return result
+
 static func make(node: Node3D, path: Node3D, point: Vector3, direction: Vector3, normal: Vector3, width: float) -> Dictionary:
 	return {"node": node, "path": path, "position": node.global_transform * point, "direction": (node.global_basis * direction).normalized(), "normal": (node.global_basis * normal).normalized(), "width": width, "type": node.socket_type, "active": node.active and path.active, "tolerance": node.position_tolerance, "angle": node.angular_tolerance}

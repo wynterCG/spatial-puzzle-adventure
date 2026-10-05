@@ -19,6 +19,8 @@ extends Node3D
 @export_range(0.0, 0.5, 0.01) var sweep_tolerance := 0.04
 ## Far scenery around the monument (never gameplay): silhouettes rising out of the mist.
 @export var backdrop: PackedScene = preload("res://world/backdrop.tscn")
+## Spatial Links (experimental): how far away a doorway can be noticed and aimed at, metres.
+@export var discovery_range := 160.0
 
 ## Orthographic camera distance from the focus: far enough that tall masses never stand
 ## between the camera and the composition, near enough to stay inside the backdrop's ring

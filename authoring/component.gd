@@ -2,7 +2,7 @@
 class_name ElsewhereComponent
 extends Node3D
 ## Authoring data. Geometry and gameplay remain independent children.
-enum Kind { PATH, CURVE, SOCKET, ROTATOR, START, GOAL, INTERACTION, CHECKPOINT, GEOMETRY }
+enum Kind { PATH, CURVE, SOCKET, ROTATOR, START, GOAL, INTERACTION, CHECKPOINT, GEOMETRY, THRESHOLD }
 @export var kind: Kind = Kind.PATH:
 	set(value): kind = value; notify_property_list_changed()
 @export var label := ""
@@ -44,6 +44,16 @@ enum Kind { PATH, CURVE, SOCKET, ROTATOR, START, GOAL, INTERACTION, CHECKPOINT, 
 @export var condition_state := -1
 @export var initial_value := false
 @export var feedback := "The mechanism changes."
+## Spatial Link threshold (experimental, docs/designs/2026-10-01-spatial-links.md): an authored
+## doorway at a path edge. Uses path, travel_direction (out through the doorway), ground_normal,
+## width, trigger_radius (reach to prime it) and tint.
+@export_group("Threshold")
+@export var aperture_height := 3.0
+## Only thresholds in the same group can be linked.
+@export var link_group := "link"
+@export var initially_discovered := false
+## Prototype art: an automatic frame (jambs and lintel). Custom architecture can replace it.
+@export var blockout_frame := true
 @export_enum("Press", "Enter") var activation := 0
 var _signature := ""
 var _clock := 0.0
@@ -60,7 +70,8 @@ func _validate_property(property: Dictionary) -> void:
 		Kind.GOAL: ["path", "trigger_radius", "tint"],
 		Kind.CHECKPOINT: ["path", "trigger_radius", "tint"],
 		Kind.INTERACTION: ["target", "effect", "condition_structure", "condition_state", "initial_value", "feedback", "activation", "trigger_radius", "tint"],
-		Kind.GEOMETRY: ["dimensions", "tint"]
+		Kind.GEOMETRY: ["dimensions", "tint"],
+		Kind.THRESHOLD: ["path", "travel_direction", "ground_normal", "width", "aperture_height", "link_group", "initially_discovered", "blockout_frame", "trigger_radius", "tint"]
 	}
 	var all: Array = []
 	for names in fields.values(): all.append_array(names)
@@ -75,7 +86,7 @@ func _process(delta: float) -> void:
 	_clock += delta
 	if _clock < .25: return
 	_clock = 0
-	var signature := str([kind, dimensions, tint, blockout, radius, arc_degrees, tail, active, forward, ground_normal, travel_direction, width, regions, collision_boxes])
+	var signature := str([kind, dimensions, tint, blockout, radius, arc_degrees, tail, active, forward, ground_normal, travel_direction, width, regions, collision_boxes, aperture_height])
 	if signature != _signature:
 		_signature = signature
 		rebuild_preview()
@@ -116,10 +127,20 @@ func rebuild_preview() -> void:
 	elif kind in [Kind.START, Kind.GOAL, Kind.CHECKPOINT, Kind.INTERACTION, Kind.SOCKET]:
 		var colour := Color("7fdcc6") if kind == Kind.START else Color("f4d69c")
 		art.box(holder, Vector3(0, .15, 0), Vector3(.25, .3, .25), art.material(colour, .3))
-	if kind in [Kind.PATH, Kind.CURVE, Kind.START, Kind.SOCKET]:
-		var normal := ground_normal.normalized() if kind in [Kind.START, Kind.SOCKET] else Vector3.UP
+	if kind == Kind.THRESHOLD:
+		# Doorframe outline in the threshold's own frame (up = ground normal, across = width).
+		var up := ground_normal.normalized()
+		var across := travel_direction.cross(ground_normal).normalized() * width / 2
+		var top := up * aperture_height
+		var outline := Color("c9a0ff")
+		line(holder, -across, -across + top, outline)
+		line(holder, across, across + top, outline)
+		line(holder, -across + top, across + top, outline)
+		line(holder, -across, across, outline)
+	if kind in [Kind.PATH, Kind.CURVE, Kind.START, Kind.SOCKET, Kind.THRESHOLD]:
+		var normal := ground_normal.normalized() if kind in [Kind.START, Kind.SOCKET, Kind.THRESHOLD] else Vector3.UP
 		line(holder, Vector3.ZERO, normal * 1.1, Color("6dbbe8"))
-		var heading := travel_direction if kind == Kind.SOCKET else forward
+		var heading := travel_direction if kind in [Kind.SOCKET, Kind.THRESHOLD] else forward
 		line(holder, Vector3.ZERO, heading.normalized(), Color("efbe6e"))
 
 static func line(parent: Node3D, from: Vector3, to: Vector3, colour: Color) -> void:
