@@ -298,3 +298,8 @@ static func piece_cases(failures: Array[String]) -> void:
 			"SpatialThreshold": if not (piece is C and piece.kind == C.Kind.THRESHOLD): failures.append("SpatialThreshold.tscn is a doorway")
 			"StateArt": if not piece is ElsewhereStateArt: failures.append("StateArt.tscn is state-bound art")
 		piece.free()
+	# The starter template is a valid level to duplicate into monuments/ (and is not in the menu).
+	var template = load("res://authoring/templates/new_monument.tscn").instantiate()
+	var report := Validate.validate(template.get_node("Level"))
+	if not report.errors.is_empty(): failures.append("The new-monument template validates: " + str(report.errors))
+	template.free()

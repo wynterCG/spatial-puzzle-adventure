@@ -1606,11 +1606,11 @@ As of 1 October 2026, on branch `feature/elsewhere-spec`. Details of how each sy
 | §7 Authored gravity paths and 90°/180° curves | Implemented (analytic curves only; no general splines) |
 | §9–10 Isometric camera: puzzle-centred, ground-normal transport | Implemented |
 | §11 Authored composition (per-monument azimuth/elevation, no orbit, limited zoom) | Implemented; camera invariants are covered by tests |
-| §12 Discrete authored states, player carried in local pose | Implemented (nested pivots not supported) |
+| §12 Discrete authored states, player carried in local pose | Implemented for rotation and sliding (Transformable Structures, cyclic or not); nested pivots not supported |
 | §13 Connections: settled-state only, socket direction/normal/width/type/aperture | Implemented |
 | §14 Puzzle state incl. player path; §18 undo via snapshots; §19 checkpoints | Implemented, per-level saves |
 | §46 Initial blockout library | Implemented as scene components |
-| §48 State preview, connection and ground visualization, Play From Here | Implemented (editor plugin) |
+| §48 State preview, connection and ground visualization, Play From Here | Implemented (editor plugin): named states, a per-state connection table (added/removed/stranded), Show Reachable, and Play From Here with structure states, interaction values and the link pair. Workflow: [designing-a-puzzle.md](designing-a-puzzle.md) |
 | §48 Socket snapping | Not started |
 | §49 Later tools (reachability, sweep visualization, snapshots) | Not started; validation reports structural errors only |
 | §42 Turning Frame | Prototype conversion archived in `legacy/monuments/`; a fresh Turning Frame is not started |
